@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import { X, QrCode, CreditCard, Building2, Wallet } from 'lucide-react';
+import { processPayment } from '../api/payments';
+import toast from 'react-hot-toast';
+
 export default function PaymentModal({ rental, onSuccess, onClose }) {
   const [method, setMethod] = useState('gcash');
   const [loading, setLoading] = useState(false);
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    if (!rental?.id) return toast.error('No rental found');
     setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess(); }, 1500); // Simulate API
+    try {
+      await processPayment(rental.id, method);
+      toast.success('Payment successful! 🎉');
+      onSuccess();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Payment failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tabs = [
@@ -22,12 +34,12 @@ export default function PaymentModal({ rental, onSuccess, onClose }) {
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"><X /></button>
         <div className="bg-navy-700 p-6 text-white text-center">
           <h2 className="text-xl font-bold mb-1">Complete Payment</h2>
-          <p className="opacity-80 text-sm">Total: ₱{rental?.total_price || 0}</p>
+          <p className="opacity-80 text-sm">Total: <span className="font-bold text-gold">₱{rental?.total_price?.toLocaleString() || 0}</span></p>
         </div>
         <div className="p-6">
           <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
             {tabs.map(t => (
-              <button key={t.id} onClick={() => setMethod(t.id)} className={`flex-1 py-2 text-xs font-semibold rounded flex flex-col items-center gap-1 ${method === t.id ? 'bg-white shadow text-navy-700' : 'text-gray-500'}`}>
+              <button key={t.id} onClick={() => setMethod(t.id)} className={`flex-1 py-2 text-xs font-semibold rounded flex flex-col items-center gap-1 transition ${method === t.id ? 'bg-white shadow text-navy-700' : 'text-gray-500 hover:text-gray-700'}`}>
                 <t.icon size={16} /> {t.label}
               </button>
             ))}
@@ -59,7 +71,7 @@ export default function PaymentModal({ rental, onSuccess, onClose }) {
               </div>
             )}
           </div>
-          <button disabled={loading} onClick={handlePay} className="btn-primary w-full mt-6">
+          <button disabled={loading} onClick={handlePay} className="btn-primary w-full mt-6 disabled:opacity-60">
             {loading ? 'Processing...' : method === 'card' ? 'Pay Now' : "I've Paid"}
           </button>
         </div>

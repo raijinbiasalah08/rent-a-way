@@ -2,74 +2,69 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Shield, Check, ChevronDown, Camera, Mountain, Bike, Calendar, Wrench, BookOpen, Star, MapPin, Clock, ArrowRight, RotateCcw, MessageSquare } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { getProducts } from '../../api/products';
+import { getProducts, getCategories } from '../../api/products';
+import { useFavorites } from '../../context/FavoritesContext';
 
 /* ─── Category data ─────────────────────────────────────────── */
 const CATEGORIES = [
   {
+    id: 'Cameras',
     name: 'Cameras & Drones',
     subtitle: 'Capture every moment',
-    items: 128,
     to: '/browse?category=Cameras',
     icon: Camera,
     bg: 'bg-teal-50',
     iconColor: 'text-teal-600',
-    // DSLR camera on a table — clear, sharp product shot
     image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=700&q=85&fit=crop',
   },
   {
+    id: 'Camping',
     name: 'Camping Equipment',
     subtitle: 'Gear for the great outdoors',
-    items: 96,
     to: '/browse?category=Camping',
     icon: Mountain,
     bg: 'bg-green-50',
     iconColor: 'text-green-600',
-    // Orange tent pitched at sunset in the mountains
     image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=700&q=85&fit=crop',
   },
   {
+    id: 'Sports',
     name: 'Sports Equipment',
     subtitle: 'Play harder, spend less',
-    items: 74,
     to: '/browse?category=Sports',
     icon: Bike,
     bg: 'bg-orange-50',
     iconColor: 'text-orange-600',
-    // Mountain bike on trail — action/gear shot
     image: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=700&q=85&fit=crop',
   },
   {
+    id: 'Event',
     name: 'Event Equipment',
     subtitle: 'Everything for the big day',
-    items: 63,
     to: '/browse?category=Event',
     icon: Calendar,
     bg: 'bg-purple-50',
     iconColor: 'text-purple-600',
-    // Elegant event setup with fairy lights and chairs
     image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=700&q=85&fit=crop',
   },
   {
+    id: 'Household',
     name: 'Household Equipment',
     subtitle: 'Tools for every project',
-    items: 87,
     to: '/browse?category=Household',
     icon: Wrench,
     bg: 'bg-blue-50',
     iconColor: 'text-blue-600',
-    // Power drill and tools on a workbench
     image: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=700&q=85&fit=crop',
   },
   {
+    id: 'School',
     name: 'School Project Equipment',
     subtitle: 'Ace every project',
-    items: 52,
     to: '/browse?category=School',
     icon: BookOpen,
     bg: 'bg-amber-50',
     iconColor: 'text-amber-600',
-    // Microscope in a science lab — clean and clear
     image: 'https://images.unsplash.com/photo-1532094349884-543290200b6b?w=700&q=85&fit=crop',
   },
 ];
@@ -84,69 +79,7 @@ const TICKER = [
   { icon: Clock, label: 'LOYALTY REWARDS' },
 ];
 
-/* ─── Featured mock products (shown when API has no data) ────── */
-const MOCK_PRODUCTS = [
-  {
-    id: 'm1',
-    name: 'Canon EOS R6 Mark II Mirrorless Camera',
-    category: 'CAMERAS & DRONES',
-    rating: 4.9,
-    price: 1500,
-    location: 'Makati City',
-    minRental: '1 day',
-    image: 'https://images.unsplash.com/photo-1606986628252-b0f0ef0e2a03?w=500&q=80',
-    available: true,
-    popular: true,
-  },
-  {
-    id: 'm2',
-    name: 'Sony A7 III Full-Frame Camera Kit',
-    category: 'CAMERAS & DRONES',
-    rating: 4.8,
-    price: 1200,
-    location: 'BGC, Taguig',
-    minRental: '1 day',
-    image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=500&q=80',
-    available: true,
-    popular: true,
-  },
-  {
-    id: 'm3',
-    name: '4-Person Waterproof Camping Tent',
-    category: 'CAMPING EQUIPMENT',
-    rating: 4.7,
-    price: 450,
-    location: 'Quezon City',
-    minRental: '1 day',
-    image: 'https://images.unsplash.com/photo-1487730116645-74489c95b41b?w=500&q=80',
-    available: true,
-    popular: true,
-  },
-  {
-    id: 'm4',
-    name: 'Trek Marlin 7 Mountain Bike',
-    category: 'SPORTS EQUIPMENT',
-    rating: 4.8,
-    price: 800,
-    location: 'Marikina City',
-    minRental: '1 day',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&q=80',
-    available: true,
-    popular: true,
-  },
-  {
-    id: 'm5',
-    name: '10×20 ft Event Canopy Tent',
-    category: 'EVENT EQUIPMENT',
-    rating: 4.8,
-    price: 2500,
-    location: 'Cebu City',
-    minRental: '1 day',
-    image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=500&q=80',
-    available: true,
-    popular: true,
-  },
-];
+/* ─── Removed Mock Data ────── */
 
 /* ─── Stars helper ───────────────────────────────────────────── */
 function Stars({ rating }) {
@@ -163,28 +96,40 @@ function Stars({ rating }) {
 
 /* ─── Product listing card ───────────────────────────────────── */
 function ListingCard({ product }) {
-  const name = product.name || product.title || 'Unnamed Product';
-  const category = (product.category_name || product.category || '').toUpperCase();
-  const rating = product.rating || product.average_rating || 4.8;
+  const { favoriteIds, toggleFavorite } = useFavorites();
+  const isFavorite = favoriteIds?.has(product.id);
+
+  const name = product.title || product.name || 'Unnamed Product';
+  const category = (product.category || product.category_name || '').toUpperCase();
+  const rating = product.avg_rating || product.rating || 4.8;
   const price = product.price_per_day || product.price || 0;
-  const location = product.location || 'Philippines';
-  const image = product.image_url || product.image || 'https://images.unsplash.com/photo-1606986628252-b0f0ef0e2a03?w=500&q=80';
+  const location = 'Philippines'; // or use product.location if added
+  const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group">
-      {/* Image */}
-      <div className="relative h-52 overflow-hidden bg-amber-50">
-        <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        <div className="absolute top-3 left-3">
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col">
+      <div className="relative h-56 bg-[#f5f0e8] overflow-hidden">
+        <img
+          src={image}
+          alt={name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute top-3 left-3 flex gap-2">
+          {product.popular && (
+            <span className="bg-[#1e3a8a] text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">Popular</span>
+          )}
           <span className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Available
           </span>
         </div>
-        {product.popular && (
-          <div className="absolute top-3 right-3">
-            <span className="bg-[#1e3a8a] text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">Popular</span>
-          </div>
-        )}
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }}
+          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition"
+        >
+          <svg className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
       </div>
 
       {/* Info */}
@@ -200,9 +145,6 @@ function ListingCard({ product }) {
         <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{name}</h3>
         <p className="text-xs text-gray-500 line-clamp-2 mb-3">
           {product.description || 'Quality gear available for rent. Contact supplier for details.'}
-          {product.description && product.description.includes('included') && (
-            <> <span className="text-[#1e3a8a]">included</span>.</>
-          )}
         </p>
 
         <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
@@ -227,25 +169,38 @@ function ListingCard({ product }) {
   );
 }
 
+import { Helmet } from 'react-helmet-async';
+
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function Home() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All categories');
   const [catDropOpen, setCatDropOpen] = useState(false);
   const [products, setProducts] = useState([]);
+  const [categoryCounts, setCategoryCounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getProducts({ limit: 5 })
-      .then(res => setProducts(res.data?.data?.products || []))
+    Promise.all([
+      getProducts({ limit: 6 }),
+      getCategories()
+    ])
+      .then(([productsRes, catsRes]) => {
+        setProducts(productsRes.data?.data?.products || []);
+        setCategoryCounts(catsRes.data?.data || []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const displayProducts = products.length > 0 ? products : MOCK_PRODUCTS;
+  const displayProducts = products;
 
   return (
     <div className="font-sans">
+      <Helmet>
+        <title>Rent-A-Way | Rent what you need. Save what you don't.</title>
+        <meta name="description" content="Trusted rental marketplace in the Philippines. Cameras, camping gear, sports, event, household and school equipment." />
+      </Helmet>
 
       {/* ── HERO ────────────────────────────────────────────────── */}
       <section
@@ -436,7 +391,7 @@ export default function Home() {
                     />
                     <div className="absolute top-3 right-3">
                       <span className="bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-                        {cat.items} items
+                        {categoryCounts.find(c => c.name === cat.id)?.count || 0} items
                       </span>
                     </div>
                   </div>
@@ -489,7 +444,23 @@ export default function Home() {
           </div>
 
           {loading ? (
-            <LoadingSpinner />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col animate-pulse">
+                  <div className="h-56 bg-gray-200"></div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex justify-between mb-2"><div className="w-16 h-3 bg-gray-200 rounded"></div><div className="w-12 h-3 bg-gray-200 rounded"></div></div>
+                    <div className="w-3/4 h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="w-full h-3 bg-gray-200 rounded mb-1"></div>
+                    <div className="w-5/6 h-3 bg-gray-200 rounded mb-4"></div>
+                    <div className="flex justify-between items-end mt-auto">
+                      <div className="w-16 h-6 bg-gray-200 rounded"></div>
+                      <div className="w-20 h-8 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {displayProducts.map(p => (

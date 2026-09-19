@@ -10,6 +10,9 @@ const paymentsRoutes = require('./routes/payments');
 const reviewsRoutes = require('./routes/reviews');
 const communityRoutes = require('./routes/community');
 const adminRoutes = require('./routes/admin');
+const favoritesRoutes = require('./routes/favorites');
+const notificationsRoutes = require('./routes/notifications');
+const messagesRoutes = require('./routes/messages');
 
 require('dotenv').config();
 
@@ -28,6 +31,9 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/favorites', favoritesRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/messages', messagesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -36,7 +42,12 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const http = require('http');
+const socket = require('./socket');
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+socket.init(server);
+
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

@@ -58,7 +58,7 @@ router.get('/', authenticate, (req, res) => {
       query = baseSelect;
     }
 
-    const rentals = db.prepare(query + ' ORDER BY r.created_at DESC').all(...params);
+    const rentals = db.prepare(query + ' ORDER BY r.created_at DESC').all(...[...params]);
     res.json({ success: true, data: rentals });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -106,6 +106,17 @@ router.put('/:id/status', authenticate, (req, res) => {
 
     db.prepare('UPDATE rentals SET status = ? WHERE id = ?').run(status, req.params.id);
     const updated = db.prepare('SELECT * FROM rentals WHERE id = ?').get(req.params.id);
+
+    // Emit notification to customer
+    if (['approved', 'rejected', 'completed', 'cancelled'].includes(status)) {
+      const title = `Rental ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+      const message = `Your rental request for ${rental.product_title || 'an item'} has been ${status}.`;
+      db.prepare(`
+        INSERT INTO notifications (id, user_id, title, message, link, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(uuidv4(), rental.customer_id, title, message, '/customer/rentals', new Date().toISOString());
+    }
+
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

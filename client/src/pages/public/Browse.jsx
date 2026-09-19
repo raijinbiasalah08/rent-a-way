@@ -1,18 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Search, MapPin, Calendar, ArrowRight, Star, ChevronRight, SlidersHorizontal, Scale, X, SlidersHorizontal as FilterIcon } from 'lucide-react';
-import { getProducts } from '../../api/products';
-import { PRODUCTS } from '../../data/products';
-
-const CATEGORY_FILTERS = [
-  { label: 'All categories', count: null, value: '' },
-  { label: 'Cameras & Drones', count: 128, value: 'Cameras & Drones' },
-  { label: 'Camping Equipment', count: 96, value: 'Camping Equipment' },
-  { label: 'Sports Equipment', count: 74, value: 'Sports Equipment' },
-  { label: 'Event Equipment', count: 63, value: 'Event Equipment' },
-  { label: 'Household Equipment', count: 87, value: 'Household Equipment' },
-  { label: 'School Project Equipment', count: 52, value: 'School Project Equipment' },
-];
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, MapPin, Calendar, ArrowRight, Star, ChevronRight, SlidersHorizontal, Scale, X, SlidersHorizontal as FilterIcon, ChevronLeft, ChevronRight as ChevronRight2 } from 'lucide-react';
+import { getProducts, getCategories } from '../../api/products';
+import { useFavorites } from '../../context/FavoritesContext';
 
 const PRICE_FILTERS = [
   { label: 'Any price', value: '' },
@@ -56,52 +46,66 @@ function StatusBadge({ status }) {
 
 /* ─── Product card ───────────────────────────────────────────── */
 function ProductCard({ product }) {
+  const { favoriteIds, toggleFavorite } = useFavorites();
+  const isFavorite = favoriteIds?.has(product.id);
+
+  const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group">
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col">
       {/* Image */}
       <div className="relative h-52 bg-[#f5f0e8] overflow-hidden">
         <img
-          src={product.images?.[0] || product.image || product.image_url}
-          alt={product.name}
+          src={image}
+          alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <div className="absolute top-3 left-3">
-          <StatusBadge status={product.status || (product.available ? 'available' : 'rented')} />
+        <div className="absolute top-3 left-3 flex gap-2">
+          <StatusBadge status={product.availability || 'available'} />
         </div>
-        {product.popular && (
-          <div className="absolute top-3 right-3">
-            <span className="bg-[#1e3a8a] text-white text-xs font-bold px-2.5 py-1 rounded-full">Popular</span>
-          </div>
-        )}
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }}
+          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition"
+        >
+          <svg className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
       </div>
 
       {/* Body */}
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col">
         {/* Category + rating row */}
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">
-            {product.categoryKey || product.category_name || product.category || ''}
+            {product.category}
           </span>
           <div className="flex items-center gap-1">
-            <Stars rating={product.rating || product.average_rating || 4.8} />
+            <Stars rating={product.avg_rating || 0} />
             <span className="text-xs font-semibold text-gray-700">
-              {Number(product.rating || product.average_rating || 4.8).toFixed(1)}
+              {Number(product.avg_rating || 0).toFixed(1)}
             </span>
           </div>
         </div>
 
-        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5 line-clamp-2">{product.name}</h3>
+        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5 line-clamp-2">
+          {product.is_super_supplier ? (
+            <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5 align-text-bottom shadow-sm" title="Super Supplier">
+              <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> Super
+            </span>
+          ) : null}
+          {product.title}
+        </h3>
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">
-          {product.description || 'Quality gear available for rent. Contact supplier for more details.'}
+          {product.description}
         </p>
 
         {/* Location + min days */}
-        <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
+        <div className="flex items-center gap-3 text-xs text-gray-400 mb-4 mt-auto">
           <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> {product.location || 'Philippines'}
+            <MapPin className="w-3 h-3" /> Philippines
           </span>
           <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" /> Min {product.minDays || 1} day
+            <Calendar className="w-3 h-3" /> Min {product.min_days || 1} day
           </span>
         </div>
 
@@ -109,14 +113,11 @@ function ProductCard({ product }) {
         <div className="flex items-end justify-between">
           <div>
             <div className="text-xl font-extrabold text-gray-900">
-              ₱{Number(product.price || product.price_per_day || 0).toLocaleString()}
+              ₱{Number(product.price_per_day || 0).toLocaleString()}
             </div>
             <div className="text-xs text-gray-400">per day</div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-600 transition">
-              <Scale className="w-3.5 h-3.5" />
-            </button>
             <Link
               to={`/product/${product.id}`}
               className="flex items-center gap-1.5 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition"
@@ -130,67 +131,115 @@ function ProductCard({ product }) {
   );
 }
 
+import { Helmet } from 'react-helmet-async';
+
 /* ─── Main Browse Page ───────────────────────────────────────── */
 export default function Browse() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [headerSearch, setHeaderSearch] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [selectedPrice, setSelectedPrice] = useState('');
-  const [availability, setAvailability] = useState({ available: false, limited: false, rented: false });
-  const [sortBy, setSortBy] = useState('popular');
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [categories, setCategories] = useState([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
+  // Sync state with URL params
+  const search = searchParams.get('q') || '';
+  const category = searchParams.get('category') || '';
+  const priceRange = searchParams.get('price') || '';
+  const startDate = searchParams.get('startDate') || '';
+  const endDate = searchParams.get('endDate') || '';
+  const page = parseInt(searchParams.get('page') || '1');
+
+  // Local state for the header input (only updates URL on enter/click)
+  const [headerSearch, setHeaderSearch] = useState(search);
+  const [localStartDate, setLocalStartDate] = useState(startDate);
+  const [localEndDate, setLocalEndDate] = useState(endDate);
+
   useEffect(() => {
-    getProducts({ limit: 50 })
-      .then(res => setProducts(res.data?.data?.products || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    setHeaderSearch(search);
+  }, [search]);
+
+  // Fetch categories once
+  useEffect(() => {
+    getCategories().then(res => {
+      setCategories([{ name: 'All categories', value: '', count: null }, ...res.data.data.map(c => ({ ...c, value: c.name }))]);
+    }).catch(console.error);
   }, []);
 
-  const allProducts = products.length > 0 ? products : PRODUCTS;
-
-  /* ── Filtering ── */
-  const filtered = allProducts.filter(p => {
-    const name = (p.name || p.title || '').toLowerCase();
-    const cat = (p.category_name || p.category || '');
-    const price = p.price || p.price_per_day || 0;
-    const status = p.status || (p.available ? 'available' : 'rented');
-
-    if (headerSearch && !name.includes(headerSearch.toLowerCase())) return false;
-    if (selectedCategory && cat !== selectedCategory) return false;
-    if (selectedPrice) {
-      const [min, max] = selectedPrice.split('-').map(Number);
-      if (price < min || price > max) return false;
+  // Fetch products on param change
+  useEffect(() => {
+    setLoading(true);
+    const params = { page, limit: 12 };
+    if (search) params.search = search;
+    if (category) params.category = category;
+    if (priceRange) {
+      const [min, max] = priceRange.split('-');
+      params.minPrice = min;
+      params.maxPrice = max;
     }
-    const anyAvail = availability.available || availability.limited || availability.rented;
-    if (anyAvail) {
-      if (availability.available && status !== 'available') return false;
-      if (availability.limited && status !== 'limited') return false;
-      if (availability.rented && status !== 'rented') return false;
+    if (startDate && endDate) {
+      params.startDate = startDate;
+      params.endDate = endDate;
     }
-    return true;
-  });
+    
+    getProducts(params)
+      .then(res => {
+        setProducts(res.data?.data?.products || []);
+        setTotal(res.data?.data?.total || 0);
+        setTotalPages(res.data?.data?.totalPages || 1);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [search, category, priceRange, page]);
 
-  /* ── Sorting ── */
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'popular') return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
-    if (sortBy === 'price-asc') return (a.price || a.price_per_day || 0) - (b.price || b.price_per_day || 0);
-    if (sortBy === 'price-desc') return (b.price || b.price_per_day || 0) - (a.price || a.price_per_day || 0);
-    if (sortBy === 'rating') return (b.rating || b.average_rating || 0) - (a.rating || a.average_rating || 0);
-    return 0;
-  });
+  const updateParam = (key, value) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    // reset to page 1 on filter change
+    if (key !== 'page') newParams.set('page', '1');
+    setSearchParams(newParams);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    updateParam('q', headerSearch);
+  };
 
   const clearAll = () => {
-    setSelectedCategory('');
-    setSelectedPrice('');
-    setAvailability({ available: false, limited: false, rented: false });
+    setSearchParams(new URLSearchParams());
     setHeaderSearch('');
+    setLocalStartDate('');
+    setLocalEndDate('');
+    setFilterDrawerOpen(false);
   };
+
+  const applyDates = () => {
+    if ((localStartDate && localEndDate) || (!localStartDate && !localEndDate)) {
+      const newParams = new URLSearchParams(searchParams);
+      if (localStartDate) newParams.set('startDate', localStartDate);
+      else newParams.delete('startDate');
+      if (localEndDate) newParams.set('endDate', localEndDate);
+      else newParams.delete('endDate');
+      newParams.set('page', '1');
+      setSearchParams(newParams);
+    }
+  };
+
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-[#f5f0e8] font-sans">
+      <Helmet>
+        <title>{category ? `${category} Rentals` : 'Browse Rentals'} | Rent-A-Way</title>
+        <meta name="description" content={`Browse our selection of ${category ? category.toLowerCase() : 'equipment'} available for rent in the Philippines.`} />
+      </Helmet>
 
       {/* ── HEADER BANNER ─────────────────────────────────────── */}
       <div className="bg-[#f5f0e8] border-b border-gray-200 px-4 sm:px-6 py-5">
@@ -203,15 +252,23 @@ export default function Browse() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">Browse rental equipment</h1>
-              <p className="text-sm text-gray-500">
-                {sorted.length} items from verified suppliers.
-              </p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">Browse rentals</h1>
+                <p className="text-sm text-gray-500">
+                  {total} item{total !== 1 ? 's' : ''} available
+                </p>
+              </div>
+              <Link 
+                to={`/map?category=${encodeURIComponent(category)}`} 
+                className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition"
+              >
+                <MapPin className="w-4 h-4" /> Map View
+              </Link>
             </div>
 
             {/* Search bar + mobile filters button */}
-            <div className="flex items-center gap-2">
+            <form onSubmit={handleSearch} className="flex items-center gap-2">
               <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex-1">
                 <div className="flex items-center gap-2 px-3 flex-1">
                   <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -219,24 +276,23 @@ export default function Browse() {
                     type="text"
                     value={headerSearch}
                     onChange={e => setHeaderSearch(e.target.value)}
-                    placeholder="Search cameras, tents, bikes..."
+                    placeholder="Search equipment..."
                     className="py-2.5 text-sm text-gray-800 outline-none bg-transparent w-full placeholder-gray-400"
                   />
                 </div>
               </div>
-              {/* Filters button — mobile only */}
               <button
+                type="button"
                 onClick={() => setFilterDrawerOpen(true)}
                 className="lg:hidden flex items-center gap-1.5 bg-[#1e3a8a] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition flex-shrink-0"
               >
                 <FilterIcon className="w-4 h-4" />
                 Filters
               </button>
-              {/* Search button — desktop */}
-              <button className="hidden lg:block bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition flex-shrink-0">
+              <button type="submit" className="hidden lg:block bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition flex-shrink-0">
                 Search
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </div>
@@ -244,9 +300,7 @@ export default function Browse() {
       {/* ── MOBILE FILTER DRAWER OVERLAY ───────────────────────── */}
       {filterDrawerOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40" onClick={() => setFilterDrawerOpen(false)} />
-          {/* Drawer */}
           <div className="absolute top-0 left-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
               <span className="font-bold text-gray-900 text-base">Filters</span>
@@ -262,22 +316,16 @@ export default function Browse() {
               <div className="mb-6">
                 <h3 className="text-sm font-bold text-gray-900 mb-3">Category</h3>
                 <div className="space-y-1">
-                  {CATEGORY_FILTERS.map(cat => (
+                  {categories.map(cat => (
                     <button
                       key={cat.value}
-                      onClick={() => setSelectedCategory(cat.value)}
+                      onClick={() => updateParam('category', cat.value)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition ${
-                        selectedCategory === cat.value
-                          ? 'bg-blue-50 text-[#1e3a8a] font-semibold'
-                          : 'text-gray-600 hover:bg-gray-100'
+                        category === cat.value ? 'bg-blue-50 text-[#1e3a8a] font-semibold' : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      <span>{cat.label}</span>
-                      {cat.count && (
-                        <span className={`text-xs ${selectedCategory === cat.value ? 'text-[#1e3a8a]' : 'text-gray-400'}`}>
-                          {cat.count}
-                        </span>
-                      )}
+                      <span>{cat.name}</span>
+                      {cat.count > 0 && <span className="text-xs text-gray-400">{cat.count}</span>}
                     </button>
                   ))}
                 </div>
@@ -290,15 +338,15 @@ export default function Browse() {
                   {PRICE_FILTERS.map(p => (
                     <button
                       key={p.value}
-                      onClick={() => setSelectedPrice(p.value)}
+                      onClick={() => updateParam('price', p.value)}
                       className="w-full flex items-center gap-2.5 px-1 py-1.5 rounded-lg hover:bg-gray-100 transition text-left group"
                     >
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition ${
-                        selectedPrice === p.value ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-gray-300 group-hover:border-gray-400'
+                        priceRange === p.value ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-gray-300 group-hover:border-gray-400'
                       }`}>
-                        {selectedPrice === p.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        {priceRange === p.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                       </div>
-                      <span className={`text-sm transition ${selectedPrice === p.value ? 'text-[#1e3a8a] font-semibold' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                      <span className={`text-sm transition ${priceRange === p.value ? 'text-[#1e3a8a] font-semibold' : 'text-gray-600 group-hover:text-gray-900'}`}>
                         {p.label}
                       </span>
                     </button>
@@ -309,43 +357,39 @@ export default function Browse() {
               {/* Availability */}
               <div className="mb-6">
                 <h3 className="text-sm font-bold text-gray-900 mb-3">Availability</h3>
-                <div className="space-y-2">
-                  {[
-                    { key: 'available', label: 'Available now' },
-                    { key: 'limited', label: 'Limited stock' },
-                    { key: 'rented', label: 'Currently rented out' },
-                  ].map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-2.5 cursor-pointer group">
-                      <div
-                        onClick={() => setAvailability(prev => ({ ...prev, [key]: !prev[key] }))}
-                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
-                          availability[key] ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-gray-300 group-hover:border-gray-400'
-                        }`}
-                      >
-                        {availability[key] && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <span
-                        onClick={() => setAvailability(prev => ({ ...prev, [key]: !prev[key] }))}
-                        className="text-sm text-gray-600 group-hover:text-gray-900 transition"
-                      >
-                        {label}
-                      </span>
-                    </label>
-                  ))}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      min={today}
+                      value={localStartDate}
+                      onChange={e => {
+                        setLocalStartDate(e.target.value);
+                        if (e.target.value && localEndDate && e.target.value > localEndDate) setLocalEndDate(e.target.value);
+                      }}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">End Date</label>
+                    <input
+                      type="date"
+                      min={localStartDate || today}
+                      value={localEndDate}
+                      onChange={e => setLocalEndDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
+                    />
+                  </div>
+                  <button onClick={applyDates} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg transition">
+                    Apply Dates
+                  </button>
                 </div>
               </div>
             </div>
-            {/* Apply button */}
             <div className="px-5 pb-6">
-              <button
-                onClick={() => setFilterDrawerOpen(false)}
-                className="w-full bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold py-3 rounded-xl transition"
-              >
-                Show {sorted.length} results
+              <button onClick={() => setFilterDrawerOpen(false)} className="w-full bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold py-3 rounded-xl transition">
+                Show results
               </button>
             </div>
           </div>
@@ -355,162 +399,140 @@ export default function Browse() {
       {/* ── BODY: sidebar + grid ───────────────────────────────── */}
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex gap-8 items-start">
-
           {/* ── LEFT SIDEBAR — desktop only ─────────────────────── */}
           <aside className="hidden lg:block w-60 flex-shrink-0">
-            {/* Filters header */}
             <div className="flex items-center justify-between mb-5">
               <span className="font-bold text-gray-900 text-base">Filters</span>
               <button onClick={clearAll} className="text-xs text-gray-500 hover:text-gray-800 transition">Clear all</button>
             </div>
-
-            {/* Category */}
+            
             <div className="mb-6">
               <h3 className="text-sm font-bold text-gray-900 mb-3">Category</h3>
               <div className="space-y-1">
-                {CATEGORY_FILTERS.map(cat => (
+                {categories.map(cat => (
                   <button
                     key={cat.value}
-                    onClick={() => setSelectedCategory(cat.value)}
+                    onClick={() => updateParam('category', cat.value)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition ${
-                      selectedCategory === cat.value
-                        ? 'bg-blue-50 text-[#1e3a8a] font-semibold'
-                        : 'text-gray-600 hover:bg-gray-100'
+                      category === cat.value ? 'bg-blue-50 text-[#1e3a8a] font-semibold' : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    <span>{cat.label}</span>
-                    {cat.count && (
-                      <span className={`text-xs ${selectedCategory === cat.value ? 'text-[#1e3a8a]' : 'text-gray-400'}`}>
-                        {cat.count}
-                      </span>
-                    )}
+                    <span>{cat.name}</span>
+                    {cat.count > 0 && <span className="text-xs text-gray-400">{cat.count}</span>}
                   </button>
                 ))}
               </div>
             </div>
-
             <div className="border-t border-gray-200 mb-6" />
-
-            {/* Price per day */}
             <div className="mb-6">
               <h3 className="text-sm font-bold text-gray-900 mb-3">Price per day</h3>
               <div className="space-y-1">
                 {PRICE_FILTERS.map(p => (
                   <button
                     key={p.value}
-                    onClick={() => setSelectedPrice(p.value)}
+                    onClick={() => updateParam('price', p.value)}
                     className="w-full flex items-center gap-2.5 px-1 py-1.5 rounded-lg hover:bg-gray-100 transition text-left group"
                   >
-                    {/* Radio circle */}
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition ${
-                      selectedPrice === p.value
-                        ? 'border-[#1e3a8a] bg-[#1e3a8a]'
-                        : 'border-gray-300 group-hover:border-gray-400'
+                      priceRange === p.value ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-gray-300 group-hover:border-gray-400'
                     }`}>
-                      {selectedPrice === p.value && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      )}
+                      {priceRange === p.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
-                    {/* Label */}
-                    <span className={`text-sm transition ${
-                      selectedPrice === p.value
-                        ? 'text-[#1e3a8a] font-semibold'
-                        : 'text-gray-600 group-hover:text-gray-900'
-                    }`}>
+                    <span className={`text-sm transition ${priceRange === p.value ? 'text-[#1e3a8a] font-semibold' : 'text-gray-600 group-hover:text-gray-900'}`}>
                       {p.label}
                     </span>
                   </button>
                 ))}
               </div>
             </div>
-
             <div className="border-t border-gray-200 mb-6" />
-
-            {/* Availability */}
             <div className="mb-6">
               <h3 className="text-sm font-bold text-gray-900 mb-3">Availability</h3>
-              <div className="space-y-2">
-                {[
-                  { key: 'available', label: 'Available now' },
-                  { key: 'limited', label: 'Limited stock' },
-                  { key: 'rented', label: 'Currently rented out' },
-                ].map(({ key, label }) => (
-                  <label key={key} className="flex items-center gap-2.5 cursor-pointer group">
-                    <div
-                      onClick={() => setAvailability(prev => ({ ...prev, [key]: !prev[key] }))}
-                      className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
-                        availability[key] ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-gray-300 group-hover:border-gray-400'
-                      }`}
-                    >
-                      {availability[key] && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <span
-                      onClick={() => setAvailability(prev => ({ ...prev, [key]: !prev[key] }))}
-                      className="text-sm text-gray-600 group-hover:text-gray-900 transition"
-                    >
-                      {label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Renting tip card */}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-3">
                 <div>
-                  <div className="text-xs font-bold text-green-800 mb-1">Renting tip</div>
-                  <p className="text-xs text-green-700 leading-relaxed">
-                    Booking 3+ days usually drops the effective daily rate. Try widening your rental window to save more.
-                  </p>
+                  <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    min={today}
+                    value={localStartDate}
+                    onChange={e => {
+                      setLocalStartDate(e.target.value);
+                      if (e.target.value && localEndDate && e.target.value > localEndDate) setLocalEndDate(e.target.value);
+                    }}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
+                  />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">End Date</label>
+                  <input
+                    type="date"
+                    min={localStartDate || today}
+                    value={localEndDate}
+                    onChange={e => setLocalEndDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
+                  />
+                </div>
+                <button onClick={applyDates} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg transition">
+                  Apply Dates
+                </button>
               </div>
             </div>
           </aside>
 
           {/* ── MAIN GRID ────────────────────────────────────────── */}
-          <div className="flex-1 min-w-0">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-sm text-gray-500">
-                Showing <span className="font-semibold text-gray-900">{sorted.length}</span> of{' '}
-                <span className="font-semibold text-gray-900">{allProducts.length}</span> listings
-              </p>
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-gray-400" />
-                <select
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value)}
-                  className="text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 bg-white outline-none cursor-pointer hover:border-gray-300 transition"
-                >
-                  <option value="popular">Most popular</option>
-                  <option value="price-asc">Price: low to high</option>
-                  <option value="price-desc">Price: high to low</option>
-                  <option value="rating">Highest rated</option>
-                </select>
-              </div>
-            </div>
-
+          <div className="flex-1 min-w-0 flex flex-col min-h-[500px]">
             {loading ? (
-              <div className="flex items-center justify-center py-24">
-                <div className="w-8 h-8 border-4 border-[#1e3a8a] border-t-transparent rounded-full animate-spin" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col animate-pulse">
+                    <div className="h-52 bg-gray-200"></div>
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="flex justify-between mb-2"><div className="w-16 h-3 bg-gray-200 rounded"></div><div className="w-12 h-3 bg-gray-200 rounded"></div></div>
+                      <div className="w-3/4 h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="w-full h-3 bg-gray-200 rounded mb-1"></div>
+                      <div className="w-5/6 h-3 bg-gray-200 rounded mb-4"></div>
+                      <div className="flex justify-between items-end mt-auto">
+                        <div className="w-16 h-6 bg-gray-200 rounded"></div>
+                        <div className="w-20 h-8 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : sorted.length === 0 ? (
-              <div className="text-center py-24">
+            ) : products.length === 0 ? (
+              <div className="text-center py-24 flex-1">
                 <p className="text-gray-400 text-lg font-medium mb-2">No listings match your filters</p>
                 <button onClick={clearAll} className="text-[#1e3a8a] text-sm hover:underline">Clear all filters</button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {sorted.map(p => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+                  {products.map(p => <ProductCard key={p.id} product={p} />)}
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-auto flex justify-center items-center gap-2 border-t border-gray-200 pt-6">
+                    <button 
+                      disabled={page === 1}
+                      onClick={() => updateParam('page', page - 1)}
+                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm font-semibold px-4">
+                      Page {page} of {totalPages}
+                    </span>
+                    <button 
+                      disabled={page === totalPages}
+                      onClick={() => updateParam('page', page + 1)}
+                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <ChevronRight2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

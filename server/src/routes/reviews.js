@@ -5,6 +5,15 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
+  filename: (req, file, cb) => cb(null, `${uuidv4()}-${file.originalname}`)
+});
+const upload = multer({ storage });
+
 router.get('/product/:productId', (req, res) => {
   try {
     const reviews = db.prepare(`
@@ -20,7 +29,7 @@ router.get('/product/:productId', (req, res) => {
   }
 });
 
-router.post('/', authenticate, authorize('customer'), (req, res) => {
+router.post('/', authenticate, authorize('customer'), upload.single('image'), (req, res) => {
   try {
     const { product_id, rating, comment } = req.body;
     if (!product_id || rating < 1 || rating > 5) {
@@ -38,10 +47,12 @@ router.post('/', authenticate, authorize('customer'), (req, res) => {
     }
 
     const id = uuidv4();
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
     db.prepare(`
-      INSERT INTO reviews (id, product_id, customer_id, rating, comment, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, product_id, req.user.id, rating, comment, new Date().toISOString());
+      INSERT INTO reviews (id, product_id, customer_id, rating, comment, image_url, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, product_id, req.user.id, rating, comment, imageUrl, new Date().toISOString());
 
     const review = db.prepare('SELECT * FROM reviews WHERE id = ?').get(id);
     res.status(201).json({ success: true, data: review });

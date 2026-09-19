@@ -5,34 +5,51 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/rental/:rentalId', authenticate, authorize('customer'), (req, res) => {
+// Create a simulated checkout session
+router.post('/create-checkout-session', authenticate, authorize('customer'), (req, res) => {
   try {
-    const { method } = req.body;
-    const validMethods = ['gcash', 'maya', 'card', 'bank'];
-    if (!validMethods.includes(method)) return res.status(400).json({ success: false, message: 'Invalid payment method' });
+    const { product_id, start_date, end_date, total_price, security_deposit, notes } = req.body;
+    
+    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(product_id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
-    const rental = db.prepare('SELECT * FROM rentals WHERE id = ? AND customer_id = ?').get(req.params.rentalId, req.user.id);
-    if (!rental) return res.status(404).json({ success: false, message: 'Rental not found' });
-    if (rental.status !== 'pending' && rental.status !== 'approved') return res.status(400).json({ success: false, message: 'Rental is not awaiting payment' });
+    const rentalId = uuidv4();
+    const paymentIntentId = 'pi_' + Math.random().toString(36).substring(2, 15);
+    const created_at = new Date().toISOString();
 
-    const existingPayment = db.prepare('SELECT * FROM payments WHERE rental_id = ?').get(rental.id);
-    if (existingPayment) return res.status(400).json({ success: false, message: 'Payment already exists' });
+    db.prepare(`
+      INSERT INTO rentals (id, product_id, customer_id, start_date, end_date, total_price, security_deposit, payment_intent_id, status, notes, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    `).run(rentalId, product_id, req.user.id, start_date, end_date, total_price, security_deposit, paymentIntentId, notes || null, created_at);
+
+    res.json({ success: true, data: { rentalId, paymentIntentId, clientSecret: 'secret_' + paymentIntentId } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Confirm payment
+router.post('/confirm', authenticate, authorize('customer'), (req, res) => {
+  try {
+    const { rentalId, paymentIntentId, method } = req.body;
+    
+    const rental = db.prepare('SELECT * FROM rentals WHERE id = ? AND payment_intent_id = ?').get(rentalId, paymentIntentId);
+    if (!rental) return res.status(404).json({ success: false, message: 'Invalid payment intent or rental' });
 
     const id = uuidv4();
     const txRef = 'TX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
     const paidAt = new Date().toISOString();
+    
+    const totalPaid = rental.total_price + rental.security_deposit;
 
     db.prepare(`
       INSERT INTO payments (id, rental_id, amount, method, status, transaction_ref, paid_at)
       VALUES (?, ?, ?, ?, 'completed', ?, ?)
-    `).run(id, rental.id, rental.total_price, method, txRef, paidAt);
+    `).run(id, rental.id, totalPaid, method || 'card', txRef, paidAt);
 
     db.prepare('UPDATE rentals SET status = ? WHERE id = ?').run('approved', rental.id);
 
-    const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(id);
-    const updatedRental = db.prepare('SELECT * FROM rentals WHERE id = ?').get(rental.id);
-
-    res.status(201).json({ success: true, data: { payment, rental: updatedRental } });
+    res.json({ success: true, message: 'Payment confirmed and rental approved' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

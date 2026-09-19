@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { getStats, getAdminRentals } from '../../api/admin';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 const NAV_CARDS = [
   { path: 'users', label: 'Users', emoji: '👥', desc: 'Manage all accounts' },
   { path: 'products', label: 'Products', emoji: '📦', desc: 'Moderate listings' },
@@ -11,6 +13,16 @@ const NAV_CARDS = [
   { path: 'payments', label: 'Payments', emoji: '💳', desc: 'Payment records' },
   { path: 'complaints', label: 'Complaints', emoji: '⚠️', desc: 'Handle reports' },
   { path: 'reports', label: 'Reports', emoji: '📊', desc: 'Analytics & charts' },
+];
+
+const MOCK_REVENUE = [
+  { name: 'Jan', revenue: 4000 },
+  { name: 'Feb', revenue: 3000 },
+  { name: 'Mar', revenue: 5000 },
+  { name: 'Apr', revenue: 7800 },
+  { name: 'May', revenue: 6200 },
+  { name: 'Jun', revenue: 9000 },
+  { name: 'Jul', revenue: 11000 },
 ];
 
 export default function Dashboard() {
@@ -58,6 +70,39 @@ export default function Dashboard() {
             <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Revenue Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="lg:col-span-2 card">
+          <h2 className="text-lg font-bold text-navy-700 mb-6">Platform Revenue Growth</h2>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={MOCK_REVENUE} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tickFormatter={v => `₱${v}`} 
+                  tick={{ fontSize: 12, fill: '#64748b' }} 
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(v) => [`₱${v.toLocaleString()}`, 'Revenue']}
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={3} dot={{ r: 4, fill: '#059669', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="card bg-navy-700 text-white flex flex-col justify-center items-center text-center p-8">
+          <div className="text-5xl mb-4">📈</div>
+          <h3 className="text-xl font-bold mb-2">Up 34% this month</h3>
+          <p className="text-cream-200 text-sm opacity-80">
+            Platform adoption is accelerating. Keep monitoring the active rentals and ensure disputes are resolved quickly.
+          </p>
+        </div>
       </div>
 
       {/* Quick Nav */}

@@ -2,10 +2,18 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const path = require('path');
 const db = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
+  filename: (req, file, cb) => cb(null, `avatar-${uuidv4()}-${file.originalname}`)
+});
+const upload = multer({ storage });
 
 router.post('/register', async (req, res) => {
   try {
@@ -78,6 +86,20 @@ router.put('/profile', authenticate, (req, res) => {
   try {
     const { name, phone, address } = req.body;
     db.prepare('UPDATE users SET name = ?, phone = ?, address = ? WHERE id = ?').run(name, phone, address, req.user.id);
+    const user = db.prepare('SELECT id, name, email, role, phone, address, avatar, is_active, created_at FROM users WHERE id = ?').get(req.user.id);
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/profile/avatar', authenticate, upload.single('avatar'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image provided' });
+    }
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(avatarUrl, req.user.id);
     const user = db.prepare('SELECT id, name, email, role, phone, address, avatar, is_active, created_at FROM users WHERE id = ?').get(req.user.id);
     res.json({ success: true, data: user });
   } catch (error) {

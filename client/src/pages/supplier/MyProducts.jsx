@@ -107,7 +107,7 @@ export default function MyProducts() {
               <div className="relative h-44 bg-gray-100 overflow-hidden">
                 {product.primary_image ? (
                   <img
-                    src={`http://localhost:5000${product.primary_image}`}
+                    src={product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`}
                     alt={product.title}
                     className="w-full h-full object-cover"
                   />

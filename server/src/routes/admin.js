@@ -56,7 +56,7 @@ router.get('/users', (req, res) => {
       params.push(role);
     }
     
-    const users = db.prepare(query).all(...params);
+    const users = db.prepare(query).all(...[...params]);
     res.json({ success: true, data: users });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -171,7 +171,21 @@ router.get('/reports', (req, res) => {
       GROUP BY p.category
     `).all();
 
-    res.json({ success: true, data: { topProducts, rentalsByCategory, revenueByMonth: [] } }); // Simplified revenue for this scope
+    // Revenue by month — last 6 months
+    const revenueByMonth = db.prepare(`
+      SELECT
+        strftime('%b %Y', paid_at) as month,
+        strftime('%Y-%m', paid_at) as sort_key,
+        SUM(amount) as revenue,
+        COUNT(*) as transactions
+      FROM payments
+      WHERE status = 'completed'
+        AND paid_at >= date('now', '-6 months')
+      GROUP BY strftime('%Y-%m', paid_at)
+      ORDER BY sort_key ASC
+    `).all();
+
+    res.json({ success: true, data: { topProducts, rentalsByCategory, revenueByMonth } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

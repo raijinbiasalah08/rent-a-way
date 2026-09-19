@@ -15,19 +15,36 @@ const upload = multer({ storage });
 
 router.get('/', (req, res) => {
   try {
-    let { search, category, minPrice, maxPrice, availability, page = 1, limit = 12 } = req.query;
+    let { search, category, minPrice, maxPrice, availability, startDate, endDate, minLat, maxLat, minLng, maxLng, page = 1, limit = 12 } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT p.*, u.name as supplier_name, (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as primary_image, (SELECT AVG(rating) FROM reviews WHERE product_id = p.id) as avg_rating FROM products p JOIN users u ON p.supplier_id = u.id WHERE p.is_active = 1';
-    let countQuery = 'SELECT COUNT(*) as total FROM products p WHERE p.is_active = 1';
+    let query = `SELECT p.*, u.name as supplier_name, 
+      (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as primary_image, 
+      (SELECT AVG(rating) FROM reviews WHERE product_id = p.id) as avg_rating,
+      ((SELECT COUNT(*) FROM rentals r2 JOIN products p2 ON r2.product_id = p2.id WHERE p2.supplier_id = u.id AND r2.status IN ('completed', 'returned')) >= 5 
+       AND 
+       (SELECT AVG(rating) FROM reviews rev JOIN products p3 ON rev.product_id = p3.id WHERE p3.supplier_id = u.id) >= 4.8) as is_super_supplier
+      FROM products p JOIN users u ON p.supplier_id = u.id `;
+    let countQuery = 'SELECT COUNT(*) as total FROM products p ';
+
+    if (search) {
+      query += ' JOIN products_fts fts ON p.rowid = fts.rowid ';
+      countQuery += ' JOIN products_fts fts ON p.rowid = fts.rowid ';
+    }
+    
+    query += ' WHERE p.is_active = 1';
+    countQuery += ' WHERE p.is_active = 1';
+    
     const params = [];
 
     if (search) {
-      query += ' AND (p.title LIKE ? OR p.description LIKE ?)';
-      countQuery += ' AND (p.title LIKE ? OR p.description LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+      // FTS5 prefix matching syntax
+      const sanitizedSearch = search.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\\s+/).map(word => `${word}*`).join(' ');
+      query += ' AND products_fts MATCH ?';
+      countQuery += ' AND products_fts MATCH ?';
+      params.push(sanitizedSearch);
     }
     if (category) {
       query += ' AND p.category = ?';
@@ -49,10 +66,34 @@ router.get('/', (req, res) => {
       countQuery += ' AND p.availability = ?';
       params.push(availability);
     }
+    if (startDate && endDate) {
+      const dateFilter = ` AND p.id NOT IN (
+        SELECT product_id FROM rentals
+        WHERE status IN ('approved', 'active')
+        AND (start_date <= ? AND end_date >= ?)
+      )`;
+      query += dateFilter;
+      countQuery += dateFilter;
+      params.push(endDate, startDate);
+    }
+    
+    // Bounding Box filtering for maps
+    if (minLat && maxLat && minLng && maxLng) {
+      const geoFilter = ' AND p.latitude >= ? AND p.latitude <= ? AND p.longitude >= ? AND p.longitude <= ?';
+      query += geoFilter;
+      countQuery += geoFilter;
+      params.push(minLat, maxLat, minLng, maxLng);
+    }
+    
+    if (search) {
+      query += ' ORDER BY bm25(products_fts) ';
+    } else {
+      query += ' ORDER BY p.created_at DESC ';
+    }
 
     query += ' LIMIT ? OFFSET ?';
     
-    const products = db.prepare(query).all(...params, limit, offset);
+    const products = db.prepare(query).all(...[...params, limit, offset]);
     const { total } = db.prepare(countQuery).get(...params);
 
     res.json({
@@ -106,7 +147,10 @@ router.get('/:id', (req, res) => {
     const product = db.prepare(`
       SELECT p.*, u.name as supplier_name, u.avatar as supplier_avatar,
       (SELECT AVG(rating) FROM reviews WHERE product_id = p.id) as avg_rating,
-      (SELECT COUNT(*) FROM reviews WHERE product_id = p.id) as review_count
+      (SELECT COUNT(*) FROM reviews WHERE product_id = p.id) as review_count,
+      ((SELECT COUNT(*) FROM rentals r2 JOIN products p2 ON r2.product_id = p2.id WHERE p2.supplier_id = u.id AND r2.status IN ('completed', 'returned')) >= 5 
+       AND 
+       (SELECT AVG(rating) FROM reviews rev JOIN products p3 ON rev.product_id = p3.id WHERE p3.supplier_id = u.id) >= 4.8) as is_super_supplier
       FROM products p 
       JOIN users u ON p.supplier_id = u.id 
       WHERE p.id = ? AND p.is_active = 1
@@ -117,7 +161,16 @@ router.get('/:id', (req, res) => {
     }
 
     const images = db.prepare('SELECT * FROM product_images WHERE product_id = ?').all(product.id);
-    product.images = images;
+    product.images = images.sort((a, b) => b.is_primary - a.is_primary);
+
+    const reviews = db.prepare(`
+      SELECT r.id, r.rating, r.comment as text, r.image_url, r.created_at as date, u.name, u.avatar
+      FROM reviews r
+      JOIN users u ON r.customer_id = u.id
+      WHERE r.product_id = ?
+      ORDER BY r.created_at DESC
+    `).all(product.id);
+    product.reviews = reviews;
 
     res.json({ success: true, data: product });
   } catch (error) {

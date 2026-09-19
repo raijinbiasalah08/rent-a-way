@@ -6,7 +6,7 @@ export default function ProductCard({ product }) {
   return (
     <div className="card hover:shadow-md transition group overflow-hidden flex flex-col p-0">
       <div className="h-48 overflow-hidden relative">
-        <img src={product.primary_image || 'https://via.placeholder.com/300x200?text=No+Image'} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+        <img src={product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://via.placeholder.com/300x200?text=No+Image'} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         <div className="absolute top-3 left-3"><CategoryBadge category={product.category} /></div>
         <div className="absolute top-3 right-3">
           <span className={`px-2 py-1 rounded text-xs font-bold ${product.availability ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
