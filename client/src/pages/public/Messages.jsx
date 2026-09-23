@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { getConversations, getMessages, sendMessage } from '../../api/messages';
 import { MessageCircle, Send, ArrowLeft, Clock } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -8,6 +10,9 @@ const BASE_URL = 'http://localhost:5000';
 
 export default function Messages() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const directUserId = searchParams.get('userId') || searchParams.get('user');
+
   const [conversations, setConversations] = useState([]);
   const [loadingConv, setLoadingConv] = useState(true);
   
@@ -22,8 +27,17 @@ export default function Messages() {
   const [typingUsers, setTypingUsers] = useState(new Set());
 
   const fetchConversations = () => {
-    getConversations().then(res => setConversations(res.data.data))
-      .catch(console.error).finally(() => setLoadingConv(false));
+    getConversations()
+      .then(res => {
+        const list = res.data?.data || [];
+        setConversations(list);
+        if (directUserId && !activeUser) {
+          const match = list.find(c => c.other_user_id === directUserId);
+          if (match) openConversation(match);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingConv(false));
   };
 
   useEffect(() => {
@@ -85,7 +99,7 @@ export default function Messages() {
   const fetchMessages = (otherId) => {
     setLoadingMsgs(true);
     getMessages(otherId).then(res => {
-      setMessages(res.data.data);
+      setMessages(res.data?.data || []);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     }).catch(console.error).finally(() => setLoadingMsgs(false));
   };
@@ -107,7 +121,9 @@ export default function Messages() {
     if (!newMessage.trim() || !activeUser) return;
 
     sendMessage({ receiver_id: activeUser.other_user_id, content: newMessage }).then(res => {
-      setMessages([...messages, res.data.data]);
+      if (res.data?.data) {
+        setMessages(prev => [...prev, res.data.data]);
+      }
       setNewMessage('');
       handleTypingStop();
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);

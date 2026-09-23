@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Shield, Check, ChevronDown, Camera, Mountain, Bike, Calendar, Wrench, BookOpen, Star, MapPin, Clock, ArrowRight, RotateCcw, MessageSquare } from 'lucide-react';
+import { Search, Shield, Check, ChevronDown, Camera, Mountain, Bike, Calendar, Wrench, BookOpen, Star, MapPin, Clock, ArrowRight, RotateCcw, MessageSquare, Navigation } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { getProducts, getCategories } from '../../api/products';
 import { useFavorites } from '../../context/FavoritesContext';
+import { useCustomerLocation } from '../../context/CustomerLocationContext';
 
 /* ─── Category data ─────────────────────────────────────────── */
 const CATEGORIES = [
@@ -97,13 +98,15 @@ function Stars({ rating }) {
 /* ─── Product listing card ───────────────────────────────────── */
 function ListingCard({ product }) {
   const { favoriteIds, toggleFavorite } = useFavorites();
+  const { getItemDistance } = useCustomerLocation();
   const isFavorite = favoriteIds?.has(product.id);
 
   const name = product.title || product.name || 'Unnamed Product';
   const category = (product.category || product.category_name || '').toUpperCase();
-  const rating = product.avg_rating || product.rating || 4.8;
+  const rating = product.avg_rating || product.rating || null;
   const price = product.price_per_day || product.price || 0;
-  const location = 'Philippines'; // or use product.location if added
+  const location = product.location || 'Philippines';
+  const distanceText = getItemDistance(product.latitude, product.longitude);
   const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
 
   return (
@@ -136,10 +139,16 @@ function ListingCard({ product }) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-bold text-gray-400 tracking-widest">{category}</span>
-          <div className="flex items-center gap-1">
-            <Stars rating={rating} />
-            <span className="text-xs font-semibold text-gray-700">{Number(rating).toFixed(1)}</span>
-          </div>
+          {rating ? (
+            <div className="flex items-center gap-1">
+              <Stars rating={rating} />
+              <span className="text-xs font-semibold text-gray-700">{Number(rating).toFixed(1)}</span>
+            </div>
+          ) : (
+            <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+              No reviews yet
+            </span>
+          )}
         </div>
 
         <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{name}</h3>
@@ -147,8 +156,15 @@ function ListingCard({ product }) {
           {product.description || 'Quality gear available for rent. Contact supplier for details.'}
         </p>
 
-        <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
-          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{location}</span>
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 flex-wrap">
+          <span className="flex items-center gap-1" title={location}><MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />{location}</span>
+          {distanceText && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1e3a8a] bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
+              <Navigation className="w-2.5 h-2.5" />
+              {distanceText}
+            </span>
+          )}
+          <span className="text-gray-300">·</span>
           <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Min 1 day</span>
         </div>
 
@@ -460,6 +476,30 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          ) : displayProducts.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-xl mx-auto">
+              <div className="w-16 h-16 bg-blue-50 text-[#1e3a8a] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 opacity-75" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">No equipment available yet</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Be the first to list equipment or check back soon as suppliers add new gear!
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  to="/for-suppliers"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition"
+                >
+                  Become a Supplier <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <Link
+                  to="/browse"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold px-5 py-2.5 rounded-xl transition"
+                >
+                  Browse Marketplace
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -791,7 +831,7 @@ function ForSuppliers() {
             </div>
             <p className="text-gray-400 text-xs flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-              Supplier accounts open in our next release — explore the dashboard with sample listings.
+              List your equipment now — start earning from verified renters in your area.
             </p>
           </div>
         </div>

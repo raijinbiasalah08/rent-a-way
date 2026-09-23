@@ -25,16 +25,25 @@ router.use(authenticate, authorize('admin'));
 router.get('/stats', (req, res) => {
   try {
     const totalUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-    const totalProducts = db.prepare('SELECT COUNT(*) as c FROM products').get().c;
+    const totalProducts = db.prepare('SELECT COUNT(*) as c FROM products WHERE is_active = 1').get().c;
     const totalRentals = db.prepare('SELECT COUNT(*) as c FROM rentals').get().c;
     const activeRentals = db.prepare("SELECT COUNT(*) as c FROM rentals WHERE status = 'active'").get().c;
     const pendingRentals = db.prepare("SELECT COUNT(*) as c FROM rentals WHERE status = 'pending'").get().c;
     const openComplaints = db.prepare("SELECT COUNT(*) as c FROM complaints WHERE status = 'open'").get().c;
-    const totalRevenue = db.prepare("SELECT SUM(amount) as s FROM payments WHERE status = 'completed'").get().s || 0;
+    const totalRevenue = db.prepare("SELECT SUM(amount) as s FROM payments WHERE status = 'completed' OR status = 'paid'").get().s || 0;
+
+    const monthlyRevenue = db.prepare(`
+      SELECT strftime('%Y-%m', COALESCE(p.paid_at, r.created_at)) as month, SUM(p.amount) as revenue
+      FROM payments p
+      JOIN rentals r ON p.rental_id = r.id
+      WHERE p.status = 'completed' OR p.status = 'paid'
+      GROUP BY month
+      ORDER BY month ASC
+    `).all();
 
     res.json({
       success: true,
-      data: { totalUsers, totalProducts, totalRentals, activeRentals, pendingRentals, openComplaints, totalRevenue }
+      data: { totalUsers, totalProducts, totalRentals, activeRentals, pendingRentals, openComplaints, totalRevenue, monthlyRevenue }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

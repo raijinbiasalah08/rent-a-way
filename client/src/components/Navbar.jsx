@@ -3,15 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import { Menu, X, ChevronDown, Search, User, Camera, Mountain, Bike, Calendar, Wrench, BookOpen, Bell, MessageCircle, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api/notifications';
+import { getCategories } from '../api/products';
 import { useSocket } from '../context/SocketContext';
 
 const CATEGORIES = [
-  { label: 'Cameras & Drones',       items: 128, to: '/browse?category=Cameras',   icon: Camera,    bg: 'bg-teal-50',   iconColor: 'text-teal-600' },
-  { label: 'Camping Equipment',       items: 96,  to: '/browse?category=Camping',   icon: Mountain,  bg: 'bg-green-50',  iconColor: 'text-green-600' },
-  { label: 'Sports Equipment',        items: 74,  to: '/browse?category=Sports',    icon: Bike,      bg: 'bg-orange-50', iconColor: 'text-orange-600' },
-  { label: 'Event Equipment',         items: 63,  to: '/browse?category=Event',     icon: Calendar,  bg: 'bg-purple-50', iconColor: 'text-purple-600' },
-  { label: 'Household Equipment',     items: 87,  to: '/browse?category=Household', icon: Wrench,    bg: 'bg-blue-50',   iconColor: 'text-blue-600' },
-  { label: 'School Project Equipment',items: 52,  to: '/browse?category=School',    icon: BookOpen,  bg: 'bg-amber-50',  iconColor: 'text-amber-600' },
+  { id: 'Cameras',   label: 'Cameras & Drones',        to: '/browse?category=Cameras',   icon: Camera,    bg: 'bg-teal-50',   iconColor: 'text-teal-600' },
+  { id: 'Camping',   label: 'Camping Equipment',        to: '/browse?category=Camping',   icon: Mountain,  bg: 'bg-green-50',  iconColor: 'text-green-600' },
+  { id: 'Sports',    label: 'Sports Equipment',         to: '/browse?category=Sports',    icon: Bike,      bg: 'bg-orange-50', iconColor: 'text-orange-600' },
+  { id: 'Event',     label: 'Event Equipment',          to: '/browse?category=Event',     icon: Calendar,  bg: 'bg-purple-50', iconColor: 'text-purple-600' },
+  { id: 'Household', label: 'Household Equipment',      to: '/browse?category=Household', icon: Wrench,    bg: 'bg-blue-50',   iconColor: 'text-blue-600' },
+  { id: 'School',    label: 'School Project Equipment', to: '/browse?category=School',    icon: BookOpen,  bg: 'bg-amber-50',  iconColor: 'text-amber-600' },
 ];
 
 export default function Navbar() {
@@ -22,10 +23,23 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [categoryCounts, setCategoryCounts] = useState({});
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   const { socket } = useSocket();
+
+  useEffect(() => {
+    getCategories()
+      .then(res => {
+        const countsMap = {};
+        (res.data?.data || []).forEach(c => {
+          countsMap[c.name] = c.count;
+        });
+        setCategoryCounts(countsMap);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchNotifications = () => {
     if (user) {
@@ -89,13 +103,15 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-9 h-9 rounded-full border-2 border-amber-400 bg-[#1a2744] flex items-center justify-center">
-              <span className="text-amber-400 font-black text-xs leading-none">RW</span>
-            </div>
+          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+            <img
+              src="/logo.png"
+              alt="Rent-A-Way Logo"
+              className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
             <div className="leading-none">
               <div className="font-bold text-white text-base tracking-tight">Rent-A-Way</div>
-              <div className="text-[9px] text-gray-400 tracking-widest uppercase">Find Better Ways to Save</div>
+              <div className="text-[9px] text-amber-400 font-semibold tracking-widest uppercase">Find Better Ways to Save</div>
             </div>
           </Link>
 
@@ -145,7 +161,7 @@ export default function Navbar() {
                             <div className="text-sm font-semibold text-gray-900 group-hover:text-[#1e3a8a] leading-tight">
                               {cat.label}
                             </div>
-                            <div className="text-xs text-gray-400 mt-0.5">{cat.items} items</div>
+                            <div className="text-xs text-gray-400 mt-0.5">{categoryCounts[cat.id] || 0} items</div>
                           </div>
                         </Link>
                       );
@@ -338,7 +354,7 @@ export default function Navbar() {
                       </div>
                       <div>
                         <div className="text-xs font-semibold text-gray-200">{cat.label}</div>
-                        <div className="text-[10px] text-gray-500">{cat.items} items</div>
+                        <div className="text-[10px] text-gray-500">{categoryCounts[cat.id] || 0} items</div>
                       </div>
                     </Link>
                   );

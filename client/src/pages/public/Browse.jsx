@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, ArrowRight, Star, ChevronRight, SlidersHorizontal, Scale, X, SlidersHorizontal as FilterIcon, ChevronLeft, ChevronRight as ChevronRight2 } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { Search, MapPin, Calendar, ArrowRight, Star, ChevronRight, SlidersHorizontal, Scale, X, SlidersHorizontal as FilterIcon, ChevronLeft, ChevronRight as ChevronRight2, Navigation } from 'lucide-react';
 import { getProducts, getCategories } from '../../api/products';
 import { useFavorites } from '../../context/FavoritesContext';
+import { useCustomerLocation } from '../../context/CustomerLocationContext';
+import { ROXAS_BARANGAYS } from '../../utils/roxasLocation';
 
 const PRICE_FILTERS = [
   { label: 'Any price', value: '' },
@@ -47,7 +50,9 @@ function StatusBadge({ status }) {
 /* ─── Product card ───────────────────────────────────────────── */
 function ProductCard({ product }) {
   const { favoriteIds, toggleFavorite } = useFavorites();
+  const { getItemDistance } = useCustomerLocation();
   const isFavorite = favoriteIds?.has(product.id);
+  const distanceText = getItemDistance(product.latitude, product.longitude);
 
   const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
   return (
@@ -79,12 +84,18 @@ function ProductCard({ product }) {
           <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">
             {product.category}
           </span>
-          <div className="flex items-center gap-1">
-            <Stars rating={product.avg_rating || 0} />
-            <span className="text-xs font-semibold text-gray-700">
-              {Number(product.avg_rating || 0).toFixed(1)}
+          {product.avg_rating ? (
+            <div className="flex items-center gap-1">
+              <Stars rating={product.avg_rating} />
+              <span className="text-xs font-semibold text-gray-700">
+                {Number(product.avg_rating).toFixed(1)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+              No reviews yet
             </span>
-          </div>
+          )}
         </div>
 
         <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5 line-clamp-2">
@@ -99,13 +110,21 @@ function ProductCard({ product }) {
           {product.description}
         </p>
 
-        {/* Location + min days */}
-        <div className="flex items-center gap-3 text-xs text-gray-400 mb-4 mt-auto">
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> Philippines
+        {/* Location + distance + min days */}
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-4 mt-auto flex-wrap">
+          <span className="flex items-center gap-1 font-medium text-gray-700" title={product.barangay ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro` : (product.location || 'Roxas, Oriental Mindoro')}>
+            <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
+            <span className="truncate max-w-[130px]">{product.barangay ? `Brgy. ${product.barangay}, Roxas` : (product.location || 'Roxas')}</span>
           </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" /> Min {product.min_days || 1} day
+          {distanceText && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1e3a8a] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+              <Navigation className="w-2.5 h-2.5" />
+              {distanceText}
+            </span>
+          )}
+          <span className="text-gray-300">·</span>
+          <span className="flex items-center gap-1 text-gray-400">
+            <Calendar className="w-3 h-3" /> Min {product.min_days || 1}d
           </span>
         </div>
 
@@ -131,7 +150,19 @@ function ProductCard({ product }) {
   );
 }
 
-import { Helmet } from 'react-helmet-async';
+function DistanceToggleBtn() {
+  const { hasLocation, detecting, requestCustomerLocation } = useCustomerLocation();
+  return (
+    <button
+      onClick={() => requestCustomerLocation(false)}
+      disabled={detecting}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e3a8a] bg-blue-50/80 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition cursor-pointer"
+    >
+      <Navigation className={`w-3 h-3 ${detecting ? 'animate-spin' : ''}`} />
+      <span>{detecting ? 'Detecting GPS…' : hasLocation ? 'Distances Active' : 'Show Distance From Me'}</span>
+    </button>
+  );
+}
 
 /* ─── Main Browse Page ───────────────────────────────────────── */
 export default function Browse() {
@@ -148,6 +179,7 @@ export default function Browse() {
   // Sync state with URL params
   const search = searchParams.get('q') || '';
   const category = searchParams.get('category') || '';
+  const barangay = searchParams.get('barangay') || '';
   const priceRange = searchParams.get('price') || '';
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
@@ -175,6 +207,7 @@ export default function Browse() {
     const params = { page, limit: 12 };
     if (search) params.search = search;
     if (category) params.category = category;
+    if (barangay) params.barangay = barangay;
     if (priceRange) {
       const [min, max] = priceRange.split('-');
       params.minPrice = min;
@@ -193,7 +226,7 @@ export default function Browse() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [search, category, priceRange, page]);
+  }, [search, category, barangay, priceRange, page, startDate, endDate]);
 
   const updateParam = (key, value) => {
     const newParams = new URLSearchParams(searchParams);
@@ -330,6 +363,25 @@ export default function Browse() {
                   ))}
                 </div>
               </div>
+
+              {/* Barangay Filter (Mobile) */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-red-500" /> Barangay (Roxas)
+                </h3>
+                <select
+                  value={barangay}
+                  onChange={e => updateParam('barangay', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-800 outline-none focus:border-[#1e3a8a]"
+                >
+                  <option value="">All Barangays</option>
+                  {ROXAS_BARANGAYS.map(b => (
+                    <option key={b.name} value={b.name}>
+                      Brgy. {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="border-t border-gray-200 mb-6" />
               {/* Price */}
               <div className="mb-6">
@@ -423,6 +475,25 @@ export default function Browse() {
                 ))}
               </div>
             </div>
+
+            {/* Barangay Filter (Desktop) */}
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-red-500" /> Barangay (Roxas)
+              </h3>
+              <select
+                value={barangay}
+                onChange={e => updateParam('barangay', e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-800 outline-none focus:border-[#1e3a8a] shadow-2xs"
+              >
+                <option value="">All Barangays</option>
+                {ROXAS_BARANGAYS.map(b => (
+                  <option key={b.name} value={b.name}>
+                    Brgy. {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="border-t border-gray-200 mb-6" />
             <div className="mb-6">
               <h3 className="text-sm font-bold text-gray-900 mb-3">Price per day</h3>
@@ -481,6 +552,14 @@ export default function Browse() {
 
           {/* ── MAIN GRID ────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 flex flex-col min-h-[500px]">
+            {/* Top results bar with GPS distance toggle */}
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <p className="text-xs text-gray-500 font-medium">
+                Showing <strong className="text-gray-900">{products.length}</strong> of <strong className="text-gray-900">{total}</strong> items
+              </p>
+              <DistanceToggleBtn />
+            </div>
+
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
                 {[1, 2, 3, 4, 5, 6].map(i => (
@@ -500,9 +579,34 @@ export default function Browse() {
                 ))}
               </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-24 flex-1">
-                <p className="text-gray-400 text-lg font-medium mb-2">No listings match your filters</p>
-                <button onClick={clearAll} className="text-[#1e3a8a] text-sm hover:underline">Clear all filters</button>
+              <div className="text-center py-20 flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 p-8 shadow-xs my-auto">
+                <div className="w-16 h-16 bg-blue-50 text-[#1e3a8a] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 opacity-75" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  {search || category || barangay || priceRange || startDate || endDate ? 'No listings match your filters' : 'No equipment available yet'}
+                </h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                  {search || category || barangay || priceRange || startDate || endDate
+                    ? 'Try adjusting your search criteria or clear your filters to see all available gear.'
+                    : 'Check back soon or be the first supplier to list equipment for rent!'}
+                </p>
+                <div className="flex items-center gap-3">
+                  {(search || category || barangay || priceRange || startDate || endDate) && (
+                    <button
+                      onClick={clearAll}
+                      className="bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                  <Link
+                    to="/for-suppliers"
+                    className="border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition"
+                  >
+                    List an Equipment
+                  </Link>
+                </div>
               </div>
             ) : (
               <>

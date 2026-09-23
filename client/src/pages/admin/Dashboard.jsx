@@ -15,16 +15,6 @@ const NAV_CARDS = [
   { path: 'reports', label: 'Reports', emoji: '📊', desc: 'Analytics & charts' },
 ];
 
-const MOCK_REVENUE = [
-  { name: 'Jan', revenue: 4000 },
-  { name: 'Feb', revenue: 3000 },
-  { name: 'Mar', revenue: 5000 },
-  { name: 'Apr', revenue: 7800 },
-  { name: 'May', revenue: 6200 },
-  { name: 'Jun', revenue: 9000 },
-  { name: 'Jul', revenue: 11000 },
-];
-
 export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
@@ -77,30 +67,42 @@ export default function Dashboard() {
         <div className="lg:col-span-2 card">
           <h2 className="text-lg font-bold text-navy-700 mb-6">Platform Revenue Growth</h2>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={MOCK_REVENUE} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tickFormatter={v => `₱${v}`} 
-                  tick={{ fontSize: 12, fill: '#64748b' }} 
-                />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(v) => [`₱${v.toLocaleString()}`, 'Revenue']}
-                />
-                <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={3} dot={{ r: 4, fill: '#059669', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {(stats?.monthlyRevenue && stats.monthlyRevenue.length > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats.monthlyRevenue.map(r => ({ name: r.month, revenue: r.revenue }))} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tickFormatter={v => `₱${v}`} 
+                    tick={{ fontSize: 12, fill: '#64748b' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    formatter={(v) => [`₱${v.toLocaleString()}`, 'Revenue']}
+                  />
+                  <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={3} dot={{ r: 4, fill: '#059669', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-gray-200 rounded-xl">
+                <span className="text-3xl mb-2">💳</span>
+                <h3 className="text-sm font-bold text-gray-700">No revenue recorded yet</h3>
+                <p className="text-xs text-gray-400 mt-1 max-w-sm">
+                  Revenue figures will automatically appear as renters complete GCash, Maya, card, or cash payments.
+                </p>
+              </div>
+            )}
           </div>
         </div>
         <div className="card bg-navy-700 text-white flex flex-col justify-center items-center text-center p-8">
           <div className="text-5xl mb-4">📈</div>
-          <h3 className="text-xl font-bold mb-2">Up 34% this month</h3>
+          <h3 className="text-xl font-bold mb-2">Platform Overview</h3>
           <p className="text-cream-200 text-sm opacity-80">
-            Platform adoption is accelerating. Keep monitoring the active rentals and ensure disputes are resolved quickly.
+            {stats?.totalRevenue > 0
+              ? `Total platform gross volume: ₱${Number(stats.totalRevenue).toLocaleString()}`
+              : 'All metrics reflect live transactions and verified listings.'}
           </p>
         </div>
       </div>

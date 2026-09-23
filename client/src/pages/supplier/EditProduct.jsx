@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Upload, X, Save, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { getProduct, updateProduct, uploadProductImage } from '../../api/products';
 import api from '../../api/axios';
+import LocationPicker from '../../components/LocationPicker';
 
 const CATEGORIES = [
   'Cameras & Drones',
@@ -40,6 +41,10 @@ export default function EditProduct() {
     max_days: '30',
     specs: '',
     availability: 'available',
+    location: '',
+    barangay: '',
+    latitude: null,
+    longitude: null,
   });
   const [existingImages, setExistingImages] = useState([]); // { id, url, is_primary }
   const [newImages, setNewImages] = useState([]);
@@ -64,6 +69,10 @@ export default function EditProduct() {
           max_days: p.max_days || '30',
           specs: p.specs || '',
           availability: p.availability || 'available',
+          location: p.location || '',
+          barangay: p.barangay || '',
+          latitude: p.latitude || null,
+          longitude: p.longitude || null,
         });
         setExistingImages(p.images || []);
       })
@@ -115,6 +124,10 @@ export default function EditProduct() {
         max_days: Number(form.max_days) || 30,
         specs: form.specs.trim(),
         availability: form.availability,
+        location: form.location.trim(),
+        barangay: form.barangay?.trim() || '',
+        latitude: form.latitude,
+        longitude: form.longitude,
       });
 
       // 2. Upload new images
@@ -271,6 +284,25 @@ export default function EditProduct() {
             rows={2}
             placeholder="e.g. 24-70mm lens included, 2 batteries, charger, camera bag"
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/10 transition bg-white resize-none"
+          />
+        </div>
+
+        {/* Location Picker */}
+        <div className="bg-gray-50/70 p-4 sm:p-5 rounded-2xl border border-gray-200">
+          <LocationPicker
+            location={form.location}
+            barangay={form.barangay}
+            latitude={form.latitude}
+            longitude={form.longitude}
+            onChange={({ location, barangay, latitude, longitude }) => {
+              setForm(prev => ({
+                ...prev,
+                location,
+                barangay,
+                latitude,
+                longitude
+              }));
+            }}
           />
         </div>
 

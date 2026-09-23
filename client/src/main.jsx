@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './context/AuthContext';
+import { CustomerLocationProvider } from './context/CustomerLocationContext';
 import { SocketProvider } from './context/SocketContext';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { BrowserRouter } from 'react-router-dom';
@@ -28,12 +29,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <HelmetProvider>
       <BrowserRouter>
         <AuthProvider>
-          <SocketProvider>
-            <FavoritesProvider>
-              <App />
-              <Toaster position="top-right" />
-            </FavoritesProvider>
-          </SocketProvider>
+          <CustomerLocationProvider>
+            <SocketProvider>
+              <FavoritesProvider>
+                <App />
+                <Toaster position="top-right" />
+              </FavoritesProvider>
+            </SocketProvider>
+          </CustomerLocationProvider>
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>

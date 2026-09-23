@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'customer',
   phone TEXT,
   address TEXT,
+  latitude REAL,
+  longitude REAL,
   avatar TEXT,
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL
@@ -33,6 +35,7 @@ CREATE TABLE IF NOT EXISTS products (
   max_days INTEGER NOT NULL DEFAULT 30,
   availability TEXT NOT NULL DEFAULT 'available',
   specs TEXT,
+  location TEXT,
   latitude REAL,
   longitude REAL,
   is_active INTEGER NOT NULL DEFAULT 1,
@@ -165,4 +168,69 @@ CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
 END;
 `);
 
+// Auto-migrate schema columns on startup
+function ensureColumn(table, column, definition) {
+  try {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (!columns.includes(column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  } catch (err) {
+    // Ignore migration collision
+  }
+}
+
+ensureColumn('products', 'location', 'TEXT');
+ensureColumn('products', 'latitude', 'REAL');
+ensureColumn('products', 'longitude', 'REAL');
+ensureColumn('products', 'barangay', 'TEXT');
+ensureColumn('users', 'latitude', 'REAL');
+ensureColumn('users', 'longitude', 'REAL');
+ensureColumn('users', 'barangay', 'TEXT');
+ensureColumn('rentals', 'security_deposit', 'REAL NOT NULL DEFAULT 0');
+ensureColumn('rentals', 'payment_intent_id', 'TEXT');
+ensureColumn('reviews', 'image_url', 'TEXT');
+ensureColumn('payments', 'receipt_image', 'TEXT');
+ensureColumn('payments', 'sender_name', 'TEXT');
+ensureColumn('payments', 'sender_phone', 'TEXT');
+ensureColumn('users', 'gcash_number', 'TEXT');
+ensureColumn('users', 'gcash_name', 'TEXT');
+ensureColumn('users', 'gcash_qr', 'TEXT');
+ensureColumn('users', 'maya_number', 'TEXT');
+ensureColumn('users', 'maya_name', 'TEXT');
+ensureColumn('users', 'maya_qr', 'TEXT');
+
+// Roxas, Oriental Mindoro Reference Table & Seed
+db.exec(`
+CREATE TABLE IF NOT EXISTS roxas_barangays (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  description TEXT
+);
+`);
+
+const { ROXAS_BARANGAYS, isWithinRoxas } = require('../utils/roxasLocation');
+
+try {
+  const countBarangays = db.prepare('SELECT count(*) as c FROM roxas_barangays').get().c;
+  if (countBarangays === 0) {
+    const insertStmt = db.prepare('INSERT OR IGNORE INTO roxas_barangays (name, latitude, longitude, description) VALUES (?, ?, ?, ?)');
+    for (const b of ROXAS_BARANGAYS) {
+      insertStmt.run(b.name, b.lat, b.lng, b.description);
+    }
+  }
+} catch (e) {
+  console.warn('Barangays seed warning:', e.message);
+}
+
+// Ensure FTS5 index is clean and synced
+try {
+  db.exec("INSERT INTO products_fts(products_fts) VALUES('rebuild');");
+} catch (e) {
+  // Ignore
+}
+
 module.exports = db;
+

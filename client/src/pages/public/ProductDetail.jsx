@@ -4,15 +4,28 @@ import {
   ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon,
   MapPin, Calendar, Shield, RotateCcw, Clock,
   ThumbsUp, Star, Check, ArrowRight, Package,
-  MessageSquare, X, Send, Image
+  MessageSquare, X, Send, Image, Navigation
 } from 'lucide-react';
 import { getProduct, getProducts, submitReview } from '../../api/products';
 import { sendMessage } from '../../api/messages';
 import { useAuth } from '../../context/AuthContext';
+import { useCustomerLocation } from '../../context/CustomerLocationContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { ROXAS_BOUNDS, formatRoxasAddress } from '../../utils/roxasLocation';
+
+// Fix Leaflet default icon paths
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 function Stars({ rating, size = 'sm' }) {
@@ -55,6 +68,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { customerCoords, hasLocation, detecting, requestCustomerLocation, getItemDistance } = useCustomerLocation();
 
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -226,7 +240,18 @@ export default function ProductDetail() {
               <span className="text-gray-300">·</span>
               <span>{product.review_count || 0} reviews</span>
               <span className="text-gray-300">·</span>
-              <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />Philippines</span>
+              <span className="flex items-center gap-1.5 flex-wrap" title={product.barangay ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro` : (product.location || 'Roxas, Oriental Mindoro')}>
+                <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                <span className="truncate max-w-[240px] font-medium text-gray-700">
+                  {product.barangay ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro` : (product.location || 'Roxas, Oriental Mindoro')}
+                </span>
+                {getItemDistance(product.latitude, product.longitude) && (
+                  <span className="bg-blue-100 text-[#1e3a8a] text-xs px-2 py-0.5 rounded-full font-bold ml-1 flex items-center gap-1">
+                    <Navigation className="w-2.5 h-2.5" />
+                    {getItemDistance(product.latitude, product.longitude)}
+                  </span>
+                )}
+              </span>
             </div>
 
             {/* ── IMAGE CAROUSEL ── */}
@@ -295,6 +320,102 @@ export default function ProductDetail() {
                 </div>
               </div>
             )}
+
+            {/* ── PICKUP & LISTER LOCATION ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-5">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-red-500" /> Pickup &amp; Lister Location
+                </h2>
+                {product.latitude && product.longitude && (
+                  <span className="text-xs bg-green-50 border border-green-200 text-green-700 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Exact GPS Pinpoint
+                  </span>
+                )}
+              </div>
+              
+              <p className="text-sm font-medium text-gray-800 mb-3 flex items-start gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <MapPin className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span>
+                  {product.barangay
+                    ? formatRoxasAddress(product.barangay, product.supplier_address || product.location)
+                    : (product.location || 'Roxas, Oriental Mindoro')}
+                </span>
+              </p>
+
+              {/* Customer Distance Badge */}
+              {getItemDistance(product.latitude, product.longitude) ? (
+                <div className="flex items-center justify-between bg-blue-50/80 border border-blue-200 px-3.5 py-2 rounded-xl mb-4 text-xs text-[#1e3a8a]">
+                  <span className="font-semibold flex items-center gap-1.5">
+                    <Navigation className="w-3.5 h-3.5" /> Distance from your location:
+                  </span>
+                  <span className="font-extrabold text-xs bg-white text-[#1e3a8a] px-2.5 py-1 rounded-lg border border-blue-200 shadow-xs">
+                    {getItemDistance(product.latitude, product.longitude)}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between bg-gray-50 border border-gray-100 px-3.5 py-2 rounded-xl mb-4 text-xs text-gray-600">
+                  <span className="flex items-center gap-1.5">
+                    <Navigation className="w-3.5 h-3.5 text-gray-400" /> Want to know how far this item is?
+                  </span>
+                  <button
+                    onClick={() => requestCustomerLocation(false)}
+                    disabled={detecting}
+                    className="text-[#1e3a8a] font-bold hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    {detecting ? 'Detecting…' : 'Calculate Distance'}
+                  </button>
+                </div>
+              )}
+
+              {product.latitude && product.longitude ? (
+                <div className="rounded-xl overflow-hidden border border-gray-200 shadow-xs relative">
+                  <div className="h-56 w-full">
+                    <MapContainer
+                      center={[product.latitude, product.longitude]}
+                      zoom={15}
+                      minZoom={12}
+                      maxZoom={18}
+                      maxBounds={ROXAS_BOUNDS}
+                      maxBoundsViscosity={1.0}
+                      scrollWheelZoom={false}
+                      style={{ height: '100%', width: '100%', zIndex: 1 }}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <Marker position={[product.latitude, product.longitude]}>
+                        <Popup>
+                          <div className="p-1 font-sans text-xs">
+                            <p className="font-bold text-gray-900">{product.title}</p>
+                            <p className="text-gray-600 mt-0.5">
+                              {product.barangay ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro` : (product.location || 'Roxas, Oriental Mindoro')}
+                            </p>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    </MapContainer>
+                  </div>
+                  <div className="p-3 bg-white border-t border-gray-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <span className="text-gray-500">
+                      Coordinates: <strong className="font-mono text-gray-800">{Number(product.latitude).toFixed(5)}, {Number(product.longitude).toFixed(5)}</strong>
+                    </span>
+                    <Link
+                      to="/map"
+                      className="text-[#1e3a8a] font-semibold hover:underline flex items-center gap-1"
+                    >
+                      Open interactive map <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  Coordinates pending verification by supplier. Exact meetup details shared after booking.
+                </div>
+              )}
+            </div>
 
             {/* ── RATINGS & REVIEWS ── */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-5">
@@ -464,6 +585,12 @@ export default function ProductDetail() {
                   <div>
                     <div className="flex items-center gap-1 text-sm font-bold text-gray-900">
                       {product.supplier_name}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                      <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
+                      <span className="truncate max-w-[170px]">
+                        {product.barangay ? `Brgy. ${product.barangay}, Roxas` : (product.location || product.supplier_address || 'Roxas, Oriental Mindoro')}
+                      </span>
                     </div>
                   </div>
                 </div>

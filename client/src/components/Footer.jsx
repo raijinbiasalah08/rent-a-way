@@ -44,13 +44,15 @@ export default function Footer() {
         {/* Brand column */}
         <div>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 mb-4">
-            <div className="w-9 h-9 rounded-full border-2 border-amber-400 bg-[#1a2744] flex items-center justify-center flex-shrink-0">
-              <span className="text-amber-400 font-black text-xs">RW</span>
-            </div>
+          <Link to="/" className="flex items-center gap-2.5 mb-4 group">
+            <img
+              src="/logo.png"
+              alt="Rent-A-Way Logo"
+              className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
             <div className="leading-none">
               <div className="font-bold text-white text-sm tracking-tight">Rent-A-Way</div>
-              <div className="text-[9px] text-gray-500 tracking-widest uppercase">Find Better Ways to Save</div>
+              <div className="text-[9px] text-amber-400 font-semibold tracking-widest uppercase">Find Better Ways to Save</div>
             </div>
           </Link>
 

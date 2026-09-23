@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, X, Plus, AlertTriangle, Check } from 'lucide-react';
 import { createProduct, uploadProductImage } from '../../api/products';
+import { useAuth } from '../../context/AuthContext';
+import LocationPicker from '../../components/LocationPicker';
 
 const CATEGORIES = [
   'Cameras & Drones',
@@ -23,6 +25,7 @@ const CATEGORY_MAP = {
 
 export default function AddProduct() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
     title: '',
@@ -32,8 +35,23 @@ export default function AddProduct() {
     min_days: '1',
     max_days: '30',
     location: '',
+    barangay: '',
+    latitude: null,
+    longitude: null,
     specs: '',
   });
+
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        location: prev.location || user.address || '',
+        barangay: prev.barangay || user.barangay || '',
+        latitude: prev.latitude ?? user.latitude ?? null,
+        longitude: prev.longitude ?? user.longitude ?? null,
+      }));
+    }
+  }, [user]);
   const [images, setImages] = useState([]); // array of File objects
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -75,6 +93,10 @@ export default function AddProduct() {
         min_days: Number(form.min_days) || 1,
         max_days: Number(form.max_days) || 30,
         specs: form.specs.trim(),
+        location: form.location.trim(),
+        barangay: form.barangay?.trim() || '',
+        latitude: form.latitude,
+        longitude: form.longitude,
       };
       const res = await createProduct(payload);
       const productId = res.data.data.id;
@@ -212,6 +234,25 @@ export default function AddProduct() {
             rows={2}
             placeholder="e.g. 24-70mm lens included, 2 batteries, charger, camera bag"
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/10 transition bg-white resize-none"
+          />
+        </div>
+
+        {/* Location Picker */}
+        <div className="bg-gray-50/70 p-4 sm:p-5 rounded-2xl border border-gray-200">
+          <LocationPicker
+            location={form.location}
+            barangay={form.barangay}
+            latitude={form.latitude}
+            longitude={form.longitude}
+            onChange={({ location, barangay, latitude, longitude }) => {
+              setForm(prev => ({
+                ...prev,
+                location,
+                barangay,
+                latitude,
+                longitude
+              }));
+            }}
           />
         </div>
 
