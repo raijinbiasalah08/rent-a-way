@@ -11,6 +11,7 @@ import {
 import { getProducts } from '../../api/products';
 import { useCustomerLocation } from '../../context/CustomerLocationContext';
 import { calculateDistance, formatDistance } from '../../utils/geo';
+import { API_ORIGIN } from '../../config';
 import {
   ROXAS_CENTER,
   ROXAS_BOUNDS,
@@ -31,7 +32,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 const CATEGORIES = [
   { id: '', label: 'All Equipment' },

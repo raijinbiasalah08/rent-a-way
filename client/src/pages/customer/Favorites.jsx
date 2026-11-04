@@ -4,6 +4,7 @@ import { getFavorites } from '../../api/favorites';
 import { ArrowRight, Star, MapPin, Calendar, Heart } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useFavorites } from '../../context/FavoritesContext';
+import { apiAssetUrl } from '../../config';
 
 function StatusBadge({ status }) {
   if (status === 'available') return (
@@ -25,7 +26,7 @@ function StatusBadge({ status }) {
 
 function ProductCard({ product }) {
   const { toggleFavorite } = useFavorites();
-  const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
+  const image = product.primary_image ? apiAssetUrl(product.primary_image) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col">
       <div className="relative h-52 bg-[#f5f0e8] overflow-hidden">

@@ -9,6 +9,7 @@ import ComplaintModal from '../../components/ComplaintModal';
 import ReceiptModal from '../../components/ReceiptModal';
 import PaymentModal from '../../components/PaymentModal';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../../config';
 
 
 const TABS = ['All', 'Pending', 'Approved', 'Active', 'Returned', 'Completed', 'Cancelled'];
@@ -23,7 +24,7 @@ const STATUS_STYLES = {
   rejected: 'bg-red-100 text-red-700 border-red-200',
 };
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 // ── Star Picker ───────────────────────────────────────────────────────────────
 function StarPicker({ value, onChange }) {

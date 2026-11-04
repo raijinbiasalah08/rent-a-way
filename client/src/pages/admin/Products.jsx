@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { getAdminProducts, toggleProduct } from '../../api/admin';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../../config';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 const CATEGORY_COLORS = {
   Cameras: 'bg-purple-100 text-purple-700',

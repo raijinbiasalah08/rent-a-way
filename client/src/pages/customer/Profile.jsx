@@ -5,8 +5,9 @@ import { useCustomerLocation } from '../../context/CustomerLocationContext';
 import LocationPicker from '../../components/LocationPicker';
 import { User, Mail, Phone, MapPin, Camera, Save, Shield, KeyRound, Lock, Check, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../../config';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 export default function Profile() {
   const { user, updateUser } = useAuth();

@@ -8,6 +8,7 @@ import api from '../../api/axios';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import LocationPicker from '../../components/LocationPicker';
 import { isWithinRoxas, ROXAS_BARANGAYS, formatRoxasAddress } from '../../utils/roxasLocation';
+import { apiAssetUrl } from '../../config';
 import toast from 'react-hot-toast';
 import {
   BarChart,
@@ -715,7 +716,7 @@ export default function SupplierDashboard() {
                                 <div className="w-11 h-11 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
                                   {rental.primary_image ? (
                                     <img
-                                      src={rental.primary_image.startsWith('http') ? rental.primary_image : `http://localhost:5000${rental.primary_image}`}
+                                      src={apiAssetUrl(rental.primary_image)}
                                       alt={rental.product_title}
                                       className="w-full h-full object-cover"
                                     />

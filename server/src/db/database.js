@@ -1,7 +1,9 @@
 const { DatabaseSync } = require('node:sqlite');
+const fs = require('fs');
 const path = require('path');
 
-const dbPath = path.resolve(__dirname, '../../rentaway.db');
+const dbPath = path.resolve(process.env.DATABASE_PATH || path.join(__dirname, '../../rentaway.db'));
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new DatabaseSync(dbPath);
 
 db.exec('PRAGMA journal_mode = WAL');
@@ -199,6 +201,33 @@ ensureColumn('users', 'gcash_qr', 'TEXT');
 ensureColumn('users', 'maya_number', 'TEXT');
 ensureColumn('users', 'maya_name', 'TEXT');
 ensureColumn('users', 'maya_qr', 'TEXT');
+
+// ── Enhanced messaging columns ──────────────────────────────────────────────
+ensureColumn('messages', 'type', "TEXT NOT NULL DEFAULT 'text'"); // text | image | equipment_card | location | system
+ensureColumn('messages', 'image_url', 'TEXT');
+ensureColumn('messages', 'reply_to_id', 'TEXT');
+ensureColumn('messages', 'reply_preview', 'TEXT');
+ensureColumn('messages', 'location_lat', 'REAL');
+ensureColumn('messages', 'location_lng', 'REAL');
+ensureColumn('messages', 'location_label', 'TEXT');
+ensureColumn('messages', 'equipment_id', 'TEXT');
+ensureColumn('messages', 'equipment_data', 'TEXT'); // JSON blob
+ensureColumn('messages', 'delivered_at', 'TEXT');
+ensureColumn('messages', 'read_at', 'TEXT');
+
+// Blocked users table
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS blocked_users (
+    id TEXT PRIMARY KEY,
+    blocker_id TEXT NOT NULL,
+    blocked_id TEXT NOT NULL,
+    reason TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(blocker_id, blocked_id),
+    FOREIGN KEY (blocker_id) REFERENCES users(id),
+    FOREIGN KEY (blocked_id) REFERENCES users(id)
+  );`);
+} catch(e) { /* already exists */ }
 
 // Roxas, Oriental Mindoro Reference Table & Seed
 db.exec(`

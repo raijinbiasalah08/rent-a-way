@@ -1,16 +1,20 @@
-// PayMongo Utility with both Live/Secret Key API and Local Sandbox Fallback
+// PayMongo Utility with local-only sandbox fallback
 const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY || '';
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
 
 async function createCheckoutSession({
   amount,
   description = 'RentAway Equipment Rental',
   customerName = 'RentAway Customer',
   customerEmail = 'customer@rentaway.ph',
-  successUrl = 'http://localhost:5173/customer/rentals?payment=success',
-  cancelUrl = 'http://localhost:5173/customer/rentals?payment=cancelled'
+  successUrl = `${FRONTEND_URL}/customer/rentals?payment=success`,
+  cancelUrl = `${FRONTEND_URL}/customer/rentals?payment=cancelled`
 }) {
-  // If no secret key is provided, return a simulated sandbox session
+  // Simulated checkouts are available only while developing locally.
   if (!PAYMONGO_SECRET_KEY || PAYMONGO_SECRET_KEY.startsWith('pk_')) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('PayMongo checkout is not configured. Add a valid PAYMONGO_SECRET_KEY.');
+    }
     const mockSessionId = 'cs_mock_' + Math.random().toString(36).substring(2, 15);
     return {
       checkoutUrl: `${successUrl}&checkout_session_id=${mockSessionId}`,
@@ -63,6 +67,7 @@ async function createCheckoutSession({
       isSimulated: false
     };
   } catch (err) {
+    if (process.env.NODE_ENV === 'production') throw err;
     console.warn('PayMongo API call error, falling back to simulated session:', err.message);
     const mockSessionId = 'cs_mock_' + Math.random().toString(36).substring(2, 15);
     return {
@@ -79,15 +84,15 @@ async function verifyCheckoutSession(checkoutSessionId) {
 
   if (checkoutSessionId.startsWith('cs_mock_')) {
     return {
-      paid: true,
-      status: 'paid',
+      paid: process.env.NODE_ENV !== 'production',
+      status: process.env.NODE_ENV === 'production' ? 'unpaid' : 'paid',
       method: 'gcash',
       txRef: 'TX-SIM-' + Math.random().toString(36).substring(2, 10).toUpperCase()
     };
   }
 
-  if (!PAYMONGO_SECRET_KEY) {
-    return { paid: true, status: 'paid', method: 'gcash', txRef: 'TX-' + checkoutSessionId.substring(0, 10) };
+  if (!PAYMONGO_SECRET_KEY || PAYMONGO_SECRET_KEY.startsWith('pk_')) {
+    return { paid: false, status: 'not_configured' };
   }
 
   try {

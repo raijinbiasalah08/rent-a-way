@@ -1,15 +1,15 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
-const path = require('path');
 const db = require('../db/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const paymongo = require('../utils/paymongo');
+const uploadsDir = require('../utils/uploads');
 
 const router = express.Router();
 
 const receiptStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
+  destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => cb(null, `receipt-${uuidv4()}-${file.originalname}`)
 });
 const uploadReceipt = multer({
@@ -540,8 +540,8 @@ router.post('/paymongo/create-session', authenticate, async (req, res) => {
       description: `RentAway: ${product.title || rental.product_title}`,
       customerName: rental.customer_name || req.user.name,
       customerEmail: rental.customer_email || req.user.email,
-      successUrl: `http://localhost:5173/customer/rentals?payment=success&rental_id=${rental.id}`,
-      cancelUrl: `http://localhost:5173/customer/rentals?payment=cancelled&rental_id=${rental.id}`
+      successUrl: `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/customer/rentals?payment=success&rental_id=${rental.id}`,
+      cancelUrl: `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/customer/rentals?payment=cancelled&rental_id=${rental.id}`
     });
 
     db.prepare('UPDATE rentals SET payment_intent_id = ? WHERE id = ?').run(session.checkoutSessionId, rental.id);

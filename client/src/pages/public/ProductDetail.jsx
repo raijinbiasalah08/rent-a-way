@@ -18,6 +18,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { ROXAS_BOUNDS, formatRoxasAddress } from '../../utils/roxasLocation';
+import { API_ORIGIN } from '../../config';
 
 // Fix Leaflet default icon paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -59,7 +60,7 @@ function StatusBadge({ status }) {
   );
 }
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 import { Helmet } from 'react-helmet-async';
 

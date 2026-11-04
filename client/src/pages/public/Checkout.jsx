@@ -16,8 +16,9 @@ import { getProduct } from '../../api/products';
 import { createRental } from '../../api/rentals';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../../config';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 export default function Checkout() {
   const location = useLocation();

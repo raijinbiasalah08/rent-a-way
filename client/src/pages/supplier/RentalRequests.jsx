@@ -6,8 +6,9 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ReceiptModal from '../../components/ReceiptModal';
 import { CheckCircle2, XCircle, RotateCcw, PackageCheck, MessageCircle, AlertCircle, Clock, Receipt, Eye, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../../config';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 
 const TABS = ['All', 'Pending', 'Approved', 'Active', 'Returned', 'Completed', 'Cancelled', 'Rejected'];

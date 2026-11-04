@@ -37,7 +37,7 @@ export default function RegisterRenter() {
         email,
         phone: mobile,
         password,
-        role: 'customer' // mapped to renter in Rent-A-Way backend and saved permanently in Firestore as renter
+        role: 'customer' // The backend stores renters as customers.
       });
       toast.success('Renter account registered successfully!');
       navigate('/renter', { replace: true });

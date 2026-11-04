@@ -3,12 +3,38 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
-const path = require('path');
 const db = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 const { isWithinRoxas, isValidRoxasBarangay, formatRoxasAddress } = require('../utils/roxasLocation');
+const { verifyGoogleIdToken } = require('../utils/googleIdentity');
+const uploadsDir = require('../utils/uploads');
 
 const router = express.Router();
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS google_identities (
+    google_sub TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
+function runInTransaction(callback) {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const result = callback();
+    db.exec('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // Preserve the original database error if rollback also fails.
+    }
+    throw error;
+  }
+}
 
 function validateAndNormalizeCoordinates(latitude, longitude) {
   if (latitude == null || longitude == null || latitude === '' || longitude === '') {
@@ -37,7 +63,7 @@ function validateAndNormalizeCoordinates(latitude, longitude) {
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
+  destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => cb(null, `avatar-${uuidv4()}-${file.originalname}`)
 });
 const upload = multer({ storage });
@@ -49,9 +75,15 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
     }
 
+    const requestedRole = String(role).trim().toLowerCase();
+    if (!['customer', 'renter', 'supplier'].includes(requestedRole)) {
+      return res.status(400).json({ success: false, message: 'Choose either the renter or supplier role.' });
+    }
+    const assignedRole = requestedRole === 'supplier' ? 'supplier' : 'customer';
+
     // Require suppliers/listers to set an accurate Roxas, Oriental Mindoro location
     const coords = validateAndNormalizeCoordinates(latitude, longitude);
-    if (role === 'supplier') {
+    if (assignedRole === 'supplier') {
       if (!barangay || !isValidRoxasBarangay(barangay)) {
         return res.status(400).json({
           success: false,
@@ -89,10 +121,10 @@ router.post('/register', async (req, res) => {
     db.prepare(`
       INSERT INTO users (id, name, email, password_hash, role, phone, address, barangay, latitude, longitude, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, name.trim(), email.trim(), passwordHash, role, userPhone, userAddress, userBarangay, userLat, userLng, createdAt);
+    `).run(id, name.trim(), email.trim(), passwordHash, assignedRole, userPhone, userAddress, userBarangay, userLat, userLng, createdAt);
 
-    const user = { id, name: name.trim(), email: email.trim(), role, phone: userPhone, address: userAddress, barangay: userBarangay, latitude: userLat, longitude: userLng, created_at: createdAt };
-    const token = jwt.sign({ id, role }, process.env.JWT_SECRET || 'rentaway_super_secret_key_2024', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+    const user = { id, name: name.trim(), email: email.trim(), role: assignedRole, phone: userPhone, address: userAddress, barangay: userBarangay, latitude: userLat, longitude: userLng, created_at: createdAt };
+    const token = jwt.sign({ id, role: assignedRole }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 
     res.status(201).json({ success: true, data: { user, token } });
   } catch (error) {
@@ -117,7 +149,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { password_hash, ...userWithoutPassword } = user;
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'rentaway_super_secret_key_2024', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 
     res.json({ success: true, data: { user: userWithoutPassword, token } });
   } catch (error) {
@@ -125,69 +157,105 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/google/config', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(503).json({
+      success: false,
+      message: 'Google sign-in is not configured. Add GOOGLE_CLIENT_ID to server/.env.'
+    });
+  }
+  res.json({ success: true, data: { clientId } });
+});
+
 router.post('/google', async (req, res) => {
+  let profile;
   try {
-    const { email, name, avatar, googleId, role = 'customer' } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Google account email is required' });
-    }
+    profile = await verifyGoogleIdToken(req.body?.credential);
+  } catch (error) {
+    const status = Number.isInteger(error.status) ? error.status : 500;
+    return res.status(status).json({
+      success: false,
+      message: error.message || 'Google sign-in could not be verified.'
+    });
+  }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanName = (name || cleanEmail.split('@')[0]).trim();
-    const mappedRole = role === 'supplier' ? 'supplier' : 'customer';
+  const requestedRole = req.body?.role;
+  const createdAt = new Date().toISOString();
 
-    let user = db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+  try {
+    const result = runInTransaction(() => {
+      const linkedIdentity = db.prepare('SELECT user_id FROM google_identities WHERE google_sub = ?').get(profile.sub);
+      let user = linkedIdentity
+        ? db.prepare('SELECT * FROM users WHERE id = ?').get(linkedIdentity.user_id)
+        : db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(profile.email);
 
-    if (user) {
-      if (!user.is_active) {
-        return res.status(403).json({ success: false, message: 'Account is deactivated' });
+      if (user) {
+        if (!user.is_active) return { inactive: true };
+
+        const existingLink = db.prepare('SELECT user_id FROM google_identities WHERE google_sub = ?').get(profile.sub);
+        if (existingLink && existingLink.user_id !== user.id) return { identityConflict: true };
+        if (!existingLink) {
+          db.prepare('INSERT INTO google_identities (google_sub, user_id, created_at) VALUES (?, ?, ?)')
+            .run(profile.sub, user.id, createdAt);
+        }
+
+        if (!user.avatar && profile.picture) {
+          db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(profile.picture, user.id);
+          user.avatar = profile.picture;
+        }
+        return { user };
       }
 
-      // If user avatar is missing, save Google profile avatar
-      if (!user.avatar && avatar) {
-        db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(avatar, user.id);
-        user.avatar = avatar;
-      }
-    } else {
-      // Create new user record
+      if (!requestedRole) return { needsRoleSelection: true };
+      if (!['customer', 'renter', 'supplier'].includes(requestedRole)) return { invalidRole: true };
+
+      const role = requestedRole === 'supplier' ? 'supplier' : 'customer';
       const id = uuidv4();
-      const createdAt = new Date().toISOString();
-      const randomPassword = await bcrypt.hash(uuidv4() + Date.now(), 10);
+      const name = profile.name || profile.email.split('@')[0];
+      const passwordHash = bcrypt.hashSync(`${uuidv4()}${Date.now()}`, 10);
       const defaultBarangay = 'San Aquilino';
-      const defaultAddress = 'Brgy. San Aquilino, Roxas, Oriental Mindoro';
-      const defaultLat = 12.5967;
-      const defaultLng = 121.4841;
+      const defaultAddress = formatRoxasAddress(defaultBarangay);
 
       db.prepare(`
         INSERT INTO users (id, name, email, password_hash, role, avatar, address, barangay, latitude, longitude, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id,
-        cleanName,
-        cleanEmail,
-        randomPassword,
-        mappedRole,
-        avatar || null,
-        defaultAddress,
-        defaultBarangay,
-        defaultLat,
-        defaultLng,
-        createdAt
-      );
+      `).run(id, name, profile.email, passwordHash, role, profile.picture, defaultAddress, defaultBarangay, 12.5967, 121.4841, createdAt);
 
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+      db.prepare('INSERT INTO google_identities (google_sub, user_id, created_at) VALUES (?, ?, ?)')
+        .run(profile.sub, id, createdAt);
+      return { user: db.prepare('SELECT * FROM users WHERE id = ?').get(id) };
+    });
+
+    if (result.needsRoleSelection) {
+      return res.json({
+        success: true,
+        data: {
+          needsRoleSelection: true,
+          googleUser: { sub: profile.sub, email: profile.email, name: profile.name, picture: profile.picture }
+        }
+      });
+    }
+    if (result.inactive) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated' });
+    }
+    if (result.identityConflict) {
+      return res.status(409).json({ success: false, message: 'This Google account is linked to another Rent-A-Way account.' });
+    }
+    if (result.invalidRole) {
+      return res.status(400).json({ success: false, message: 'Choose either the renter or supplier role.' });
     }
 
-    const { password_hash, ...userWithoutPassword } = user;
+    const { password_hash, ...userWithoutPassword } = result.user;
     const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET || 'rentaway_super_secret_key_2024',
+      { id: result.user.id, role: result.user.role },
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
-
     res.json({ success: true, data: { user: userWithoutPassword, token } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Google account sign-in failed:', error.message);
+    res.status(500).json({ success: false, message: 'Could not finish Google sign-in. Please try again.' });
   }
 });
 

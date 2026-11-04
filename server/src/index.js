@@ -1,6 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+require('dotenv').config();
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in production.');
+}
+
+const uploadsDir = require('./utils/uploads');
 const db = require('./db/database');
 
 const authRoutes = require('./routes/auth');
@@ -14,14 +20,33 @@ const favoritesRoutes = require('./routes/favorites');
 const notificationsRoutes = require('./routes/notifications');
 const messagesRoutes = require('./routes/messages');
 
-require('dotenv').config();
-
 const app = express();
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:5173' }));
+const localClientOrigins = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+]);
+const configuredClientOrigins = new Set(
+  (process.env.CLIENT_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean)
+);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || localClientOrigins.has(origin) || configuredClientOrigins.has(origin.replace(/\/$/, ''))) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origin is not allowed by CORS'));
+  }
+}));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(uploadsDir));
+
+app.get('/health', (req, res) => {
+  res.json({ success: true, status: 'ok' });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

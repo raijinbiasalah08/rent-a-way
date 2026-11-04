@@ -4,6 +4,7 @@ import { ArrowLeft, Upload, X, Save, AlertTriangle, Check, Trash2 } from 'lucide
 import { getProduct, updateProduct, uploadProductImage } from '../../api/products';
 import api from '../../api/axios';
 import LocationPicker from '../../components/LocationPicker';
+import { apiAssetUrl } from '../../config';
 
 const CATEGORIES = [
   'Cameras & Drones',
@@ -316,7 +317,7 @@ export default function EditProduct() {
             {/* Existing images */}
             {existingImages.map((img, i) => (
               <div key={img.id} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                <img src={`http://localhost:5000${img.url}`} alt="" className="w-full h-full object-cover" />
+                <img src={apiAssetUrl(img.url)} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => deleteExistingImage(img.id)}

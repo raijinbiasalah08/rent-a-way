@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { Search, Shield, Check, ChevronDown, Camera, Mountain, Bike, Calendar, Wrench, BookOpen, Star, MapPin, Clock, ArrowRight, RotateCcw, MessageSquare, Navigation } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { getProducts, getCategories } from '../../api/products';
+import api from '../../api/axios';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useCustomerLocation } from '../../context/CustomerLocationContext';
+import { apiAssetUrl } from '../../config';
 
 /* ─── Category data ─────────────────────────────────────────── */
 const CATEGORIES = [
@@ -107,7 +109,7 @@ function ListingCard({ product }) {
   const price = product.price_per_day || product.price || 0;
   const location = product.location || 'Philippines';
   const distanceText = getItemDistance(product.latitude, product.longitude);
-  const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
+  const image = product.primary_image ? apiAssetUrl(product.primary_image) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col">
@@ -195,6 +197,7 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [categoryCounts, setCategoryCounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [platformStats, setPlatformStats] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -208,6 +211,24 @@ export default function Home() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Fetch real platform stats for the hero stats strip
+  useEffect(() => {
+    api.get('/admin/public-stats')
+      .then(res => setPlatformStats(res.data?.data || null))
+      .catch(() => setPlatformStats(null));
+  }, []);
+
+  // Format stat numbers with + suffix
+  const fmt = (n) => n != null ? `${n.toLocaleString()}+` : '…';
+  const fmtRating = (r) => r != null ? `${r}/5` : 'N/A';
+
+  const LIVE_STATS = [
+    { num: fmt(platformStats?.totalProducts),   label: 'Items available' },
+    { num: fmt(platformStats?.totalSuppliers),  label: 'Verified suppliers' },
+    { num: fmtRating(platformStats?.avgRating), label: 'Average rating' },
+    { num: fmt(platformStats?.completedRentals),label: 'Rentals completed' },
+  ];
 
   const displayProducts = products;
 
@@ -337,14 +358,9 @@ export default function Home() {
 
         {/* Stats strip */}
         <div className="relative border-t border-[#1a2744] max-w-4xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { num: '2,400+', label: 'Items available' },
-            { num: '180+', label: 'Verified suppliers' },
-            { num: '4.8/5', label: 'Average rating' },
-            { num: '12,000+', label: 'Rentals completed' },
-          ].map(s => (
-            <div key={s.num} className="text-center sm:text-left">
-              <div className="text-2xl sm:text-3xl font-extrabold text-amber-400">{s.num}</div>
+          {LIVE_STATS.map(s => (
+            <div key={s.label} className="text-center sm:text-left">
+              <div className="text-2xl sm:text-3xl font-extrabold text-amber-400 transition-all duration-500">{s.num}</div>
               <div className="text-gray-400 text-xs mt-0.5">{s.label}</div>
             </div>
           ))}

@@ -18,8 +18,9 @@ import {
   submitPaymentProof
 } from '../api/payments';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../config';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 export default function PaymentModal({ rental, onSuccess, onClose }) {
   const [method, setMethod] = useState('gcash');

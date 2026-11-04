@@ -6,6 +6,7 @@ import { getProducts, getCategories } from '../../api/products';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useCustomerLocation } from '../../context/CustomerLocationContext';
 import { ROXAS_BARANGAYS } from '../../utils/roxasLocation';
+import { apiAssetUrl } from '../../config';
 
 const PRICE_FILTERS = [
   { label: 'Any price', value: '' },
@@ -54,7 +55,7 @@ function ProductCard({ product }) {
   const isFavorite = favoriteIds?.has(product.id);
   const distanceText = getItemDistance(product.latitude, product.longitude);
 
-  const image = product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
+  const image = product.primary_image ? apiAssetUrl(product.primary_image) : 'https://placehold.co/500x400/1e3a8a/ffffff?text=Product';
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col">
       {/* Image */}

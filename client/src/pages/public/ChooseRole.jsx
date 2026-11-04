@@ -1,82 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Tag, ArrowRight, Check, Sparkles, Loader2, AlertCircle } from 'lucide-react';
-import { auth, db } from '../../firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function ChooseRole() {
   const navigate = useNavigate();
-  const { user, pendingGoogleUser, assignRoleAndFinalize } = useAuth();
+  const { user, loading, pendingGoogleUser, assignRoleAndFinalize, roleDashboard } = useAuth();
 
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submittingRole, setSubmittingRole] = useState(null);
   const [error, setError] = useState('');
 
-  // Protect /choose-role:
-  // - Existing users who already have a role should NEVER see this page again.
-  // - Unauthenticated users are redirected to /login.
   useEffect(() => {
-    const guardRoleSelection = async () => {
-      // 1. Check local session
-      if (user && user.role) {
-        if (user.role === 'supplier') {
-          navigate('/supplier', { replace: true });
-        } else {
-          navigate('/renter', { replace: true });
-        }
-        return;
-      }
+    if (loading) return;
+    if (user?.role) {
+      navigate(roleDashboard(user.role), { replace: true });
+      return;
+    }
+    if (!pendingGoogleUser?.credential) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    setChecking(false);
+  }, [loading, user, pendingGoogleUser, navigate, roleDashboard]);
 
-      // 2. Check active Firebase auth user
-      const currentAuthUser = auth.currentUser || pendingGoogleUser;
-      if (!currentAuthUser) {
-        navigate('/login', { replace: true });
-        return;
-      }
-
-      // 3. Query Firestore users/{uid} to check if role is already permanently stored
-      try {
-        const userRef = doc(db, 'users', currentAuthUser.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists() && snap.data()?.role) {
-          const savedRole = snap.data().role;
-          if (savedRole === 'supplier') {
-            navigate('/supplier', { replace: true });
-          } else {
-            navigate('/renter', { replace: true });
-          }
-          return;
-        }
-      } catch (err) {
-        console.warn('Firestore verification error:', err);
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    guardRoleSelection();
-  }, [user, pendingGoogleUser, navigate]);
-
-  const activeAuthUser = auth.currentUser || pendingGoogleUser;
+  const activeAuthUser = pendingGoogleUser;
 
   const handleSelectRole = async (role) => {
     setError('');
     setSubmitting(true);
     setSubmittingRole(role);
     try {
-      // Saves displayName, email, photoURL, role, and createdAt in Firestore,
-      // syncs backend session, and redirects to designated page
-      await assignRoleAndFinalize(role);
+      const result = await assignRoleAndFinalize(role);
       toast.success(`Account created as ${role === 'supplier' ? 'Supplier' : 'Renter'}!`);
-      
-      if (role === 'supplier') {
-        navigate('/supplier', { replace: true });
-      } else {
-        navigate('/renter', { replace: true });
-      }
+      navigate(roleDashboard(result.role), { replace: true });
     } catch (err) {
       console.error('Error assigning role:', err);
       setError(err.message || 'Could not save your role. Please try again.');
@@ -112,10 +71,10 @@ export default function ChooseRole() {
 
         {activeAuthUser && (
           <div className="flex items-center gap-2.5 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full">
-            {activeAuthUser.photoURL ? (
+            {activeAuthUser.picture ? (
               <img
-                src={activeAuthUser.photoURL}
-                alt={activeAuthUser.displayName || 'User'}
+                src={activeAuthUser.picture}
+                alt={activeAuthUser.name || 'User'}
                 className="w-6 h-6 rounded-full object-cover"
               />
             ) : (

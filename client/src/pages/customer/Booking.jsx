@@ -5,8 +5,9 @@ import { createRental } from '../../api/rentals';
 import PaymentModal from '../../components/PaymentModal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../../config';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = API_ORIGIN;
 
 export default function Booking() {
   const { productId } = useParams();

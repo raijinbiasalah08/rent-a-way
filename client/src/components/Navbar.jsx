@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api/notifications';
 import { getCategories } from '../api/products';
 import { useSocket } from '../context/SocketContext';
+import { apiAssetUrl } from '../config';
 
 const CATEGORIES = [
   { id: 'Cameras',   label: 'Cameras & Drones',        to: '/browse?category=Cameras',   icon: Camera,    bg: 'bg-teal-50',   iconColor: 'text-teal-600' },
@@ -259,7 +260,7 @@ export default function Navbar() {
                     className="flex items-center gap-2 bg-[#1a2744] hover:bg-[#1e2f50] border border-[#2a3a5c] px-3 py-1.5 rounded-full transition"
                   >
                     {user.avatar ? (
-                      <img src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`} alt="Avatar" className="w-6 h-6 rounded-full object-cover" />
+                      <img src={apiAssetUrl(user.avatar)} alt="Avatar" className="w-6 h-6 rounded-full object-cover" />
                     ) : (
                       <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-[10px] font-bold text-white">
                         {user.name?.charAt(0)}
@@ -376,7 +377,7 @@ export default function Navbar() {
             <div className="flex flex-col border-t border-gray-700 mt-2 pt-2">
               <div className="flex items-center gap-3 py-3 px-2 mb-2 bg-[#1a2744] rounded-lg">
                 {user.avatar ? (
-                  <img src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  <img src={apiAssetUrl(user.avatar)} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-xs font-bold text-white">
                     {user.name?.charAt(0)}

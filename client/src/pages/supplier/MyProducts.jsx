@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Package, MapPin, Tag, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
+import { apiAssetUrl } from '../../config';
 
 const AVAILABILITY_COLORS = {
   available: 'bg-green-100 text-green-700',
@@ -107,7 +108,7 @@ export default function MyProducts() {
               <div className="relative h-44 bg-gray-100 overflow-hidden">
                 {product.primary_image ? (
                   <img
-                    src={product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:5000${product.primary_image}`}
+                    src={apiAssetUrl(product.primary_image)}
                     alt={product.title}
                     className="w-full h-full object-cover"
                   />

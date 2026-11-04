@@ -19,8 +19,31 @@ router.post('/complaints', authenticate, (req, res) => {
   }
 });
 
+// ── PUBLIC stats (no auth required) — used by the homepage stats strip ──────
+router.get('/public-stats', (req, res) => {
+  try {
+    const totalProducts = db.prepare("SELECT COUNT(*) as c FROM products WHERE is_active = 1").get().c;
+    const totalSuppliers = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'supplier' AND is_active = 1").get().c;
+    const avgRating = db.prepare("SELECT AVG(rating) as avg FROM reviews").get().avg;
+    const completedRentals = db.prepare("SELECT COUNT(*) as c FROM rentals WHERE status IN ('completed', 'returned')").get().c;
+
+    res.json({
+      success: true,
+      data: {
+        totalProducts,
+        totalSuppliers,
+        avgRating: avgRating ? parseFloat(avgRating.toFixed(1)) : null,
+        completedRentals,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // All routes below are admin only
 router.use(authenticate, authorize('admin'));
+
 
 router.get('/stats', (req, res) => {
   try {
