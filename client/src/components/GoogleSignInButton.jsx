@@ -70,7 +70,9 @@ export default function GoogleSignInButton({ clientId, configLoading, configErro
         googleIdentity.renderButton(buttonRef.current, {
           type: 'standard',
           theme: 'outline',
-          size: 'large',
+          // Google personalizes large buttons for returning sessions. Use
+          // medium to keep the generic "Continue with Google" label.
+          size: 'medium',
           text: 'continue_with',
           shape: 'rectangular',
           logo_alignment: 'left',
