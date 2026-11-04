@@ -20,7 +20,7 @@ Frontend runs at: http://localhost:5173
 
 ## Initial Admin Account
 
-The Render deployment's one-time `initialDeployHook` creates the first admin from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`. Choose a unique password with at least 12 characters when creating the Render Blueprint. After the hook succeeds, remove those two environment variables from Render; the admin account remains in the database.
+The Render start command creates the initial admin from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` whenever the database is empty. Keep both values set in Render and use a unique password with at least 12 characters. On the free plan, the database can be erased when the service spins down or restarts, so this restores the admin but not other app data.
 
 ## Project Structure
 
@@ -35,9 +35,9 @@ rent a way 2/
 
 ## Deploy on Vercel and Render
 
-The repository includes `client/vercel.json` for client-side routes and a root `render.yaml` for the API, health check, persistent database/uploads disk, and initial admin bootstrap.
+The repository includes `client/vercel.json` for client-side routes and a root `render.yaml` for the API, health check, and admin bootstrap.
 
-The SQLite database and uploaded files need persistent storage. The Render Blueprint uses a paid 0.5 CPU / 512 MB service and a 1 GB disk; current listed rates are $7/month for the service plus $0.25/GB-month for disk storage. Confirm current pricing in Render before creating the service.
+The Render Blueprint uses the Free web service plan and no paid disk. This keeps the hosted services at $0 within free usage limits, but is suitable for demos only: Render can spin the service down after 15 minutes without traffic, startup can take about a minute, and local SQLite data and uploaded images are erased whenever the service spins down, restarts, or redeploys. Keep a copy of anything important outside the service.
 
 1. Import this GitHub repository into Vercel and set the project root directory to `client`.
 2. Deploy once to get the Vercel production URL.
@@ -48,6 +48,6 @@ The SQLite database and uploaded files need persistent storage. The Render Bluep
    - `PAYMONGO_SECRET_KEY`: optional for account browsing; required to enable real PayMongo checkout.
 4. After Render deploys, copy its API origin (for example, `https://rentaway-api.onrender.com`) into Vercel as `VITE_API_URL`, then redeploy the frontend.
 5. Add the Vercel production origin to the Google OAuth client's Authorized JavaScript origins.
-6. Remove `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` from Render after the initial admin bootstrap succeeds.
+6. Keep `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` set in Render so the admin can be recreated after a free-tier filesystem reset.
 
-The production database and uploaded files start empty on the Render persistent disk. The local `server/rentaway.db` and `server/uploads` are not copied to hosting.
+The hosted database and uploads start empty. The local `server/rentaway.db` and `server/uploads` are not copied to hosting. Render Free can suspend service activity if workspace free usage limits are exceeded; avoid adding paid resources or a payment method if you need to prevent overage charges.

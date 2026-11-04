@@ -2,26 +2,21 @@ services:
   - type: web
     name: rentaway-api
     runtime: node
-    plan: 0.5c-512mb
+    plan: free
     region: singapore
     rootDir: server
     buildCommand: npm install --omit=dev
-    startCommand: npm start
+    startCommand: node src/db/bootstrapAdmin.js && npm start
     healthCheckPath: /health
-    initialDeployHook: node src/db/bootstrapAdmin.js
-    disk:
-      name: rentaway-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: 24.22.1
       - key: NODE_ENV
         value: production
       - key: DATABASE_PATH
-        value: /var/data/rentaway.db
+        value: /tmp/rentaway.db
       - key: UPLOADS_DIR
-        value: /var/data/uploads
+        value: /tmp/rentaway-uploads
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
