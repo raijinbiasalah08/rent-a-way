@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import {
   Search,
   Shield,
   Check,
-  ChevronDown,
   Camera,
   Mountain,
   Bike,
@@ -18,8 +18,8 @@ import {
   RotateCcw,
   MessageSquare,
   Navigation,
+  Compass,
 } from "lucide-react";
-import LoadingSpinner from "../../components/LoadingSpinner";
 import { getProducts, getCategories } from "../../api/products";
 import api from "../../api/axios";
 import { useFavorites } from "../../context/FavoritesContext";
@@ -98,20 +98,28 @@ const CATEGORIES = [
 
 /* ─── Ticker items ───────────────────────────────────────────── */
 const TICKER = [
-  { icon: Check, label: "FREE CANCELLATION UP TO 24H" },
-  { icon: Star, label: "REVIEWS FROM REAL RENTERS" },
-  { icon: Shield, label: "VERIFIED SUPPLIERS ONLY" },
-  { icon: MapPin, label: "PICKUP OR DELIVERY" },
-  { icon: Shield, label: "CONFIRMED RENTAL REQUESTS" },
-  { icon: Clock, label: "LOYALTY REWARDS" },
+  { icon: Search, label: "COMPARE LOCAL LISTINGS" },
+  { icon: MessageSquare, label: "MESSAGE SUPPLIERS" },
+  { icon: Calendar, label: "CHOOSE YOUR DATES" },
+  { icon: MapPin, label: "RENTALS AROUND ROXAS" },
 ];
 
-/* ─── Removed Mock Data ────── */
+const AVAILABILITY_STYLES = {
+  available: "bg-emerald-50 text-emerald-700",
+  limited: "bg-amber-50 text-amber-700",
+  rented: "bg-slate-100 text-slate-600",
+  maintenance: "bg-orange-50 text-orange-700",
+  unavailable: "bg-slate-100 text-slate-600",
+};
 
 /* ─── Stars helper ───────────────────────────────────────────── */
 function Stars({ rating }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div
+      className="flex items-center gap-0.5"
+      role="img"
+      aria-label={`${Number(rating).toFixed(1)} out of 5 stars`}
+    >
       {[1, 2, 3, 4, 5].map((i) => (
         <svg
           key={i}
@@ -140,8 +148,12 @@ function ListingCard({ product }) {
   ).toUpperCase();
   const rating = product.avg_rating || product.rating || null;
   const price = product.price_per_day || product.price || 0;
-  const location = product.location || "Philippines";
+  const location = product.barangay
+    ? `${product.barangay}, Roxas`
+    : product.location || "Roxas, Oriental Mindoro";
   const distanceText = getItemDistance(product.latitude, product.longitude);
+  const availabilityClass = AVAILABILITY_STYLES[product.availability];
+  const minDays = Number(product.min_days) || 1;
   const image = product.primary_image
     ? apiAssetUrl(product.primary_image)
     : "/placeholder.svg";
@@ -153,6 +165,12 @@ function ListingCard({ product }) {
           src={image}
           alt={name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            if (!event.currentTarget.src.endsWith("/placeholder.svg"))
+              event.currentTarget.src = "/placeholder.svg";
+          }}
         />
 
         <div className="absolute top-3 left-3 flex gap-2">
@@ -161,10 +179,21 @@ function ListingCard({ product }) {
               Popular
             </span>
           )}
-          <span className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>{" "}
-            Available
-          </span>
+          {availabilityClass && (
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm ${availabilityClass}`}
+            >
+              {product.availability === "limited"
+                ? "Limited"
+                : product.availability === "rented"
+                  ? "Rented out"
+                  : product.availability === "maintenance"
+                    ? "In maintenance"
+                    : product.availability === "unavailable"
+                      ? "Unavailable"
+                      : "Available"}
+            </span>
+          )}
         </div>
         <button
           onClick={(e) => {
@@ -173,6 +202,8 @@ function ListingCard({ product }) {
             toggleFavorite(product.id);
           }}
           className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition"
+          aria-label={`${isFavorite ? "Remove" : "Add"} ${name} ${isFavorite ? "from" : "to"} saved gear`}
+          aria-pressed={Boolean(isFavorite)}
         >
           <svg
             className={`w-4 h-4 ${isFavorite ? "text-red-500 fill-current" : "text-gray-400"}`}
@@ -214,8 +245,7 @@ function ListingCard({ product }) {
           {name}
         </h3>
         <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-          {product.description ||
-            "Quality gear available for rent. Contact supplier for details."}
+          {product.description || "View the listing for equipment details."}
         </p>
 
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 flex-wrap">
@@ -232,7 +262,7 @@ function ListingCard({ product }) {
           <span className="text-gray-300">·</span>
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            Min 1 day
+            Min {minDays} {minDays === 1 ? "day" : "days"}
           </span>
         </div>
 
@@ -255,27 +285,34 @@ function ListingCard({ product }) {
   );
 }
 
-import { Helmet } from "react-helmet-async";
-
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function Home() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All categories");
-  const [catDropOpen, setCatDropOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [categoryCounts, setCategoryCounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listingsError, setListingsError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [platformStats, setPlatformStats] = useState(null);
 
   useEffect(() => {
-    Promise.all([getProducts({ limit: 6 }), getCategories()])
-      .then(([productsRes, catsRes]) => {
-        setProducts(productsRes.data?.data?.products || []);
-        setCategoryCounts(catsRes.data?.data || []);
+    setLoading(true);
+    Promise.allSettled([getProducts({ limit: 6 }), getCategories()])
+      .then(([productsResult, categoriesResult]) => {
+        if (productsResult.status === "fulfilled") {
+          setProducts(productsResult.value.data?.data?.products || []);
+          setListingsError(false);
+        } else {
+          setListingsError(true);
+        }
+        if (categoriesResult.status === "fulfilled") {
+          setCategoryCounts(categoriesResult.value.data?.data || []);
+        }
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadAttempt]);
 
   // Fetch real platform stats for the hero stats strip
   useEffect(() => {
@@ -285,18 +322,30 @@ export default function Home() {
       .catch(() => setPlatformStats(null));
   }, []);
 
-  // Format stat numbers with + suffix
-  const fmt = (n) => (n != null ? `${n.toLocaleString()}+` : "…");
-  const fmtRating = (r) => (r != null ? `${r}/5` : "N/A");
+  // Render exact live counts without implying the numbers are estimates.
+  const fmt = (n) => (n != null ? n.toLocaleString() : "—");
+  const fmtRating = (r) => (r != null ? `${r}/5` : "—");
 
   const LIVE_STATS = [
     { num: fmt(platformStats?.totalProducts), label: "Items available" },
-    { num: fmt(platformStats?.totalSuppliers), label: "Verified suppliers" },
+    { num: fmt(platformStats?.totalSuppliers), label: "Active suppliers" },
     { num: fmtRating(platformStats?.avgRating), label: "Average rating" },
     { num: fmt(platformStats?.completedRentals), label: "Rentals completed" },
   ];
 
   const displayProducts = products;
+  const heroProduct = displayProducts[0];
+  const browseParams = new URLSearchParams();
+  if (search.trim()) browseParams.set("q", search.trim());
+  if (selectedCategory !== "All categories")
+    browseParams.set("category", selectedCategory);
+  const browseQuery = browseParams.toString();
+  const browseUrl = `/browse${browseQuery ? `?${browseQuery}` : ""}`;
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+    navigate(browseUrl);
+  };
 
   return (
     <div className="font-sans">
@@ -304,184 +353,234 @@ export default function Home() {
         <title>Rent-A-Way | Rent what you need. Save what you don't.</title>
         <meta
           name="description"
-          content="Trusted rental marketplace in the Philippines. Cameras, camping gear, sports, event, household and school equipment."
+          content="Find cameras, camping gear, sports, event, household, and school equipment to rent from local suppliers in Roxas, Oriental Mindoro. Compare listings and send a rental request."
         />
       </Helmet>
 
       {/* ── HERO ────────────────────────────────────────────────── */}
-      <section
-        className="relative bg-[#0f1729] text-white overflow-hidden"
-        style={{ minHeight: "520px" }}
-      >
-        {/* Decorative circles */}
-        <div className="absolute -top-16 -left-16 w-72 h-72 rounded-full bg-[#1a2744] opacity-60" />
-        <div className="absolute top-8 -right-24 w-80 h-80 rounded-full bg-[#1a2744] opacity-40" />
-        <div className="absolute bottom-0 left-1/4 w-40 h-40 rounded-full bg-[#1a2744] opacity-30" />
+      <section className="relative overflow-hidden bg-[#0f1729] text-white">
+        <div className="pointer-events-none absolute -left-40 -top-32 h-96 w-96 rounded-full bg-blue-700/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-28 top-12 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" />
 
-        <div className="relative max-w-4xl mx-auto px-4 pt-16 pb-10 text-center">
-          {/* Trust badge */}
-          <div className="inline-flex items-center gap-2 bg-[#1a2744] border border-[#2a3a5c] text-gray-300 text-xs font-medium px-4 py-2 rounded-full mb-8">
-            <Shield className="w-3.5 h-3.5 text-amber-400" />
-            Trusted rental marketplace in the Philippines
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-4">
-            Rent what you need.
-            <br />
-            <span className="text-amber-400">Save what you don't.</span>
-          </h1>
-
-          {/* Sub-headline */}
-          <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            Cameras, camping gear, sports, event, household and school equipment
-            — book it for a few days, use it, return it. No storage, no upkeep,
-            no overspending.
-          </p>
-
-          {/* Search bar */}
-          <div className="max-w-2xl mx-auto w-full">
-            {/* Mobile: stacked layout */}
-            <div className="sm:hidden flex flex-col gap-2">
-              <div className="flex items-center bg-white rounded-xl shadow-lg px-4">
-                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="What do you need to rent?"
-                  className="flex-1 py-3.5 px-2 text-gray-800 text-sm outline-none bg-transparent placeholder-gray-400"
-                />
+        <div className="relative mx-auto max-w-7xl px-4 pb-12 pt-12 sm:px-6 sm:pb-16 sm:pt-16 lg:px-8">
+          <div className="grid items-center gap-10 md:grid-cols-[1.05fr_.95fr] lg:gap-14">
+            <div className="max-w-2xl">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-medium text-blue-100">
+                <MapPin className="h-4 w-4 text-amber-400" />
+                Local rentals in Roxas, Oriental Mindoro
               </div>
-              <Link
-                to={`/browse${search ? `?q=${encodeURIComponent(search)}` : ""}`}
-                className="flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-3.5 rounded-xl transition"
+
+              <h1 className="mb-5 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
+                Get the gear.
+                <br />
+                <span className="text-amber-400">Skip the cost.</span>
+              </h1>
+              <p className="mb-7 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
+                Find equipment from local suppliers for your next project,
+                celebration, or weekend outdoors. Choose your dates and send a
+                rental request when you find what you need.
+              </p>
+
+              <form
+                role="search"
+                aria-label="Search rental equipment"
+                onSubmit={submitSearch}
+                className="grid grid-cols-1 gap-2 rounded-2xl border border-white/10 bg-white p-2 shadow-2xl sm:grid-cols-[minmax(0,1fr)_minmax(170px,.8fr)] lg:grid-cols-[minmax(0,1fr)_180px_auto]"
               >
-                <Search className="w-4 h-4" /> Find Rentals
-              </Link>
-            </div>
-
-            {/* Desktop: horizontal bar */}
-            <div className="hidden sm:flex bg-white rounded-xl shadow-2xl">
-              {/* Search input */}
-              <div className="flex items-center gap-2 px-4 flex-1 min-w-0 rounded-l-xl overflow-hidden">
-                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="What do you need to rent?"
-                  className="flex-1 py-4 text-gray-800 text-sm outline-none bg-transparent placeholder-gray-400"
-                />
-              </div>
-
-              {/* Divider */}
-              <div className="w-px bg-gray-200 my-3" />
-
-              {/* Category selector */}
-              <div className="relative flex-shrink-0">
-                <button
-                  onClick={() => setCatDropOpen(!catDropOpen)}
-                  className="flex items-center gap-2 px-4 py-4 text-gray-600 text-sm font-medium hover:text-gray-900 transition whitespace-nowrap"
-                >
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                  {selectedCategory}
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-200 ${catDropOpen ? "rotate-180" : ""}`}
+                <label className="flex min-w-0 items-center gap-2 rounded-xl px-3 focus-within:ring-2 focus-within:ring-blue-500 sm:col-span-1">
+                  <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="sr-only">What do you need to rent?</span>
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search equipment…"
+                    className="h-12 min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-0"
                   />
+                </label>
+                <label className="sr-only" htmlFor="home-category">
+                  Equipment category
+                </label>
+                <select
+                  id="home-category"
+                  value={selectedCategory}
+                  onChange={(event) => setSelectedCategory(event.target.value)}
+                  className="h-12 min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="All categories">All categories</option>
+                  {CATEGORIES.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-5 text-sm font-semibold text-white transition hover:bg-blue-700 sm:col-span-2 lg:col-span-1"
+                >
+                  Find rentals <ArrowRight className="h-4 w-4" />
                 </button>
-                {catDropOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setCatDropOpen(false)}
-                    />
-                    <div className="absolute top-full left-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
-                      {["All categories", ...CATEGORIES.map((c) => c.name)].map(
-                        (c) => (
-                          <button
-                            key={c}
-                            onClick={() => {
-                              setSelectedCategory(c);
-                              setCatDropOpen(false);
-                            }}
-                            className={`block w-full text-left px-4 py-2 text-sm transition ${
-                              selectedCategory === c
-                                ? "bg-[#1e3a8a] text-white font-medium"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            {c}
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </>
-                )}
+              </form>
+
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-400">
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  Compare local listings
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  Message suppliers
+                </span>
               </div>
 
-              {/* Find button */}
               <Link
-                to={`/browse${search ? `?q=${encodeURIComponent(search)}` : ""}${selectedCategory !== "All categories" ? `${search ? "&" : "?"}category=${encodeURIComponent(selectedCategory)}` : ""}`}
-                className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-4 transition whitespace-nowrap rounded-r-xl"
+                to={heroProduct ? `/product/${heroProduct.id}` : "/browse"}
+                className="group relative mt-6 flex h-44 w-full max-w-xl items-end overflow-hidden rounded-2xl border border-white/10 bg-slate-800 shadow-lg md:hidden"
               >
-                <Search className="w-4 h-4" /> Find Rentals
+                <img
+                  src={
+                    heroProduct?.primary_image
+                      ? apiAssetUrl(heroProduct.primary_image)
+                      : CATEGORIES[0].image
+                  }
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  onError={(event) => {
+                    if (!event.currentTarget.src.endsWith("/placeholder.svg"))
+                      event.currentTarget.src = "/placeholder.svg";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/15 to-transparent" />
+                <div className="relative w-full p-4">
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[.14em] text-blue-200">
+                    {heroProduct
+                      ? "Recently listed"
+                      : "Explore the marketplace"}
+                  </span>
+                  <span className="block truncate text-lg font-bold text-white">
+                    {heroProduct?.title || "Find equipment for your plans"}
+                  </span>
+                  {heroProduct && (
+                    <span className="mt-1 block text-sm font-semibold text-white">
+                      ₱
+                      {Number(heroProduct.price_per_day || 0).toLocaleString(
+                        "en-PH",
+                      )}
+                      <span className="ml-1 font-normal text-slate-300">
+                        / day
+                      </span>
+                    </span>
+                  )}
+                </div>
               </Link>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {CATEGORIES.slice(0, 3).map((category) => (
+                  <Link
+                    key={category.id}
+                    to={category.to}
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/25 hover:bg-white/10 hover:text-white"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
             </div>
 
-            {/* Search trust badges */}
-            <div className="hidden sm:flex items-center justify-center gap-6 mt-4 text-gray-500 text-xs">
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-gray-400" /> Free
-                cancellation up to 24h
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-gray-400" /> Supplier
-                communication
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-gray-400" /> Same-day pickup
-              </span>
+            <div className="relative mx-auto hidden aspect-[1.12] w-full max-w-[520px] grid-cols-[1.15fr_.85fr] grid-rows-2 gap-3 md:grid">
+              <Link
+                to={heroProduct ? `/product/${heroProduct.id}` : "/browse"}
+                className="group relative row-span-2 min-h-[320px] overflow-hidden rounded-[28px] border border-white/10 bg-slate-800 shadow-2xl"
+              >
+                <img
+                  src={
+                    heroProduct?.primary_image
+                      ? apiAssetUrl(heroProduct.primary_image)
+                      : CATEGORIES[0].image
+                  }
+                  alt={heroProduct?.title || "Camera available to rent"}
+                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  onError={(event) => {
+                    if (!event.currentTarget.src.endsWith("/placeholder.svg"))
+                      event.currentTarget.src = "/placeholder.svg";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/5 to-slate-950/20" />
+                <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-slate-900 shadow-lg">
+                  {heroProduct ? "Recently listed" : "Explore cameras & drones"}
+                </span>
+                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-[.16em] text-blue-200">
+                    {heroProduct?.category || "Roxas rental marketplace"}
+                  </p>
+                  <h2 className="line-clamp-2 text-xl font-bold text-white sm:text-2xl">
+                    {heroProduct?.title || "Find the right gear for your plans"}
+                  </h2>
+                  {heroProduct && (
+                    <p className="mt-2 text-sm font-semibold text-white">
+                      ₱
+                      {Number(heroProduct.price_per_day || 0).toLocaleString(
+                        "en-PH",
+                      )}
+                      <span className="ml-1 font-normal text-slate-300">
+                        / day
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </Link>
+
+              {CATEGORIES.slice(1, 3).map((category) => (
+                <Link
+                  key={category.id}
+                  to={category.to}
+                  className="group relative min-h-0 overflow-hidden rounded-[24px] border border-white/10 bg-slate-800 shadow-xl"
+                >
+                  <img
+                    src={category.image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-slate-950/10" />
+                  <span className="absolute inset-x-4 bottom-4 text-sm font-semibold text-white">
+                    {category.name}
+                  </span>
+                </Link>
+              ))}
+
+              <div className="absolute -bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-800 shadow-xl">
+                <Compass className="h-4 w-4 text-[#1e3a8a]" />
+                Browse rentals around Roxas
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Stats strip */}
-        <div className="relative border-t border-[#1a2744] max-w-4xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {LIVE_STATS.map((s) => (
-            <div key={s.label} className="text-center sm:text-left">
-              <div className="text-2xl sm:text-3xl font-extrabold text-amber-400 transition-all duration-500">
-                {s.num}
+        {/* Live marketplace figures */}
+        <div className="relative border-t border-white/10 bg-white/[.025]">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-5 px-4 py-6 sm:px-6 sm:py-7 md:grid-cols-4 lg:px-8">
+            {LIVE_STATS.map((s) => (
+              <div key={s.label} className="text-center md:text-left">
+                <div className="text-2xl font-extrabold text-amber-400 transition-all duration-500 sm:text-3xl">
+                  {s.num}
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">{s.label}</div>
               </div>
-              <div className="text-gray-400 text-xs mt-0.5">{s.label}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ── TICKER STRIP ────────────────────────────────────────── */}
-      <div className="bg-[#1a1f2e] border-y border-[#2a3044] overflow-hidden">
-        <div className="flex animate-marquee whitespace-nowrap py-3">
-          {[...TICKER, ...TICKER].map((t, i) => (
+      <div className="border-y border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-x-8 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
+          {TICKER.map((item) => (
             <span
-              key={i}
-              className="flex items-center gap-2 text-gray-300 text-xs font-semibold tracking-widest mx-6"
+              key={item.label}
+              className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-wide text-slate-600 sm:text-xs"
             >
-              <t.icon className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              {t.label}
-              <span className="ml-6 text-amber-400">●</span>
+              <item.icon className="h-4 w-4 shrink-0 text-[#1e3a8a]" />
+              {item.label}
             </span>
           ))}
         </div>
@@ -499,11 +598,11 @@ export default function Home() {
                 </span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight max-w-sm">
-                Six categories, thousands of things you can borrow today
+                Find gear for the plans you have
               </h2>
               <p className="text-gray-500 mt-3 max-w-md text-sm">
-                Whatever the occasion, someone nearby is already renting it out.
-                Pick a category and see what's live.
+                Explore the categories and see which items local suppliers have
+                listed.
               </p>
             </div>
             <Link
@@ -528,8 +627,16 @@ export default function Home() {
                   <div className="relative h-44 overflow-hidden bg-amber-50">
                     <img
                       src={cat.image}
-                      alt={cat.name}
+                      alt=""
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        if (
+                          !event.currentTarget.src.endsWith("/placeholder.svg")
+                        )
+                          event.currentTarget.src = "/placeholder.svg";
+                      }}
                     />
 
                     <div className="absolute top-3 right-3">
@@ -577,16 +684,15 @@ export default function Home() {
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-6 h-0.5 bg-amber-500" />
                 <span className="text-xs font-bold tracking-widest text-amber-600 uppercase">
-                  Most Requested
+                  Recently Listed
                 </span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-                Renters are booking these right now
+                Fresh finds from local suppliers
               </h2>
               <p className="text-gray-500 mt-3 max-w-md text-sm">
-                Top-rated gear from suppliers with fast response times and a{" "}
-                <span className="text-[#1e3a8a]">track record</span> of clean,
-                on-time handovers.
+                Browse recently added equipment, compare the details, and check
+                availability before sending a rental request.
               </p>
             </div>
             <Link
@@ -621,6 +727,29 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          ) : listingsError ? (
+            <div className="mx-auto max-w-xl rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#1e3a8a]">
+                <RotateCcw className="h-7 w-7" />
+              </div>
+              <h3 className="mb-2 text-lg font-bold text-gray-900">
+                Listings are temporarily unavailable
+              </h3>
+              <p className="mb-6 text-sm text-gray-500">
+                We couldn’t load the marketplace just now. Please try again.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setListingsError(false);
+                  setLoadAttempt((attempt) => attempt + 1);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#1e3a8a] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                <RotateCcw className="h-4 w-4" /> Try again
+              </button>
+            </div>
           ) : displayProducts.length === 0 ? (
             <div className="text-center py-16 px-4 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-xl mx-auto">
               <div className="w-16 h-16 bg-blue-50 text-[#1e3a8a] rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -635,7 +764,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
-                  to="/for-suppliers"
+                  to="/register-supplier"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition"
                 >
                   Become a Supplier <ArrowRight className="w-3.5 h-3.5" />
@@ -675,7 +804,7 @@ export default function Home() {
 /* ═══════════════════════════════════════════════════════════════
    HOW IT WORKS
 ═══════════════════════════════════════════════════════════════ */
-const STEPS = [
+const RENT_STEPS = [
   {
     num: "01",
     icon: Search,
@@ -688,15 +817,15 @@ const STEPS = [
     num: "02",
     icon: Calendar,
     title: "Pick your dates",
-    desc: "Tell us when you need it and for how long. The total updates instantly as your rental period changes.",
+    desc: "Choose the dates that fit your plans and check the listing for its availability and minimum rental period.",
     color: "bg-blue-50",
     iconColor: "text-blue-600",
   },
   {
     num: "03",
     icon: Shield,
-    title: "Book & pay securely",
-    desc: "Choose your dates and send a request. Your supplier confirms availability and arranges handover.",
+    title: "Send a rental request",
+    desc: "Ask the supplier for your chosen dates. They confirm availability and coordinate the handover with you.",
     color: "bg-green-50",
     iconColor: "text-green-600",
   },
@@ -710,8 +839,44 @@ const STEPS = [
   },
 ];
 
+const SUPPLIER_STEPS = [
+  {
+    num: "01",
+    icon: Check,
+    title: "Create a supplier account",
+    desc: "Register as a supplier to open your equipment workspace.",
+    color: "bg-indigo-50",
+    iconColor: "text-indigo-600",
+  },
+  {
+    num: "02",
+    icon: Camera,
+    title: "Add your equipment",
+    desc: "Add photos, item details, your daily rate, and rental availability.",
+    color: "bg-blue-50",
+    iconColor: "text-blue-600",
+  },
+  {
+    num: "03",
+    icon: Shield,
+    title: "Review rental requests",
+    desc: "Check each request and approve or decline it from your dashboard.",
+    color: "bg-green-50",
+    iconColor: "text-green-600",
+  },
+  {
+    num: "04",
+    icon: RotateCcw,
+    title: "Coordinate the handover",
+    desc: "Message the renter about pickup or delivery and track the rental through return.",
+    color: "bg-amber-50",
+    iconColor: "text-amber-600",
+  },
+];
+
 function HowItWorks() {
   const [tab, setTab] = useState("rent");
+  const steps = tab === "rent" ? RENT_STEPS : SUPPLIER_STEPS;
   return (
     <section id="how-it-works" className="bg-[#f5f0e8] py-20 px-4">
       <div className="max-w-5xl mx-auto text-center">
@@ -724,26 +889,34 @@ function HowItWorks() {
           <div className="w-8 h-0.5 bg-amber-500" />
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
-          Renting takes four simple steps
+          {tab === "rent"
+            ? "Rent equipment in four simple steps"
+            : "List and manage equipment in four steps"}
         </h2>
         <p className="text-gray-500 text-sm max-w-md mx-auto mb-8">
-          Whether you're <span className="text-[#1e3a8a]">borrowing</span> or{" "}
-          <span className="text-[#1e3a8a]">lending</span>, the whole{" "}
-          <span className="text-[#1e3a8a]">process</span> stays{" "}
-          <span className="text-[#1e3a8a]">transparent</span> from first search
-          to final return.
+          {tab === "rent"
+            ? "Find equipment, ask for the dates you need, and coordinate directly with the supplier."
+            : "Create your supplier account, list equipment, and manage requests from your workspace."}
         </p>
 
         {/* Toggle pills */}
-        <div className="inline-flex bg-white border border-gray-200 rounded-full p-1 mb-12">
+        <div
+          className="inline-flex bg-white border border-gray-200 rounded-full p-1 mb-12"
+          role="group"
+          aria-label="Choose which process to view"
+        >
           <button
+            type="button"
             onClick={() => setTab("rent")}
+            aria-pressed={tab === "rent"}
             className={`px-6 py-2 rounded-full text-sm font-semibold transition ${tab === "rent" ? "bg-[#1e3a8a] text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
           >
             I want to rent
           </button>
           <button
+            type="button"
             onClick={() => setTab("lend")}
+            aria-pressed={tab === "lend"}
             className={`px-6 py-2 rounded-full text-sm font-semibold transition ${tab === "lend" ? "bg-[#1e3a8a] text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
           >
             I want to lend
@@ -752,7 +925,7 @@ function HowItWorks() {
 
         {/* Step cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
-          {STEPS.map((step) => {
+          {steps.map((step) => {
             const Icon = step.icon;
             return (
               <div
@@ -783,16 +956,17 @@ function HowItWorks() {
         {/* Bottom CTA row */}
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Link
-            to="/browse"
+            to={tab === "rent" ? "/browse" : "/register-supplier"}
             className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold text-sm px-6 py-3 rounded-xl transition"
           >
-            Start browsing <ArrowRight className="w-4 h-4" />
+            {tab === "rent" ? "Browse equipment" : "Create supplier account"}{" "}
+            <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            to="/for-suppliers"
+            to={tab === "rent" ? "/for-suppliers" : "/browse"}
             className="flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-100 font-semibold text-sm px-6 py-3 rounded-xl transition"
           >
-            Learn about lending
+            {tab === "rent" ? "Learn about supplying" : "Browse as a renter"}
           </Link>
         </div>
       </div>
@@ -808,43 +982,43 @@ const WHY_FEATURES = [
     icon: Shield,
     color: "bg-green-50",
     iconColor: "text-green-600",
-    title: "Verified suppliers",
-    desc: "Every supplier and listing is reviewed before it appears on Rent-A-Way, so you always know who you're dealing with.",
+    title: "Clear listing details",
+    desc: "Check item descriptions, daily rates, availability, and supplier information while comparing your options.",
   },
   {
     icon: Wrench,
     color: "bg-teal-50",
     iconColor: "text-teal-600",
-    title: "Rental support",
-    desc: "Message your supplier to discuss equipment condition and report issues through your rental dashboard.",
+    title: "Talk directly with suppliers",
+    desc: "Use Rent-A-Way messages to ask questions about an item and coordinate rental details before you request it.",
   },
   {
     icon: Calendar,
     color: "bg-blue-50",
     iconColor: "text-blue-600",
     title: "Flexible dates",
-    desc: "Rent for a single afternoon or months on end. Availability updates live, so you only see what you can actually book.",
+    desc: "Review the available dates and minimum rental period on each listing before you send a request.",
   },
   {
     icon: Star,
     color: "bg-amber-50",
     iconColor: "text-amber-600",
-    title: "Genuinely fair prices",
-    desc: "Compare daily rates across suppliers side by side. Listed prices help you compare equipment before sending a request.",
+    title: "Compare listed rates",
+    desc: "Compare daily prices and rental details across listings before choosing the equipment that fits your needs.",
   },
   {
     icon: MapPin,
     color: "bg-indigo-50",
     iconColor: "text-indigo-600",
-    title: "Local pickup & delivery",
-    desc: "Most items are within a short drive. Choose self-pickup to save more, or arrange delivery straight to your door.",
+    title: "Coordinate the handover",
+    desc: "Discuss pickup or delivery arrangements directly with the supplier before your rental is confirmed.",
   },
   {
     icon: MessageSquare,
     color: "bg-purple-50",
     iconColor: "text-purple-600",
-    title: "Real reviews",
-    desc: "Only renters who completed a rental can leave a review, so the ratings you read reflect real experiences.",
+    title: "Renter feedback",
+    desc: "When a listing has reviews, read renter feedback as another detail to consider before you send a request.",
   },
 ];
 
@@ -862,47 +1036,38 @@ function WhyRentAWay() {
               </span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-4">
-              Borrowing should feel as safe as buying
+              Know what you are requesting
             </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-8">
-              We built Rent-A-Way around the two things renters care about most:{" "}
-              <span className="text-[#1e3a8a]">trust</span> and clarity. Clear
-              prices, <span className="text-[#1e3a8a]">verified people</span>,
-              and a rental record you{" "}
-              <span className="text-[#1e3a8a]">can actually rely on</span>.
+              Compare item details, listed prices, and supplier information in
+              one place. Send a request when you find equipment that fits your
+              plans.
             </p>
 
-            {/* Eco card */}
+            {/* Practical rental benefits */}
             <div className="bg-white border border-amber-200 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-amber-500 text-lg">🌿</span>
                 <span className="text-sm font-bold text-gray-900">
-                  Renting is kinder to your wallet and the planet
+                  Get access without buying for keeps
                 </span>
               </div>
-              <p className="text-gray-500 text-xs leading-relaxed mb-5">
-                A drill <span className="text-[#1e3a8a]">gets used</span> for
-                about 13 minutes in its lifetime. Sharing equipment means less
-                manufacturing, less waste, and far more money left in your
-                pocket.
+              <p className="text-gray-500 text-sm leading-relaxed mb-5">
+                Find the equipment you need for a project or occasion, then
+                return it after the agreed rental period.
               </p>
-              <div className="flex items-center gap-10">
-                <div>
-                  <div className="text-2xl font-extrabold text-amber-500">
-                    73%
-                  </div>
-                  <div className="text-gray-400 text-xs mt-0.5">
-                    average saving vs. buying
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-extrabold text-amber-500">
-                    18k kg
-                  </div>
-                  <div className="text-gray-400 text-xs mt-0.5">
-                    of equipment kept in use
-                  </div>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Compare before you request",
+                  "Keep storage clutter down",
+                ].map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900"
+                  >
+                    {benefit}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -958,6 +1123,8 @@ function ForSuppliers() {
               src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=900&q=80"
               alt="Supplier organising camera gear in a shop"
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
 
             {/* Floating stat card */}
@@ -967,10 +1134,10 @@ function ForSuppliers() {
               </div>
               <div>
                 <div className="text-sm font-bold text-gray-900">
-                  Suppliers average
+                  Your equipment, your terms
                 </div>
                 <div className="text-xs text-gray-500">
-                  +38% bookings in their first 3 months
+                  Set rates and availability yourself
                 </div>
               </div>
             </div>
@@ -985,11 +1152,11 @@ function ForSuppliers() {
               </span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-4">
-              Your idle gear could be earning every weekend
+              Put your equipment to work for local renters
             </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-6">
-              That camera bag, tent or set of folding chairs sitting in storage
-              is money waiting to happen. List it once and let renters find it.
+              Give people nearby a way to find and request equipment you are
+              willing to rent.
             </p>
 
             {/* Bullet list */}
@@ -1013,16 +1180,15 @@ function ForSuppliers() {
                 Browse live listings <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/supplier/dashboard"
+                to="/register-supplier"
                 className="flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-100 font-semibold text-sm px-5 py-3 rounded-xl transition"
               >
-                Preview supplier dashboard <ArrowRight className="w-4 h-4" />
+                Create a supplier account <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
             <p className="text-gray-400 text-xs flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-              List your equipment now — start earning from verified renters in
-              your area.
+              Add equipment details, rates, and availability to get started.
             </p>
           </div>
         </div>
@@ -1037,15 +1203,15 @@ function ForSuppliers() {
 const FAQS = [
   {
     q: "How does renting work on Rent-A-Way?",
-    a: "Search for what you need, pick your rental dates, and confirm the booking online. You then collect the item from the supplier or arrange delivery, use it for your rental period, and return it on the agreed date. The full rental record stays in your dashboard.",
+    a: "Search for equipment, review its details, and send the supplier a rental request for your dates. The supplier reviews the request and coordinates the handover with you. You can track the rental request in your account.",
   },
   {
     q: "What can I rent on Rent-A-Way?",
-    a: "You can rent cameras, drones, camping gear, sports equipment, event supplies, household tools, and school project equipment from verified local suppliers across the Philippines.",
+    a: "Browse cameras and drones, camping gear, sports equipment, event supplies, household tools, and school project equipment listed by suppliers around Roxas, Oriental Mindoro.",
   },
   {
-    q: "How much does it cost to rent instead of buy?",
-    a: "On average, renters save 73% compared to buying. Daily rates vary by item and supplier, but you can compare prices side-by-side on every listing page — no hidden fees.",
+    q: "How much does a rental cost?",
+    a: "Suppliers set the daily rates. Compare the price, minimum rental period, and other terms on each listing before you send a request.",
   },
   {
     q: "How is my booking confirmed?",
@@ -1053,11 +1219,11 @@ const FAQS = [
   },
   {
     q: "What happens if an item is damaged during my rental?",
-    a: "Document the condition and contact your supplier. Report unresolved issues through your rental dashboard.",
+    a: "Take photos and contact the supplier as soon as possible. Review the rental details and use the Help page if you need guidance.",
   },
   {
     q: "How do I list my own equipment as a supplier?",
-    a: "Create a supplier account, add your item with photos, set your daily rate and availability, and your listing goes live after a quick review. Supplier accounts open in our next release.",
+    a: "Create a supplier account, then add your item details, photos, daily rate, and availability from your supplier workspace.",
   },
 ];
 
@@ -1079,25 +1245,28 @@ function FAQ() {
               Questions renters ask us most
             </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-6">
-              Still unsure about something? Our{" "}
-              <span className="text-[#1e3a8a]">support team</span> answers
-              within a few hours on business days.
+              Need help with your account or a rental? Find guidance on the help
+              page.
             </p>
 
             {/* Talk to human card */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-3">
+            <Link
+              to="/help"
+              className="group bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-3 transition hover:border-blue-200 hover:shadow-sm"
+            >
               <div className="w-9 h-9 bg-[#1e3a8a] rounded-xl flex items-center justify-center flex-shrink-0">
                 <MessageSquare className="w-4 h-4 text-white" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-sm font-bold text-gray-900">
-                  Talk to a human
+                  Visit Help & FAQs
                 </div>
                 <div className="text-xs text-gray-500">
-                  support@rent-a-way.com · Mon–Sat, 8am–8pm
+                  Browse account and rental guidance
                 </div>
               </div>
-            </div>
+              <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#1e3a8a]" />
+            </Link>
           </div>
 
           {/* Right: accordion */}
@@ -1110,6 +1279,9 @@ function FAQ() {
                 <button
                   onClick={() => setOpenIdx(openIdx === i ? -1 : i)}
                   className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
+                  aria-expanded={openIdx === i}
+                  aria-controls={`home-faq-answer-${i}`}
+                  id={`home-faq-question-${i}`}
                 >
                   <span
                     className={`text-sm font-semibold ${openIdx === i ? "text-gray-900" : "text-gray-700"}`}
@@ -1126,13 +1298,16 @@ function FAQ() {
                     </span>
                   </div>
                 </button>
-                {openIdx === i && (
-                  <div className="px-5 pb-5">
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      {faq.a}
-                    </p>
-                  </div>
-                )}
+                <div
+                  id={`home-faq-answer-${i}`}
+                  aria-labelledby={`home-faq-question-${i}`}
+                  hidden={openIdx !== i}
+                  className="px-5 pb-5"
+                >
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {faq.a}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
