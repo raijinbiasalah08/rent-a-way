@@ -530,7 +530,7 @@ export default function Navbar() {
       {isOpen && (
         <div
           id="mobile-navigation"
-          className="lg:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
+          className="lg:hidden max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
         >
           <Link
             to="/"

@@ -1,7 +1,10 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import MobileBottomNav, {
+  shouldShowMobileBottomNav,
+} from "./components/MobileBottomNav";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { useAuth } from "./context/AuthContext";
@@ -68,8 +71,14 @@ const SettingsRedirect = () => {
 };
 
 function App() {
+  const { pathname } = useLocation();
+  const { loading } = useAuth();
+  const showMobileNav = !loading && shouldShowMobileBottomNav(pathname);
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div
+      className={`flex min-h-screen flex-col ${showMobileNav ? "pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
+    >
       <Navbar />
       <main className="flex-grow">
         <Suspense
@@ -226,6 +235,7 @@ function App() {
         </Suspense>
       </main>
       <Footer />
+      {showMobileNav && <MobileBottomNav />}
     </div>
   );
 }

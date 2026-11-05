@@ -131,7 +131,7 @@ export default function RegisterRenter() {
       </div>
 
       {/* ══ RIGHT PANEL — cream form ════════════════════════════ */}
-      <div className="flex-1 bg-[#f5f0e8] flex flex-col justify-between">
+      <div className="min-w-0 flex-1 bg-[#f5f0e8] flex flex-col justify-between">
         {/* Top bar */}
         <div className="flex justify-between items-center p-4 sm:p-6">
           <Link
@@ -152,7 +152,7 @@ export default function RegisterRenter() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-6">
+        <div className="min-w-0 flex-1 flex items-center justify-center px-4 sm:px-8 py-6">
           <div className="w-full max-w-md">
             <div className="mb-5">
               <div className="text-[#1e3a8a] text-[10px] font-bold tracking-widest uppercase mb-1">

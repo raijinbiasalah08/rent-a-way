@@ -333,7 +333,7 @@ export default function Dashboard() {
         <div className="flex min-w-0 flex-1 flex-col">
           <nav
             aria-label="Admin quick navigation"
-            className="flex gap-2 overflow-x-auto border-b border-gray-200 bg-white p-3 lg:hidden"
+            className="hidden gap-2 overflow-x-auto border-b border-gray-200 bg-white p-3 md:flex lg:hidden"
           >
             {[
               ["/admin/dashboard", "Dashboard"],

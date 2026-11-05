@@ -150,7 +150,7 @@ export default function Login() {
       </div>
 
       {/* ══ RIGHT PANEL — cream form ════════════════════════════ */}
-      <div className="flex-1 bg-[#f5f0e8] flex flex-col">
+      <div className="min-w-0 flex-1 bg-[#f5f0e8] flex flex-col">
         {/* Back to site */}
         <div className="flex justify-end p-4 sm:p-5">
           <Link
@@ -162,7 +162,7 @@ export default function Login() {
         </div>
 
         {/* Form centred vertically */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 pb-6 sm:pb-8">
+        <div className="min-w-0 flex-1 flex items-center justify-center px-4 sm:px-8 pb-6 sm:pb-8">
           <div className="w-full max-w-md">
             {/* Heading */}
             <div className="mb-4">

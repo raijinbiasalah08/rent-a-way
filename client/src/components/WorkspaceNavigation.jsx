@@ -32,7 +32,7 @@ export default function WorkspaceNavigation({ role }) {
   return (
     <nav
       aria-label="Workspace navigation"
-      className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3 lg:hidden"
+      className="hidden gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3 md:flex lg:hidden"
     >
       {links.map(([to, label, Icon]) => (
         <NavLink
