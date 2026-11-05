@@ -166,3 +166,16 @@
   display: inline-flex;
   width: max-content;
 }
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.marquee-group {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-around;
+  width: max-content;
+  min-width: 100vw;
+}

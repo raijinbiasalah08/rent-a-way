@@ -572,16 +572,31 @@ export default function Home() {
       </section>
 
       {/* ── TICKER STRIP ────────────────────────────────────────── */}
-      <div className="border-y border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-x-8 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
-          {TICKER.map((item) => (
-            <span
-              key={item.label}
-              className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-wide text-slate-600 sm:text-xs"
-            >
-              <item.icon className="h-4 w-4 shrink-0 text-[#1e3a8a]" />
-              {item.label}
-            </span>
+      <div
+        role="region"
+        aria-label="Rent-A-Way marketplace features"
+        className="overflow-hidden border-y border-slate-200 bg-white"
+      >
+        <p className="sr-only">
+          Compare local listings. Message suppliers. Choose your dates. Rentals
+          around Roxas.
+        </p>
+        <div className="animate-marquee" aria-hidden="true">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="marquee-group">
+              {TICKER.map((item) => (
+                <span
+                  key={item.label}
+                  className="mx-6 inline-flex items-center gap-2 whitespace-nowrap text-xs font-semibold tracking-wide text-slate-600"
+                >
+                  <item.icon className="h-4 w-4 shrink-0 text-[#1e3a8a]" />
+                  {item.label}
+                  <span className="ml-6 text-amber-500" aria-hidden="true">
+                    ●
+                  </span>
+                </span>
+              ))}
+            </div>
           ))}
         </div>
       </div>
