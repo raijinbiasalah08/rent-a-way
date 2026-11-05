@@ -11,7 +11,6 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 if (process.env.NODE_ENV === "production") {
   const missing = [
     "DATABASE_URL",
-    "CLOUDINARY_URL",
     "RESEND_API_KEY",
     "MAIL_FROM",
     "GOOGLE_CLIENT_ID",
@@ -116,7 +115,21 @@ app.use(
   ["/api/messages", "/api/admin/complaints", "/api/community"],
   writeLimit,
 );
-app.use("/uploads", express.static(uploadsDir));
+app.get("/uploads/:filename", async (req, res, next) => {
+  const { filename } = req.params;
+  if (require("node:path").basename(filename) !== filename) return next();
+  const asset = await db
+    .prepare("SELECT content_type, data FROM uploaded_assets WHERE filename = ?")
+    .get(filename);
+  if (asset?.data) {
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.set("X-Content-Type-Options", "nosniff");
+    return res.type(asset.content_type || "application/octet-stream").send(asset.data);
+  }
+  return res.sendFile(require("node:path").join(uploadsDir, filename), (error) => {
+    if (error && !res.headersSent) next();
+  });
+});
 
 app.get("/health", (req, res) => {
   res.json({ success: true, status: "ok" });

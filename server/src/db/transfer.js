@@ -40,7 +40,17 @@ async function main() {
       ...existing.filter((t) => t === "payments" || t.startsWith("legacy_")),
     ])
       if (existing.includes(table))
-        data.tables[table] = source.prepare(`SELECT * FROM "${table}"`).all();
+        data.tables[table] = source
+          .prepare(`SELECT * FROM "${table}"`)
+          .all()
+          .map((row) =>
+            table === "uploaded_assets" && row.data
+              ? {
+                  ...row,
+                  data: { __base64: Buffer.from(row.data).toString("base64") },
+                }
+              : row,
+          );
     fs.writeFileSync(output, JSON.stringify(data, null, 2), {
       flag: "wx",
       mode: 0o600,
@@ -88,7 +98,13 @@ async function main() {
             .prepare(
               `INSERT INTO ${table} (${keys.map((k) => `"${k}"`).join(",")}) VALUES (${keys.map(() => "?").join(",")})`,
             )
-            .run(...keys.map((k) => row[k]));
+            .run(
+              ...keys.map((k) =>
+                k === "data" && row.data?.__base64
+                  ? Buffer.from(row.data.__base64, "base64")
+                  : row[k],
+              ),
+            );
         }
         const count = (
           await db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()

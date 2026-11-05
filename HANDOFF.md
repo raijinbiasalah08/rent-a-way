@@ -6,7 +6,7 @@ Local verification completed on 5 November 2026. Production deployment still req
 
 - Removed payment routes, PayMongo integration, checkout payment/proof/receipt screens, payout settings, and revenue reporting. Rental prices remain estimates. Legacy financial records are archived by migration, not destroyed.
 - Added asynchronous SQLite/PostgreSQL access, transactional booking conflict checks, versioned migrations, indexes, upload tracking, and a read-only SQLite export/transactional PostgreSQL import path. Production refuses temporary SQLite storage.
-- Added Cloudinary storage for new images, five-image limits, image ordering and primary selection, ownership checks, rejected-upload cleanup, and replaced-avatar/deleted-image cleanup.
+- Added PostgreSQL-backed storage for new images, five-image limits, image ordering and primary selection, ownership checks, rejected-upload cleanup, and replaced-avatar/deleted-image cleanup.
 - Implemented hashed, expiring, single-use password resets with a Resend adapter and a local-only outbox. Password changes revoke sessions and sockets. Google ID tokens are verified for signature, issuer, audience, expiry, and verified email.
 - Secured Socket.IO handshakes and conversation events with verified JWT identity. Added blocked-message enforcement, conversation cursors, reconnect reloads, notification pagination, and message deep links.
 - Enforced rental transitions, participant permissions, calendar dates, duration limits, server-owned estimated prices, overlap locking, overdue filters, completed-rental reviews, user-like toggles, and complaint validation.
@@ -27,7 +27,7 @@ Local verification completed on 5 November 2026. Production deployment still req
 | Admin | Six routes load; API role checks, protected admin actions, pagination, missing records, and report counts checked |
 | Mobile and guards | Five public pages at 390px width; unauthenticated dashboard redirects to login |
 | Google sign-in | Signed fixture-token boundaries tested; real Google consent/origin acceptance remains a live check |
-| Production email/storage/restart | Adapters and configuration implemented; live provider delivery, Cloudinary and Render restart durability still require credentials |
+| Production email/storage/restart | PostgreSQL-backed image storage and configuration implemented; live provider delivery and Render restart durability still require credentials |
 
 These tests cover critical workflows and selected negative cases, not every possible interaction or production load condition.
 
@@ -69,21 +69,20 @@ Foreign-key errors: **0**. Repeated migration was also tested. The original data
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the complete environment table and rollback procedure.
 
 1. Create/select a free persistent PostgreSQL database and set Render `DATABASE_URL`.
-2. Configure Cloudinary Free and set the server-only `CLOUDINARY_URL`.
-3. Configure Resend email and set `RESEND_API_KEY` plus `MAIL_FROM`. General delivery needs a verified domain you control; do not enable a paid purchase to work around missing sender setup.
-4. Set a random `JWT_SECRET`, exact HTTPS `CLIENT_ORIGIN`/`FRONTEND_URL`, and `GOOGLE_CLIENT_ID`. Authorize the exact production Vercel origin in the Google OAuth client.
-5. Set bootstrap admin credentials for the empty database, deploy to Render Free, and remove the plaintext bootstrap password after the initial account is created. Existing active admins make bootstrap a no-op.
-6. Set Vercel public Config `VITE_API_URL` to the backend origin without `/api`, then redeploy the client.
-7. Check `/ready`, real Google login, reset-email delivery, image upload, and a complete rental. Restart Render and confirm records and image URLs persist.
+2. Configure Resend email and set `RESEND_API_KEY` plus `MAIL_FROM`. General delivery needs a verified domain you control; do not enable a paid purchase to work around missing sender setup.
+3. Set a random `JWT_SECRET`, exact HTTPS `CLIENT_ORIGIN`/`FRONTEND_URL`, and `GOOGLE_CLIENT_ID`. Authorize the exact production Vercel origin in the Google OAuth client.
+4. Set bootstrap admin credentials for the empty database, deploy to Render Free, and remove the plaintext bootstrap password after the initial account is created. Existing active admins make bootstrap a no-op.
+5. Set Vercel public Config `VITE_API_URL` to the backend origin without `/api`, then redeploy the client.
+6. Check `/ready`, real Google login, reset-email delivery, image upload, and a complete rental. Restart Render and confirm records and image URLs persist.
 
 Do not deploy this revision with only the old temporary-SQLite settings: production startup now rejects incomplete persistent-storage and email configuration. No secrets need to be posted in chat. No paid resources or billing accounts were created.
 
 ## 6. Remaining limits
 
-- Local configuration has no PostgreSQL, Cloudinary, or Resend credentials. Production OAuth origins, delivery, storage and restart checks remain unverified.
+- Local configuration has no PostgreSQL or Resend credentials. Production OAuth origins, delivery, storage and restart checks remain unverified.
 - The last full frontend audit reported **9 development dependency advisories (2 low, 7 moderate)** in lint/build tooling. Production audits are clear. No `npm audit fix --force` was used.
 - Free hosting has cold starts and quotas; there is no always-on availability guarantee. See [Render free limitations](https://render.com/docs/free), [Neon Free plan](https://neon.com/docs/introduction/plans), and [Resend limits](https://resend.com/docs/knowledge-base/account-quotas-and-limits).
-- New assets are tracked for cleanup. Unregistered legacy assets are preserved. A provider deletion failure is logged and retained for retry; there is no background retry worker.
+- New image bytes are stored in PostgreSQL. Legacy disk assets are preserved. Storage usage counts against the database quota.
 - Formal legal pages were intentionally removed from navigation pending owner-provided content. Support/how-it-works guidance is available.
 
 ## 7. Exact changed files

@@ -201,6 +201,19 @@ const db = {
           )
           .run(new Date().toISOString());
       }
+      if (
+        !(await db
+          .prepare("SELECT version FROM schema_migrations WHERE version = 3")
+          .get())
+      ) {
+        await db.exec(`ALTER TABLE uploaded_assets ADD COLUMN content_type TEXT;
+          ALTER TABLE uploaded_assets ADD COLUMN data ${pg ? "BYTEA" : "BLOB"};`);
+        await db
+          .prepare(
+            "INSERT INTO schema_migrations (version, applied_at) VALUES (3, ?)",
+          )
+          .run(new Date().toISOString());
+      }
       for (const b of require("../utils/roxasLocation").ROXAS_BARANGAYS) {
         await db
           .prepare(

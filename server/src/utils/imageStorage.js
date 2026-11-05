@@ -1,13 +1,8 @@
 const multer = require("multer");
 const path = require("node:path");
-const fs = require("node:fs/promises");
 const { randomUUID } = require("node:crypto");
-const cloudinary = require("cloudinary").v2;
-const uploadsDir = require("./uploads");
 const db = require("../db/database");
 const { removeAsset } = require("./assets");
-const cloud = Boolean(process.env.CLOUDINARY_URL);
-if (cloud) cloudinary.config({ secure: true });
 const types = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
@@ -43,52 +38,13 @@ const storage = {
             status: 400,
           });
         const filename = `${randomUUID()}${types[file.mimetype][0]}`;
-        if (cloud) {
-          const result = await new Promise((resolve, reject) =>
-            cloudinary.uploader
-              .upload_stream(
-                { folder: "rentaway", resource_type: "image" },
-                (error, result) => (error ? reject(error) : resolve(result)),
-              )
-              .end(buffer),
-          );
-          try {
-            await db
-              .prepare(
-                "INSERT INTO uploaded_assets (url,public_id,filename,created_at) VALUES (?,?,?,?)",
-              )
-              .run(
-                result.secure_url,
-                result.public_id,
-                null,
-                new Date().toISOString(),
-              );
-          } catch (error) {
-            await cloudinary.uploader.destroy(result.public_id);
-            throw error;
-          }
-          callback(null, {
-            filename,
-            url: result.secure_url,
-            public_id: result.public_id,
-            size,
-          });
-        } else {
-          if (process.env.NODE_ENV === "production")
-            throw new Error("Configure CLOUDINARY_URL for durable uploads");
-          await fs.writeFile(path.join(uploadsDir, filename), buffer);
-          await db
-            .prepare(
-              "INSERT INTO uploaded_assets (url,public_id,filename,created_at) VALUES (?,?,?,?)",
-            )
-            .run(
-              `/uploads/${filename}`,
-              null,
-              filename,
-              new Date().toISOString(),
-            );
-          callback(null, { filename, url: `/uploads/${filename}`, size });
-        }
+        const url = `/uploads/${filename}`;
+        await db
+          .prepare(
+            "INSERT INTO uploaded_assets (url,filename,content_type,data,created_at) VALUES (?,?,?,?,?)",
+          )
+          .run(url, filename, file.mimetype, buffer, new Date().toISOString());
+        callback(null, { filename, url, size, mimetype: file.mimetype });
       } catch (error) {
         callback(error);
       }

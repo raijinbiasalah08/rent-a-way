@@ -21,7 +21,7 @@ Create the first admin by setting `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSW
 
 ## Deployment
 
-Use the Vercel frontend and Render Free backend. Production requires persistent PostgreSQL, Cloudinary images, and Resend email credentials. The server refuses ephemeral SQLite in production. The Render configuration uses no paid disk or paid instance.
+Use the Vercel frontend and Render Free backend. Production requires persistent PostgreSQL and Resend email credentials. Uploaded images are stored in PostgreSQL, so no separate image-storage account is needed. The server refuses ephemeral SQLite in production. The Render configuration uses no paid disk or paid instance.
 
 Read [DEPLOYMENT.md](DEPLOYMENT.md) for exact environment variables, Google OAuth origins, migrations, backups, rollback, free-service constraints, and required external-service verification. Read [API.md](API.md) for route and authorization rules.
 

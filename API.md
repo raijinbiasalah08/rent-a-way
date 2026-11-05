@@ -43,7 +43,7 @@ Rental transitions: customer may cancel pending/approved bookings and mark activ
 
 Socket connections pass `{auth:{token}}` in the handshake. User rooms derive from verified JWT identity. Typing, online status, read receipts, and delivery events require conversation participation and enforce blocks. HTTP persists messages and notifications so reconnects can reload them.
 
-Uploads accept JPEG, PNG, and WebP up to 5 MB, with extension, MIME, and signature checks. Production uploads require Cloudinary. `/health` and `/ready` are outside `/api`.
+Uploads accept JPEG, PNG, and WebP up to 5 MB, with extension, MIME, and signature checks. Images are stored in the database and served from `/uploads/:filename`. `/health` and `/ready` are outside `/api`.
 
 Pagination: product and community lists use `page` and `limit` inside their existing data envelopes. Admin lists keep `data` as an array and return a separate `pagination` object. Rental lists accept `page`, `limit`, and `status` (including `overdue`); they also return `hasMore`, all-history status `summary`, and aggregated seven-day scheduled `activity`. Conversation messages accept `limit` and `before=<message ID>` and return `hasMore`; notifications accept `page` and `limit`. Page sizes are bounded on the server.
 

@@ -10,7 +10,6 @@ process.env.JWT_SECRET = "test-only-secret-not-for-deployment-123456789";
 process.env.DATABASE_PATH = path.join(dir, "test.db");
 process.env.MAIL_OUTBOX = path.join(dir, "mail");
 process.env.UPLOADS_DIR = path.join(dir, "uploads");
-delete process.env.CLOUDINARY_URL;
 delete process.env.DATABASE_URL;
 delete process.env.RESEND_API_KEY;
 if (process.env.TEST_POSTGRES === "1") require("./postgres-harness.cjs");

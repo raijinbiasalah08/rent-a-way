@@ -13,7 +13,6 @@ process.env.MAIL_OUTBOX = path.join(temp, "mail");
 process.env.JWT_SECRET = "isolated-browser-test-secret-123456789";
 process.env.CLIENT_ORIGIN = "http://127.0.0.1:5179";
 delete process.env.DATABASE_URL;
-delete process.env.CLOUDINARY_URL;
 delete process.env.RESEND_API_KEY;
 async function main() {
   const db = require("../src/db/database");

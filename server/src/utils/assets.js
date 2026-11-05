@@ -11,11 +11,7 @@ async function removeAsset(url) {
     .get(url);
   if (!asset) return;
   try {
-    if (asset.public_id)
-      await require("cloudinary").v2.uploader.destroy(asset.public_id, {
-        invalidate: true,
-      });
-    else if (asset.filename && path.basename(asset.filename) === asset.filename)
+    if (asset.filename && path.basename(asset.filename) === asset.filename)
       await fs.unlink(path.join(uploadsDir, asset.filename)).catch((error) => {
         if (error.code !== "ENOENT") throw error;
       });
