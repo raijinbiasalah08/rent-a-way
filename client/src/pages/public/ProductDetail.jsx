@@ -310,7 +310,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
+            <h1 className="break-words text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
               {product.title}
             </h1>
 
@@ -415,7 +415,7 @@ export default function ProductDetail() {
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Specifications
                 </h2>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-x-8 gap-y-3">
                   {parsedSpecs.map((spec, i) => (
                     <div
                       key={i}
@@ -777,7 +777,7 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mt-4 mb-2">
+                <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2 mt-4 mb-2">
                   <Link
                     to={`/browse?category=${encodeURIComponent(product.category)}`}
                     className="flex items-center justify-center gap-2 border border-[#1e3a8a] text-[#1e3a8a] hover:bg-blue-50 text-xs font-semibold py-2.5 rounded-xl transition"

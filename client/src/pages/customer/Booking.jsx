@@ -89,7 +89,7 @@ export default function Booking() {
       <form onSubmit={handleSubmit}>
         <div className="card space-y-6">
           {/* Product Summary */}
-          <div className="flex gap-4 items-start pb-4 border-b border-gray-100">
+          <div className="flex min-w-0 gap-4 items-start pb-4 border-b border-gray-100">
             <img
               src={
                 primaryImage ? apiAssetUrl(primaryImage) : "/placeholder.svg"
@@ -101,8 +101,8 @@ export default function Booking() {
               }}
             />
 
-            <div>
-              <h2 className="text-xl font-bold text-navy-700 mb-1">
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words text-xl font-bold text-navy-700 mb-1">
                 {product.title}
               </h2>
               <p className="text-gray-500 text-sm mb-1">

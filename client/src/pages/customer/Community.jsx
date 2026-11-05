@@ -120,9 +120,9 @@ export default function Community() {
             onChange={(e) => setContent(e.target.value)}
           />
 
-          <div className="flex justify-between items-center gap-3">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <select
-              className="input w-auto text-sm py-1.5"
+              className="input min-w-0 flex-1 sm:flex-none text-sm py-1.5"
               value={type}
               onChange={(e) => setType(e.target.value)}
             >
@@ -135,7 +135,7 @@ export default function Community() {
             <button
               type="submit"
               disabled={posting}
-              className="btn-primary py-1.5 px-6 disabled:opacity-60"
+              className="btn-primary shrink-0 py-1.5 px-6 disabled:opacity-60"
             >
               {posting ? "Posting..." : "Post"}
             </button>

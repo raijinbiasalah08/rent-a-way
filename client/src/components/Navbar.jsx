@@ -530,7 +530,7 @@ export default function Navbar() {
       {isOpen && (
         <div
           id="mobile-navigation"
-          className="lg:hidden bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
+          className="lg:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
         >
           <Link
             to="/"
@@ -638,11 +638,13 @@ export default function Navbar() {
                     {user.name?.charAt(0)}
                   </div>
                 )}
-                <div>
-                  <div className="text-sm font-bold text-white leading-tight">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-white leading-tight">
                     {user.name}
                   </div>
-                  <div className="text-[10px] text-gray-400">{user.email}</div>
+                  <div className="truncate text-[10px] text-gray-400">
+                    {user.email}
+                  </div>
                 </div>
               </div>
 

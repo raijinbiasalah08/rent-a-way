@@ -113,6 +113,34 @@
   @apply text-xs font-semibold tracking-widest uppercase text-slate-500;
 }
 
+/* Keep shared cards and workspace content comfortable on narrow screens. */
+@media (max-width: 639px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .workspace-dashboard,
+  .workspace-dashboard main {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .workspace-dashboard .workspace-hero {
+    padding: 1.25rem;
+  }
+
+  .workspace-dashboard .workspace-heading > span {
+    flex-basis: 100%;
+  }
+}
+
+@media (min-width: 380px) and (max-width: 639px) {
+  .workspace-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
