@@ -1,836 +1,682 @@
-import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Search,
   MapPin,
-  Calendar,
+  CalendarDays,
   ArrowRight,
   Star,
   ChevronRight,
   SlidersHorizontal,
-  Scale,
   X,
-  SlidersHorizontal as FilterIcon,
-  ChevronLeft,
-  ChevronRight as ChevronRight2,
   Navigation,
+  LayoutGrid,
+  Camera,
+  Tent,
+  Dumbbell,
+  Calendar,
+  Home,
+  GraduationCap,
+  Compass,
+  RotateCcw,
+  Heart,
+  ChevronLeft,
+  AlertCircle,
 } from "lucide-react";
-import { getProducts, getCategories } from "../../api/products";
+import { getProducts } from "../../api/products";
 import { useFavorites } from "../../context/FavoritesContext";
 import { useCustomerLocation } from "../../context/CustomerLocationContext";
 import { ROXAS_BARANGAYS } from "../../utils/roxasLocation";
 import { apiAssetUrl } from "../../config";
+import "./Browse.css";
 
-const PRICE_FILTERS = [
-  { label: "Any price", value: "" },
-  { label: "Under ₱700 / day", value: "0-700" },
-  { label: "₱700 – ₱1,500 / day", value: "700-1500" },
-  { label: "₱1,500 – ₱2,500 / day", value: "1500-2500" },
-  { label: "₱2,500+ / day", value: "2500-99999" },
+const CATEGORIES = [
+  ["", "All equipment", LayoutGrid],
+  ["Cameras", "Cameras", Camera],
+  ["Camping", "Camping", Tent],
+  ["Sports", "Sports", Dumbbell],
+  ["Event", "Events", Calendar],
+  ["Household", "Household", Home],
+  ["School", "School", GraduationCap],
 ];
-
-/* ─── Stars ─────────────────────────────────────────────────── */
-function Stars({ rating }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <svg
-          key={i}
-          className={`w-3 h-3 ${i <= Math.round(rating) ? "text-amber-400" : "text-gray-200"}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </div>
-  );
-}
-
-/* ─── Status badge ───────────────────────────────────────────── */
-function StatusBadge({ status }) {
-  if (status === "available")
-    return (
-      <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />{" "}
-        Available
-      </span>
-    );
-
-  if (status === "limited")
-    return (
-      <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />{" "}
-        Limited stock
-      </span>
-    );
-
-  return (
-    <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />{" "}
-      Rented out
-    </span>
-  );
-}
-
-/* ─── Product card ───────────────────────────────────────────── */
-function ProductCard({ product }) {
+const STATUS = {
+  available: ["Available", "available"],
+  limited: ["Limited stock", "limited"],
+  rented: ["Rented out", "unavailable"],
+  maintenance: ["Maintenance", "unavailable"],
+  unavailable: ["Unavailable", "unavailable"],
+};
+function ProductCard({ product, wide }) {
   const { favoriteIds, toggleFavorite } = useFavorites();
   const { getItemDistance } = useCustomerLocation();
-  const isFavorite = favoriteIds?.has(product.id);
-  const distanceText = getItemDistance(product.latitude, product.longitude);
-
-  const image = product.primary_image
-    ? apiAssetUrl(product.primary_image)
-    : "/placeholder.svg";
+  const favorite = favoriteIds.has(product.id);
+  const distance = getItemDistance(product.latitude, product.longitude);
+  const [status, tone] = STATUS[product.availability] || STATUS.unavailable;
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col">
-      {/* Image */}
-      <div className="relative h-52 bg-[#f5f0e8] overflow-hidden">
+    <article className={`browse-product ${wide ? "browse-product-wide" : ""}`}>
+      <Link
+        to={`/product/${product.id}`}
+        className="browse-product-image"
+        aria-label={`View ${product.title}`}
+      >
         <img
-          src={image}
+          src={apiAssetUrl(product.primary_image) || "/placeholder.svg"}
           alt={product.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-
-        <div className="absolute top-3 left-3 flex gap-2">
-          <StatusBadge status={product.availability || "available"} />
-        </div>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleFavorite(product.id);
+          loading="lazy"
+          onError={(e) => {
+            if (!e.currentTarget.src.endsWith("/placeholder.svg"))
+              e.currentTarget.src = "/placeholder.svg";
           }}
-          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition"
-        >
-          <svg
-            className={`w-4 h-4 ${isFavorite ? "text-red-500 fill-current" : "text-gray-400"}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            />
-          </svg>
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="p-4 flex-1 flex flex-col">
-        {/* Category + rating row */}
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">
-            {product.category}
+        />
+      </Link>
+      <div className="browse-product-content">
+        <div className="browse-product-meta">
+          <span className="browse-category-label">{product.category}</span>
+          <span className={`browse-status ${tone}`}>
+            <span />
+            {status}
           </span>
-          {product.avg_rating ? (
-            <div className="flex items-center gap-1">
-              <Stars rating={product.avg_rating} />
-              <span className="text-xs font-semibold text-gray-700">
-                {Number(product.avg_rating).toFixed(1)}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-              No reviews yet
-            </span>
-          )}
+          <button
+            className={`browse-save ${favorite ? "is-saved" : ""}`}
+            aria-label={`${favorite ? "Remove" : "Save"} ${product.title} ${favorite ? "from" : "to"} favorites`}
+            aria-pressed={favorite}
+            onClick={() => toggleFavorite(product.id)}
+          >
+            <Heart size={20} fill={favorite ? "currentColor" : "none"} />
+          </button>
         </div>
-
-        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5 line-clamp-2">
-          {product.is_super_supplier ? (
-            <span
-              className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5 align-text-bottom shadow-sm"
-              title="Super Supplier"
-            >
-              <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> Super
-            </span>
-          ) : null}
-          {product.title}
+        <h3>
+          <Link to={`/product/${product.id}`}>{product.title}</Link>
         </h3>
-        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">
-          {product.description}
+        <p className="browse-description">
+          {product.description ||
+            "See equipment details and arrange your next rental."}
         </p>
-
-        {/* Location + distance + min days */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-4 mt-auto flex-wrap">
-          <span
-            className="flex items-center gap-1 font-medium text-gray-700"
-            title={
-              product.barangay
-                ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro`
-                : product.location || "Roxas, Oriental Mindoro"
-            }
-          >
-            <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
-            <span className="truncate max-w-[130px]">
-              {product.barangay
-                ? `Brgy. ${product.barangay}, Roxas`
-                : product.location || "Roxas"}
-            </span>
+        <div className="browse-location-row">
+          <span>
+            <MapPin size={15} className="text-rose-500" />
+            {product.barangay
+              ? `${product.barangay}, Roxas`
+              : product.location || "Roxas, Oriental Mindoro"}
           </span>
-          {distanceText && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1e3a8a] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-              <Navigation className="w-2.5 h-2.5" />
-              {distanceText}
+          {distance && (
+            <span className="browse-distance">
+              <Navigation size={13} />
+              {distance}
             </span>
           )}
-          <span className="text-gray-300">·</span>
-          <span className="flex items-center gap-1 text-gray-400">
-            <Calendar className="w-3 h-3" /> Min {product.min_days || 1}d
+          <span>
+            <CalendarDays size={15} />
+            Min. {product.min_days || 1}{" "}
+            {(product.min_days || 1) === 1 ? "day" : "days"}
           </span>
         </div>
-
-        {/* Price + actions */}
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-xl font-extrabold text-gray-900">
-              ₱{Number(product.price_per_day || 0).toLocaleString()}
-            </div>
-            <div className="text-xs text-gray-400">per day</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to={`/product/${product.id}`}
-              className="flex items-center gap-1.5 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition"
-            >
-              View <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+        <div className="browse-review">
+          {Number(product.avg_rating) > 0 ? (
+            <>
+              <Star size={14} className="text-amber-500" fill="currentColor" />
+              {Number(product.avg_rating).toFixed(1)} rating
+            </>
+          ) : (
+            "No reviews yet"
+          )}
+          {!!product.is_super_supplier && (
+            <span className="browse-super">Super supplier</span>
+          )}
+        </div>
+        <div className="browse-product-bottom">
+          <p>
+            <strong>
+              ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")}
+            </strong>
+            <span> / day</span>
+          </p>
+          <Link className="browse-primary" to={`/product/${product.id}`}>
+            View equipment <ArrowRight size={17} />
+          </Link>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-function DistanceToggleBtn() {
-  const { hasLocation, detecting, requestCustomerLocation } =
-    useCustomerLocation();
-  return (
-    <button
-      onClick={() => requestCustomerLocation(false)}
-      disabled={detecting}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e3a8a] bg-blue-50/80 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition cursor-pointer"
-    >
-      <Navigation className={`w-3 h-3 ${detecting ? "animate-spin" : ""}`} />
-      <span>
-        {detecting
-          ? "Detecting GPS…"
-          : hasLocation
-            ? "Distances Active"
-            : "Show Distance From Me"}
-      </span>
-    </button>
-  );
-}
-
-/* ─── Main Browse Page ───────────────────────────────────────── */
 export default function Browse() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-
+  const queryKey = searchParams.toString();
+  const category = searchParams.get("category") || "";
+  const availableOnly = searchParams.get("availability") === "available";
+  const page = Math.max(1, Number.parseInt(searchParams.get("page"), 10) || 1);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [categories, setCategories] = useState([]);
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-
-  // Sync state with URL params
-  const search = searchParams.get("q") || "";
-  const category = searchParams.get("category") || "";
-  const barangay = searchParams.get("barangay") || "";
-  const priceRange = searchParams.get("price") || "";
-  const startDate = searchParams.get("startDate") || "";
-  const endDate = searchParams.get("endDate") || "";
-  const page = parseInt(searchParams.get("page") || "1");
-
-  // Local state for the header input (only updates URL on enter/click)
-  const [headerSearch, setHeaderSearch] = useState(search);
-  const [localStartDate, setLocalStartDate] = useState(startDate);
-  const [localEndDate, setLocalEndDate] = useState(endDate);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [validation, setValidation] = useState("");
+  const [draft, setDraft] = useState({
+    q: "",
+    barangay: "",
+    minPrice: "",
+    maxPrice: "",
+    startDate: "",
+    endDate: "",
+  });
+  const datePanel = useRef(null);
+  const dateStart = useRef(null);
+  const { detecting, requestCustomerLocation, isGpsInsideRoxas } =
+    useCustomerLocation();
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+  }).format(new Date());
+  const mapParams = new URLSearchParams();
+  if (category) mapParams.set("category", category);
+  if (searchParams.get("barangay"))
+    mapParams.set("barangay", searchParams.get("barangay"));
+  const mapUrl = `/map${mapParams.size ? `?${mapParams}` : ""}`;
 
   useEffect(() => {
-    setHeaderSearch(search);
-  }, [search]);
+    const params = new URLSearchParams(queryKey);
+    const legacyPrice = (params.get("price") || "").split("-");
+    setDraft({
+      q: params.get("q") || "",
+      barangay: params.get("barangay") || "",
+      minPrice: params.get("minPrice") ?? legacyPrice[0] ?? "",
+      maxPrice: params.get("maxPrice") ?? legacyPrice[1] ?? "",
+      startDate: params.get("startDate") || "",
+      endDate: params.get("endDate") || "",
+    });
+    setValidation("");
+  }, [queryKey]);
 
-  // Fetch categories once
   useEffect(() => {
-    getCategories()
-      .then((res) => {
-        setCategories([
-          { name: "All categories", value: "", count: null },
-          ...res.data.data.map((c) => ({ ...c, value: c.name })),
-        ]);
-      })
-      .catch(console.error);
-  }, []);
-
-  // Fetch products on param change
-  useEffect(() => {
+    let current = true;
+    const params = new URLSearchParams(queryKey);
+    const legacyPrice = (params.get("price") || "").split("-");
+    const apiParams = {
+      page,
+      limit: 12,
+      search: params.get("q") || undefined,
+      category: params.get("category") || undefined,
+      barangay: params.get("barangay") || undefined,
+      minPrice: params.get("minPrice") ?? (legacyPrice[0] || undefined),
+      maxPrice: params.get("maxPrice") ?? (legacyPrice[1] || undefined),
+      availability: params.get("availability") || undefined,
+      startDate: params.get("startDate") || undefined,
+      endDate: params.get("endDate") || undefined,
+    };
     setLoading(true);
-    const params = { page, limit: 12 };
-    if (search) params.search = search;
-    if (category) params.category = category;
-    if (barangay) params.barangay = barangay;
-    if (priceRange) {
-      const [min, max] = priceRange.split("-");
-      params.minPrice = min;
-      params.maxPrice = max;
-    }
-    if (startDate && endDate) {
-      params.startDate = startDate;
-      params.endDate = endDate;
-    }
-
-    getProducts(params)
+    setError("");
+    getProducts(apiParams)
       .then((res) => {
-        setProducts(res.data?.data?.products || []);
-        setTotal(res.data?.data?.total || 0);
-        setTotalPages(res.data?.data?.totalPages || 1);
+        if (!current) return;
+        setProducts(res.data.data.products || []);
+        setTotal(res.data.data.total || 0);
+        setTotalPages(res.data.data.totalPages || 1);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [search, category, barangay, priceRange, page, startDate, endDate]);
+      .catch((e) => {
+        if (current)
+          setError(
+            e.response?.data?.message ||
+              "We couldn't load equipment. Please try again.",
+          );
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [queryKey, page, attempt]);
 
-  const updateParam = (key, value) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    // reset to page 1 on filter change
-    if (key !== "page") newParams.set("page", "1");
-    setSearchParams(newParams);
-  };
-
-  const handleSearch = (e) => {
+  function updateParam(key, value) {
+    const next = new URLSearchParams(searchParams);
+    if (value !== "") next.set(key, String(value));
+    else next.delete(key);
+    if (key !== "page") next.set("page", "1");
+    setSearchParams(next);
+  }
+  function submit(e) {
     e.preventDefault();
-    updateParam("q", headerSearch);
-  };
-
-  const clearAll = () => {
-    setSearchParams(new URLSearchParams());
-    setHeaderSearch("");
-    setLocalStartDate("");
-    setLocalEndDate("");
-    setFilterDrawerOpen(false);
-  };
-
-  const applyDates = () => {
     if (
-      (localStartDate && localEndDate) ||
-      (!localStartDate && !localEndDate)
+      draft.minPrice &&
+      draft.maxPrice &&
+      Number(draft.minPrice) > Number(draft.maxPrice)
     ) {
-      const newParams = new URLSearchParams(searchParams);
-      if (localStartDate) newParams.set("startDate", localStartDate);
-      else newParams.delete("startDate");
-      if (localEndDate) newParams.set("endDate", localEndDate);
-      else newParams.delete("endDate");
-      newParams.set("page", "1");
-      setSearchParams(newParams);
+      setValidation("Maximum price must be at least the minimum price.");
+      return;
     }
-  };
-
-  const today = new Date().toISOString().split("T")[0];
+    if (
+      (draft.startDate || draft.endDate) &&
+      (!draft.startDate ||
+        !draft.endDate ||
+        draft.endDate <= draft.startDate ||
+        draft.startDate < today)
+    ) {
+      setValidation("Choose a start date from today and an end date after it.");
+      openDates();
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("price");
+    Object.entries(draft).forEach(([key, value]) =>
+      value.trim() ? next.set(key, value.trim()) : next.delete(key),
+    );
+    next.set("page", "1");
+    setSearchParams(next);
+    setValidation("");
+    setFiltersOpen(false);
+    if (datePanel.current) datePanel.current.open = false;
+  }
+  function reset() {
+    setSearchParams({});
+    setDraft({
+      q: "",
+      barangay: "",
+      minPrice: "",
+      maxPrice: "",
+      startDate: "",
+      endDate: "",
+    });
+    setValidation("");
+  }
+  function change(key, value) {
+    setDraft((previous) => ({ ...previous, [key]: value }));
+  }
+  function openDates() {
+    if (datePanel.current) datePanel.current.open = true;
+    dateStart.current?.focus();
+  }
+  const hasFilters = [...searchParams.keys()].some(
+    (key) => key !== "page" && searchParams.get(key),
+  );
+  const dateLabel =
+    draft.startDate && draft.endDate
+      ? `${draft.startDate} – ${draft.endDate}`
+      : "Select dates";
 
   return (
-    <div className="min-h-screen bg-[#f5f0e8] font-sans">
+    <div className="browse-page">
       <Helmet>
         <title>
           {category ? `${category} Rentals` : "Browse Rentals"} | Rent-A-Way
         </title>
         <meta
           name="description"
-          content={`Browse our selection of ${category ? category.toLowerCase() : "equipment"} available for rent in the Philippines.`}
+          content="Find equipment for your next project, adventure, or event in Roxas, Oriental Mindoro."
         />
       </Helmet>
-
-      {/* ── HEADER BANNER ─────────────────────────────────────── */}
-      <div className="bg-[#f5f0e8] border-b border-gray-200 px-4 sm:px-6 py-5">
-        <div className="max-w-6xl mx-auto">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
-            <Link to="/" className="text-[#1e3a8a] hover:underline">
-              Home
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-gray-700">Browse equipment</span>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">
-                  Browse rentals
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {total} item{total !== 1 ? "s" : ""} available
-                </p>
-              </div>
-              <Link
-                to={`/map?category=${encodeURIComponent(category)}`}
-                className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition"
-              >
-                <MapPin className="w-4 h-4" /> Map View
-              </Link>
-            </div>
-
-            {/* Search bar + mobile filters button */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex-1">
-                <div className="flex items-center gap-2 px-3 flex-1">
-                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <input
-                    type="text"
-                    value={headerSearch}
-                    onChange={(e) => setHeaderSearch(e.target.value)}
-                    placeholder="Search equipment..."
-                    className="py-2.5 text-sm text-gray-800 outline-none bg-transparent w-full placeholder-gray-400"
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFilterDrawerOpen(true)}
-                className="lg:hidden flex items-center gap-1.5 bg-[#1e3a8a] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition flex-shrink-0"
-              >
-                <FilterIcon className="w-4 h-4" />
-                Filters
-              </button>
-              <button
-                type="submit"
-                className="hidden lg:block bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition flex-shrink-0"
-              >
-                Search
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MOBILE FILTER DRAWER OVERLAY ───────────────────────── */}
-      {filterDrawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setFilterDrawerOpen(false)}
+      <div className="browse-container">
+        <nav className="browse-breadcrumb" aria-label="Breadcrumb">
+          <Link to="/">Home</Link>
+          <ChevronRight size={14} />
+          <span aria-current="page">Browse equipment</span>
+        </nav>
+        <header className="browse-intro">
+          <img
+            src="/logo.png"
+            alt=""
+            aria-hidden="true"
+            className="browse-watermark"
           />
-          <div className="absolute top-0 left-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <span className="font-bold text-gray-900 text-base">Filters</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={clearAll}
-                  className="text-xs text-gray-500 hover:text-gray-800"
-                >
-                  Clear all
-                </button>
-                <button
-                  onClick={() => setFilterDrawerOpen(false)}
-                  className="text-gray-500 hover:text-gray-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            <div className="px-5 py-5">
-              {/* Category */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-3">
-                  Category
-                </h3>
-                <div className="space-y-1">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.value}
-                      onClick={() => updateParam("category", cat.value)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition ${
-                        category === cat.value
-                          ? "bg-blue-50 text-[#1e3a8a] font-semibold"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      <span>{cat.name}</span>
-                      {cat.count > 0 && (
-                        <span className="text-xs text-gray-400">
-                          {cat.count}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Barangay Filter (Mobile) */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-red-500" /> Barangay
-                  (Roxas)
-                </h3>
-                <select
-                  value={barangay}
-                  onChange={(e) => updateParam("barangay", e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-800 outline-none focus:border-[#1e3a8a]"
-                >
-                  <option value="">All Barangays</option>
-                  {ROXAS_BARANGAYS.map((b) => (
-                    <option key={b.name} value={b.name}>
-                      Brgy. {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="border-t border-gray-200 mb-6" />
-              {/* Price */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-3">
-                  Price per day
-                </h3>
-                <div className="space-y-1">
-                  {PRICE_FILTERS.map((p) => (
-                    <button
-                      key={p.value}
-                      onClick={() => updateParam("price", p.value)}
-                      className="w-full flex items-center gap-2.5 px-1 py-1.5 rounded-lg hover:bg-gray-100 transition text-left group"
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition ${
-                          priceRange === p.value
-                            ? "border-[#1e3a8a] bg-[#1e3a8a]"
-                            : "border-gray-300 group-hover:border-gray-400"
-                        }`}
-                      >
-                        {priceRange === p.value && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                        )}
-                      </div>
-                      <span
-                        className={`text-sm transition ${priceRange === p.value ? "text-[#1e3a8a] font-semibold" : "text-gray-600 group-hover:text-gray-900"}`}
-                      >
-                        {p.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="border-t border-gray-200 mb-6" />
-              {/* Availability */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-3">
-                  Availability
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      min={today}
-                      value={localStartDate}
-                      onChange={(e) => {
-                        setLocalStartDate(e.target.value);
-                        if (
-                          e.target.value &&
-                          localEndDate &&
-                          e.target.value > localEndDate
-                        )
-                          setLocalEndDate(e.target.value);
-                      }}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      min={localStartDate || today}
-                      value={localEndDate}
-                      onChange={(e) => setLocalEndDate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
-                    />
-                  </div>
-                  <button
-                    onClick={applyDates}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg transition"
-                  >
-                    Apply Dates
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="px-5 pb-6">
-              <button
-                onClick={() => setFilterDrawerOpen(false)}
-                className="w-full bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold py-3 rounded-xl transition"
-              >
-                Show results
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── BODY: sidebar + grid ───────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex gap-8 items-start">
-          {/* ── LEFT SIDEBAR — desktop only ─────────────────────── */}
-          <aside className="hidden lg:block w-60 flex-shrink-0">
-            <div className="flex items-center justify-between mb-5">
-              <span className="font-bold text-gray-900 text-base">Filters</span>
-              <button
-                onClick={clearAll}
-                className="text-xs text-gray-500 hover:text-gray-800 transition"
-              >
-                Clear all
-              </button>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Category</h3>
-              <div className="space-y-1">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.value}
-                    onClick={() => updateParam("category", cat.value)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition ${
-                      category === cat.value
-                        ? "bg-blue-50 text-[#1e3a8a] font-semibold"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <span>{cat.name}</span>
-                    {cat.count > 0 && (
-                      <span className="text-xs text-gray-400">{cat.count}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Barangay Filter (Desktop) */}
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-red-500" /> Barangay (Roxas)
-              </h3>
+          <p className="browse-eyebrow">Rent local. Do more.</p>
+          <h1>Find the right gear, nearby.</h1>
+          <p className="browse-intro-copy">
+            Equipment for your next project, adventure, or event in Roxas.
+          </p>
+        </header>
+        <form
+          id="browse-search"
+          onSubmit={submit}
+          className="browse-search-bar"
+          aria-label="Search equipment"
+        >
+          <label className="browse-search-field">
+            <Search size={22} aria-hidden="true" />
+            <span className="sr-only">Search equipment</span>
+            <input
+              value={draft.q}
+              onChange={(e) => change("q", e.target.value)}
+              placeholder="Search equipment…"
+              maxLength={200}
+            />
+          </label>
+          <label className="browse-location-field">
+            <MapPin size={22} aria-hidden="true" />
+            <span>
+              <span className="browse-field-label">Location</span>
               <select
-                value={barangay}
-                onChange={(e) => updateParam("barangay", e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-800 outline-none focus:border-[#1e3a8a] shadow-2xs"
+                aria-label="Search location"
+                value={draft.barangay}
+                onChange={(e) => change("barangay", e.target.value)}
               >
-                <option value="">All Barangays</option>
+                <option value="">Roxas, Oriental Mindoro</option>
                 {ROXAS_BARANGAYS.map((b) => (
                   <option key={b.name} value={b.name}>
-                    Brgy. {b.name}
+                    {b.name}, Roxas
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="border-t border-gray-200 mb-6" />
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">
-                Price per day
-              </h3>
-              <div className="space-y-1">
-                {PRICE_FILTERS.map((p) => (
-                  <button
-                    key={p.value}
-                    onClick={() => updateParam("price", p.value)}
-                    className="w-full flex items-center gap-2.5 px-1 py-1.5 rounded-lg hover:bg-gray-100 transition text-left group"
-                  >
-                    <div
-                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition ${
-                        priceRange === p.value
-                          ? "border-[#1e3a8a] bg-[#1e3a8a]"
-                          : "border-gray-300 group-hover:border-gray-400"
-                      }`}
-                    >
-                      {priceRange === p.value && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm transition ${priceRange === p.value ? "text-[#1e3a8a] font-semibold" : "text-gray-600 group-hover:text-gray-900"}`}
-                    >
-                      {p.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="border-t border-gray-200 mb-6" />
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">
-                Availability
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    min={today}
-                    value={localStartDate}
-                    onChange={(e) => {
-                      setLocalStartDate(e.target.value);
-                      if (
-                        e.target.value &&
-                        localEndDate &&
-                        e.target.value > localEndDate
-                      )
-                        setLocalEndDate(e.target.value);
-                    }}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    min={localStartDate || today}
-                    value={localEndDate}
-                    onChange={(e) => setLocalEndDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
-                  />
-                </div>
+            </span>
+          </label>
+          <details ref={datePanel} className="browse-date-picker">
+            <summary>
+              <CalendarDays size={22} />
+              <span>
+                <span className="browse-field-label">Rental dates</span>
+                <span className="browse-date-label">{dateLabel}</span>
+              </span>
+            </summary>
+            <div className="browse-date-panel">
+              <label>
+                Start date
+                <input
+                  ref={dateStart}
+                  type="date"
+                  min={today}
+                  value={draft.startDate}
+                  onChange={(e) => change("startDate", e.target.value)}
+                />
+              </label>
+              <label>
+                End date
+                <input
+                  type="date"
+                  min={draft.startDate || today}
+                  value={draft.endDate}
+                  onChange={(e) => change("endDate", e.target.value)}
+                />
+              </label>
+              <div className="flex items-center justify-between gap-3">
                 <button
-                  onClick={applyDates}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg transition"
+                  type="button"
+                  onClick={() => {
+                    change("startDate", "");
+                    change("endDate", "");
+                  }}
                 >
-                  Apply Dates
+                  Clear dates
+                </button>
+                <button type="submit" className="browse-primary">
+                  Apply dates
                 </button>
               </div>
             </div>
-          </aside>
-
-          {/* ── MAIN GRID ────────────────────────────────────────── */}
-          <div className="flex-1 min-w-0 flex flex-col min-h-[500px]">
-            {/* Top results bar with GPS distance toggle */}
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <p className="text-xs text-gray-500 font-medium">
-                Showing{" "}
-                <strong className="text-gray-900">{products.length}</strong> of{" "}
-                <strong className="text-gray-900">{total}</strong> items
-              </p>
-              <DistanceToggleBtn />
+          </details>
+          <button className="browse-primary browse-search-submit" type="submit">
+            Search <ArrowRight size={17} className="sm:hidden" />
+          </button>
+        </form>
+        {validation && (
+          <p className="browse-validation" role="alert">
+            {validation}
+          </p>
+        )}
+        <nav className="browse-categories" aria-label="Equipment categories">
+          {CATEGORIES.map(([value, label, Icon]) => (
+            <button
+              type="button"
+              key={label}
+              aria-pressed={category === value}
+              onClick={() => updateParam("category", value)}
+              className={category === value ? "is-active" : ""}
+            >
+              <Icon size={23} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="browse-body">
+          <div className="browse-mobile-filters">
+            <button
+              className="browse-secondary"
+              aria-expanded={filtersOpen}
+              aria-controls="browse-filters"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              <SlidersHorizontal size={18} />
+              Filters
+              {filtersOpen ? <X size={16} /> : <ChevronRight size={16} />}
+            </button>
+            {hasFilters && (
+              <button onClick={reset} className="text-sm text-blue-800">
+                Reset filters
+              </button>
+            )}
+          </div>
+          <aside
+            id="browse-filters"
+            className={`browse-filters ${filtersOpen ? "is-open" : ""}`}
+            aria-label="Rental filters"
+          >
+            <div className="browse-filter-heading">
+              <h2>Filters</h2>
+              <button onClick={reset}>
+                <RotateCcw size={14} />
+                Reset
+              </button>
             </div>
-
+            <label className="browse-filter-label">
+              Barangay
+              <select
+                form="browse-search"
+                value={draft.barangay}
+                onChange={(e) => change("barangay", e.target.value)}
+              >
+                <option value="">All barangays</option>
+                {ROXAS_BARANGAYS.map((b) => (
+                  <option key={b.name} value={b.name}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <fieldset>
+              <legend className="browse-filter-label">Daily budget</legend>
+              <div className="browse-budget">
+                <label>
+                  <span className="sr-only">Minimum daily price</span>
+                  <input
+                    form="browse-search"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    step="0.01"
+                    placeholder="₱ Min"
+                    value={draft.minPrice}
+                    onChange={(e) => change("minPrice", e.target.value)}
+                  />
+                </label>
+                <span>–</span>
+                <label>
+                  <span className="sr-only">Maximum daily price</span>
+                  <input
+                    form="browse-search"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    step="0.01"
+                    placeholder="₱ Max"
+                    value={draft.maxPrice}
+                    onChange={(e) => change("maxPrice", e.target.value)}
+                  />
+                </label>
+              </div>
+            </fieldset>
+            <div>
+              <p className="browse-filter-label">Rental dates</p>
+              <button className="browse-date-shortcut" onClick={openDates}>
+                <CalendarDays size={17} />
+                <span>{dateLabel}</span>
+              </button>
+            </div>
+            <label className="browse-availability">
+              <span>Available only</span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={availableOnly}
+                onChange={(e) =>
+                  updateParam(
+                    "availability",
+                    e.target.checked ? "available" : "",
+                  )
+                }
+              />
+              <span className="browse-switch" aria-hidden="true" />
+            </label>
+            <button
+              type="submit"
+              form="browse-search"
+              className="browse-primary w-full"
+            >
+              Apply filters
+            </button>
+            <p className="browse-filter-note">
+              Choose dates to check availability for your rental period.
+            </p>
+          </aside>
+          <section className="browse-results" aria-label="Equipment results">
+            <div className="browse-results-heading">
+              <div>
+                <h2>
+                  {availableOnly ? "Available near you" : "Equipment near you"}
+                </h2>
+                <p role="status" aria-live="polite">
+                  {loading
+                    ? "Finding equipment…"
+                    : error
+                      ? "Equipment unavailable"
+                      : `${total} ${total === 1 ? "result" : "results"}${totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ""}`}
+                </p>
+              </div>
+              <div className="browse-view-toggle">
+                <span aria-current="page">
+                  <LayoutGrid size={16} />
+                  Grid
+                </span>
+                <Link to={mapUrl}>
+                  <MapPin size={16} />
+                  Map
+                </Link>
+              </div>
+            </div>
+            <div className="browse-results-tools">
+              {hasFilters ? (
+                <button onClick={reset}>
+                  <X size={14} />
+                  Clear active filters
+                </button>
+              ) : (
+                <span>Discover equipment from local suppliers</span>
+              )}
+              <button
+                disabled={detecting}
+                onClick={() => requestCustomerLocation(false).catch(() => {})}
+              >
+                <Navigation size={14} />
+                {detecting
+                  ? "Locating…"
+                  : isGpsInsideRoxas
+                    ? "Update my location"
+                    : "Use my location"}
+              </button>
+            </div>
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col animate-pulse"
-                  >
-                    <div className="h-52 bg-gray-200"></div>
-                    <div className="p-4 flex-1 flex flex-col">
-                      <div className="flex justify-between mb-2">
-                        <div className="w-16 h-3 bg-gray-200 rounded"></div>
-                        <div className="w-12 h-3 bg-gray-200 rounded"></div>
-                      </div>
-                      <div className="w-3/4 h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="w-full h-3 bg-gray-200 rounded mb-1"></div>
-                      <div className="w-5/6 h-3 bg-gray-200 rounded mb-4"></div>
-                      <div className="flex justify-between items-end mt-auto">
-                        <div className="w-16 h-6 bg-gray-200 rounded"></div>
-                        <div className="w-20 h-8 bg-gray-200 rounded"></div>
-                      </div>
+              <div className="browse-loading" role="status">
+                <span className="sr-only">Loading equipment</span>
+                {[1, 2].map((n) => (
+                  <div key={n} className="browse-skeleton animate-pulse">
+                    <div />
+                    <div>
+                      <span />
+                      <span />
+                      <span />
                     </div>
                   </div>
                 ))}
               </div>
+            ) : error ? (
+              <div className="browse-empty" role="alert">
+                <AlertCircle size={32} />
+                <h3>Let's try that again</h3>
+                <p>{error}</p>
+                <button
+                  className="browse-primary"
+                  onClick={() => setAttempt((n) => n + 1)}
+                >
+                  Retry
+                </button>
+              </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-20 flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 p-8 shadow-xs my-auto">
-                <div className="w-16 h-16 bg-blue-50 text-[#1e3a8a] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 opacity-75" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">
-                  {search ||
-                  category ||
-                  barangay ||
-                  priceRange ||
-                  startDate ||
-                  endDate
-                    ? "No listings match your filters"
-                    : "No equipment available yet"}
+              <div className="browse-empty">
+                <Search size={32} />
+                <h3>
+                  {hasFilters
+                    ? "No equipment matches your search"
+                    : "New rentals are on the way"}
                 </h3>
-                <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-                  {search ||
-                  category ||
-                  barangay ||
-                  priceRange ||
-                  startDate ||
-                  endDate
-                    ? "Try adjusting your search criteria or clear your filters to see all available gear."
-                    : "Check back soon or be the first supplier to list equipment for rent!"}
+                <p>
+                  {hasFilters
+                    ? "Try a different category, location, or date range to find your next rental."
+                    : "Local suppliers haven't listed equipment here yet. Check back soon."}
                 </p>
-                <div className="flex items-center gap-3">
-                  {(search ||
-                    category ||
-                    barangay ||
-                    priceRange ||
-                    startDate ||
-                    endDate) && (
-                    <button
-                      onClick={clearAll}
-                      className="bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition"
-                    >
-                      Clear all filters
-                    </button>
-                  )}
-                  <Link
-                    to="/for-suppliers"
-                    className="border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition"
-                  >
-                    List an Equipment
+                {hasFilters ? (
+                  <button className="browse-primary" onClick={reset}>
+                    Clear all filters
+                  </button>
+                ) : (
+                  <Link className="browse-primary" to="/for-suppliers">
+                    Become a supplier <ArrowRight size={17} />
                   </Link>
-                </div>
+                )}
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
-                  {products.map((p) => (
-                    <ProductCard key={p.id} product={p} />
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-auto flex justify-center items-center gap-2 border-t border-gray-200 pt-6">
-                    <button
-                      disabled={page === 1}
-                      onClick={() => updateParam("page", page - 1)}
-                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="text-sm font-semibold px-4">
-                      Page {page} of {totalPages}
-                    </span>
-                    <button
-                      disabled={page === totalPages}
-                      onClick={() => updateParam("page", page + 1)}
-                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <ChevronRight2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-              </>
+              <div
+                className={`browse-product-grid ${products.length === 1 ? "single-result" : ""}`}
+              >
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    wide={products.length === 1}
+                  />
+                ))}
+              </div>
             )}
-          </div>
+            {!loading && !error && totalPages > 1 && (
+              <nav className="browse-pagination" aria-label="Results pages">
+                <button
+                  aria-label="Previous page"
+                  disabled={page <= 1}
+                  onClick={() => updateParam("page", page - 1)}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span>
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  aria-label="Next page"
+                  disabled={page >= totalPages}
+                  onClick={() => updateParam("page", page + 1)}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </nav>
+            )}
+            <div className="browse-explore">
+              <Compass size={30} />
+              <div>
+                <h3>Looking for something else?</h3>
+                <p>Try another category or explore the map.</p>
+              </div>
+              <Link to={mapUrl}>
+                Explore map <ArrowRight size={18} />
+              </Link>
+            </div>
+          </section>
         </div>
       </div>
     </div>

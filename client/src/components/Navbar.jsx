@@ -211,7 +211,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             <Link
               to="/"
               className={`hover:text-white transition ${pathname === "/" ? "text-white" : "text-gray-300"}`}
@@ -304,7 +304,7 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {user && user.role === "customer" && (
               <Link
                 to="/customer/favorites"
@@ -515,7 +515,10 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden text-gray-300 hover:text-white"
+            className="lg:hidden text-gray-300 hover:text-white p-2"
+            aria-label={isOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={isOpen}
+            aria-controls="mobile-navigation"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -525,7 +528,10 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2">
+        <div
+          id="mobile-navigation"
+          className="lg:hidden bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
+        >
           <Link
             to="/"
             className="block text-gray-300 hover:text-white py-2 text-sm"

@@ -1,3 +1,4 @@
+import WorkspaceNavigation from "../../components/WorkspaceNavigation";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -133,7 +134,7 @@ export default function CustomerDashboard() {
     });
   }, [activity]);
 
-  const userName = user?.name ? user.name.split(" ")[0] : "Aaron";
+  const userName = user?.name ? user.name.split(" ")[0] : "there";
   const userInitials = user?.name
     ? user.name
         .split(" ")
@@ -144,7 +145,7 @@ export default function CustomerDashboard() {
     : "AW";
 
   return (
-    <div className="min-h-screen bg-[#f5f0e8] text-gray-900 font-sans flex flex-col">
+    <div className="workspace-dashboard min-h-screen bg-[#f5f0e8] text-gray-900 font-sans flex flex-col">
       {/* ══════════════════════════════════════════════════════════
            WORKSPACE CONTAINER (SIDEBAR + MAIN CONTENT)
         ══════════════════════════════════════════════════════════ */}
@@ -313,11 +314,18 @@ export default function CustomerDashboard() {
         {/* ── RIGHT MAIN DASHBOARD CONTENT ── */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Main Dashboard Scroll Area */}
+          <WorkspaceNavigation role="customer" />
           <main className="p-4 sm:p-7 space-y-7">
+            <div className="workspace-heading">
+              <p className="workspace-kicker">customer workspace / Overview</p>
+              <span className="text-xs text-slate-500">
+                Your rentals, all in one place
+              </span>
+            </div>
             {/* ══════════════════════════════════════════════════════
                  HERO OVERVIEW BANNER (Dark Technical Navy matching Pic 1 theme & Pic 2 layout)
               ══════════════════════════════════════════════════════ */}
-            <div className="relative bg-[#0f1729] rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-white overflow-hidden shadow-lg border border-blue-900/40">
+            <div className="workspace-hero relative bg-[#0f1729] rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-white overflow-hidden shadow-lg border border-blue-900/40">
               {/* Radial glow background & subtle grid */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -371,7 +379,7 @@ export default function CustomerDashboard() {
                       {String(metrics.pending).padStart(2, "0")}
                     </div>
                     <div className="text-[9px] font-bold text-gray-400 tracking-wider uppercase">
-                      Returns Due
+                      Pending requests
                     </div>
                   </div>
 
@@ -440,11 +448,11 @@ export default function CustomerDashboard() {
                   Key Metrics
                 </h2>
                 <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase ml-2 hidden sm:inline">
-                  Your rolling 30-day performance snapshot
+                  Your rental activity at a glance
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="workspace-metrics grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {/* Metric Card 1: TOTAL RENTALS */}
                 <div className="relative bg-white border border-gray-200/90 rounded-2xl p-5 shadow-xs hover:border-[#1e3a8a]/40 transition group overflow-hidden">
                   <div className="flex items-center justify-between mb-4">
@@ -540,7 +548,7 @@ export default function CustomerDashboard() {
                       02
                     </span>
                     <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-                      Active & Approved Rentals
+                      Your rentals
                     </h2>
                   </div>
                   <div className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase">

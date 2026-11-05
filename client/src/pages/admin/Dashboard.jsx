@@ -203,7 +203,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f5f0e8] font-sans text-gray-900">
+    <div className="workspace-dashboard flex min-h-screen flex-col bg-[#f5f0e8] font-sans text-gray-900">
       <div className="mx-auto flex w-full max-w-[1720px] flex-1">
         <aside
           className={`${sidebarCollapsed ? "w-[76px]" : "w-64"} relative hidden shrink-0 flex-col border-r border-gray-200/80 bg-white transition-all duration-300 lg:flex`}
@@ -353,7 +353,7 @@ export default function Dashboard() {
           </nav>
 
           <main className="space-y-7 p-4 sm:p-7">
-            <section className="relative overflow-hidden rounded-2xl border border-blue-900/40 bg-[#0f1729] p-6 text-white shadow-lg sm:rounded-3xl sm:p-8">
+            <section className="workspace-hero relative overflow-hidden rounded-2xl border border-blue-900/40 bg-[#0f1729] p-6 text-white shadow-lg sm:rounded-3xl sm:p-8">
               <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-blue-600/10 blur-3xl" />
               <div className="pointer-events-none absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
 
@@ -458,7 +458,7 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="workspace-metrics grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {metrics.map(
                   ({ label, value, note, icon: Icon, iconClass }) => (
                     <article
