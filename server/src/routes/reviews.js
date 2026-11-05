@@ -1,64 +1,123 @@
-const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const db = require('../db/database');
-const { authenticate, authorize } = require('../middleware/auth');
-const uploadsDir = require('../utils/uploads');
+const express = require("express");
+const { randomUUID: uuidv4 } = require("node:crypto");
+const db = require("../db/database");
+const { authenticate, authorize } = require("../middleware/auth");
+const uploadsDir = require("../utils/uploads");
 
 const router = express.Router();
 
-const multer = require('multer');
+const multer = require("multer");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => cb(null, `${uuidv4()}-${file.originalname}`)
-});
-const upload = multer({ storage });
+const upload = require("../utils/imageStorage");
+router.get("/product/:productId", async (req, res) =>
+  res.json({
+    success: true,
+    data: await db
+      .prepare(
+        "SELECT r.*,u.name AS reviewer_name,u.avatar AS reviewer_avatar FROM reviews r JOIN users u ON u.id = r.customer_id WHERE r.product_id = ? ORDER BY r.created_at DESC LIMIT 100",
+      )
+      .all(req.params.productId),
+  }),
+);
 
-router.get('/product/:productId', (req, res) => {
-  try {
-    const reviews = db.prepare(`
-      SELECT r.*, u.name as reviewer_name, u.avatar as reviewer_avatar
-      FROM reviews r
-      JOIN users u ON r.customer_id = u.id
-      WHERE r.product_id = ?
-      ORDER BY r.created_at DESC
-    `).all(req.params.productId);
-    res.json({ success: true, data: reviews });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+router.post(
+  "/",
+  authenticate,
+  authorize("customer"),
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const { product_id, rating, comment } = req.body;
+      let rental_id = req.body.rental_id;
+      if (!rental_id) {
+        const candidate = await db
+          .prepare(
+            "SELECT id FROM rentals WHERE product_id = ? AND customer_id = ? AND status = 'completed' AND id NOT IN (SELECT rental_id FROM reviews WHERE rental_id IS NOT NULL) ORDER BY created_at DESC LIMIT 1",
+          )
+          .get(product_id, req.user.id);
+        rental_id = candidate?.id;
+      }
+      if (
+        !product_id ||
+        !rental_id ||
+        !Number.isInteger(Number(rating)) ||
+        rating < 1 ||
+        rating > 5 ||
+        (comment?.length || 0) > 5000
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid product or rating" });
+      }
 
-router.post('/', authenticate, authorize('customer'), upload.single('image'), (req, res) => {
-  try {
-    const { product_id, rating, comment } = req.body;
-    if (!product_id || rating < 1 || rating > 5) {
-      return res.status(400).json({ success: false, message: 'Invalid product or rating' });
-    }
-
-    const pastRental = db.prepare(`
+      const pastRental = await db
+        .prepare(
+          `
       SELECT id FROM rentals 
-      WHERE product_id = ? AND customer_id = ? AND status IN ('completed', 'returned')
+      WHERE product_id = ? AND customer_id = ? AND status = 'completed' AND id = ?
       LIMIT 1
-    `).get(product_id, req.user.id);
+    `,
+        )
+        .get(product_id, req.user.id, rental_id);
 
-    if (!pastRental) {
-      return res.status(403).json({ success: false, message: 'You can only review products you have rented and returned' });
+      if (!pastRental) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only review products you have rented and returned",
+        });
+      }
+
+      const id = uuidv4();
+      if (
+        await db
+          .prepare("SELECT id FROM reviews WHERE rental_id = ?")
+          .get(rental_id)
+      )
+        return res.status(409).json({
+          success: false,
+          message: "This rental already has a review",
+        });
+      const imageUrl = req.file ? req.file.url : null;
+
+      await db
+        .prepare(
+          `
+      INSERT INTO reviews (id, product_id, customer_id, rating, comment, image_url, created_at, rental_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+        )
+        .run(
+          id,
+          product_id,
+          req.user.id,
+          Number(rating),
+          comment || null,
+          imageUrl,
+          new Date().toISOString(),
+          rental_id,
+        );
+
+      const review = await db
+        .prepare("SELECT * FROM reviews WHERE id = ?")
+        .get(id);
+      res.status(201).json({ success: true, data: review });
+    } catch (error) {
+      if (
+        error.code === "23505" ||
+        error.code === "ERR_SQLITE_CONSTRAINT_UNIQUE" ||
+        error.errcode === 2067
+      )
+        return res.status(409).json({
+          success: false,
+          message: "This rental already has a review",
+        });
+      console.error({ route: req.originalUrl, code: error.code || error.name });
+      res.status(500).json({
+        success: false,
+        message: "Unable to complete the request. Please try again.",
+      });
     }
-
-    const id = uuidv4();
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-
-    db.prepare(`
-      INSERT INTO reviews (id, product_id, customer_id, rating, comment, image_url, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, product_id, req.user.id, rating, comment, imageUrl, new Date().toISOString());
-
-    const review = db.prepare('SELECT * FROM reviews WHERE id = ?').get(id);
-    res.status(201).json({ success: true, data: review });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+  },
+);
 
 module.exports = router;

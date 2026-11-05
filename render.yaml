@@ -5,18 +5,22 @@ services:
     plan: free
     region: singapore
     rootDir: server
-    buildCommand: npm install --omit=dev
+    buildCommand: npm ci --omit=dev
     startCommand: node src/db/bootstrapAdmin.js && npm start
-    healthCheckPath: /health
+    healthCheckPath: /ready
     envVars:
       - key: NODE_VERSION
         value: 24.22.1
       - key: NODE_ENV
         value: production
-      - key: DATABASE_PATH
-        value: /tmp/rentaway.db
-      - key: UPLOADS_DIR
-        value: /tmp/rentaway-uploads
+      - key: DATABASE_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
@@ -26,8 +30,6 @@ services:
       - key: CLIENT_ORIGIN
         sync: false
       - key: FRONTEND_URL
-        sync: false
-      - key: PAYMONGO_SECRET_KEY
         sync: false
       - key: INITIAL_ADMIN_EMAIL
         sync: false

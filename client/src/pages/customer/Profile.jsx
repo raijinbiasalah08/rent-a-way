@@ -1,11 +1,25 @@
-import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { updateProfile, uploadAvatar, updatePassword } from '../../api/auth';
-import { useCustomerLocation } from '../../context/CustomerLocationContext';
-import LocationPicker from '../../components/LocationPicker';
-import { User, Mail, Phone, MapPin, Camera, Save, Shield, KeyRound, Lock, Check, Key } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { API_ORIGIN } from '../../config';
+import { apiAssetUrl } from "../../config";
+import { clearToken } from "../../utils/session";
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { updateProfile, uploadAvatar, updatePassword } from "../../api/auth";
+import { useCustomerLocation } from "../../context/CustomerLocationContext";
+import LocationPicker from "../../components/LocationPicker";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Camera,
+  Save,
+  Shield,
+  KeyRound,
+  Lock,
+  Check,
+  Key,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { API_ORIGIN } from "../../config";
 
 const BASE_URL = API_ORIGIN;
 
@@ -15,36 +29,38 @@ export default function Profile() {
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    address: '',
+    name: "",
+    phone: "",
+    address: "",
+    barangay: "",
     latitude: null,
-    longitude: null
+    longitude: null,
   });
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
 
   const [passwords, setPasswords] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
-        phone: user.phone || '',
-        address: user.address || '',
+        name: user.name || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        barangay: user.barangay || "",
         latitude: user.latitude || null,
-        longitude: user.longitude || null
+        longitude: user.longitude || null,
       });
     }
   }, [user]);
 
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleAvatarClick = () => {
@@ -56,22 +72,22 @@ export default function Profile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      return toast.error('Image must be less than 5MB');
+      return toast.error("Image must be less than 5MB");
     }
 
     setAvatarLoading(true);
     try {
       const data = new FormData();
-      data.append('avatar', file);
+      data.append("avatar", file);
 
       const res = await uploadAvatar(data);
       updateUser(res.data.data);
-      toast.success('Avatar updated successfully');
+      toast.success("Avatar updated successfully");
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to upload avatar');
+      toast.error(error.response?.data?.message || "Failed to upload avatar");
     } finally {
       setAvatarLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -82,11 +98,14 @@ export default function Profile() {
       const res = await updateProfile(formData);
       updateUser(res.data.data);
       if (formData.latitude && formData.longitude) {
-        setCustomerCoords([Number(formData.latitude), Number(formData.longitude)]);
+        setCustomerCoords([
+          Number(formData.latitude),
+          Number(formData.longitude),
+        ]);
       }
-      toast.success('Profile and location updated successfully');
+      toast.success("Profile and location updated successfully");
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -94,23 +113,29 @@ export default function Profile() {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    if (passwords.newPassword.length < 6) {
-      return toast.error('New password must be at least 6 characters');
+    if (passwords.newPassword.length < 12) {
+      return toast.error("New password must be at least 12 characters");
     }
     if (passwords.newPassword !== passwords.confirmPassword) {
-      return toast.error('Passwords do not match');
+      return toast.error("Passwords do not match");
     }
 
     setPasswordLoading(true);
     try {
       await updatePassword({
         currentPassword: passwords.currentPassword,
-        newPassword: passwords.newPassword
+        newPassword: passwords.newPassword,
       });
-      toast.success('Password changed successfully');
-      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success("Password changed. Please sign in again.");
+      clearToken();
+      window.location.assign("/login");
+      setPasswords({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to change password');
+      toast.error(error.response?.data?.message || "Failed to change password");
     } finally {
       setPasswordLoading(false);
     }
@@ -118,13 +143,21 @@ export default function Profile() {
 
   if (!user) return null;
 
-  const avatarSrc = user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${BASE_URL}${user.avatar}`) : null;
+  const avatarSrc = user.avatar
+    ? user.avatar.startsWith("http")
+      ? user.avatar
+      : apiAssetUrl(user.avatar)
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Account Settings</h1>
-        <p className="text-gray-500 text-sm">Manage your profile details and preferences</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">
+          Account Settings
+        </h1>
+        <p className="text-gray-500 text-sm">
+          Manage your profile details and preferences
+        </p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
@@ -139,9 +172,15 @@ export default function Profile() {
                 {avatarLoading ? (
                   <div className="w-6 h-6 border-2 border-[#1e3a8a] border-t-transparent rounded-full animate-spin" />
                 ) : avatarSrc ? (
-                  <img src={avatarSrc} alt={user.name} className="w-full h-full object-cover" />
+                  <img
+                    src={avatarSrc}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <span className="text-3xl font-bold text-gray-400">{user.name?.charAt(0) || 'U'}</span>
+                  <span className="text-3xl font-bold text-gray-400">
+                    {user.name?.charAt(0) || "U"}
+                  </span>
                 )}
 
                 {/* Hover overlay */}
@@ -163,7 +202,9 @@ export default function Profile() {
               <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
               <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md mt-1 w-fit">
                 <Shield className="w-3 h-3" />
-                {user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Customer'}
+                {user.role
+                  ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                  : "Customer"}
               </div>
             </div>
           </div>
@@ -175,7 +216,9 @@ export default function Profile() {
             <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
             <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md mt-1 w-fit">
               <Shield className="w-3 h-3" />
-              {user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Customer'}
+              {user.role
+                ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                : "Customer"}
             </div>
           </div>
 
@@ -215,7 +258,9 @@ export default function Profile() {
                     className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 outline-none cursor-not-allowed"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Email cannot be changed</p>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Email cannot be changed
+                </p>
               </div>
 
               <div>
@@ -243,14 +288,16 @@ export default function Profile() {
               <div className="bg-gray-50/70 p-4 sm:p-5 rounded-2xl border border-gray-200">
                 <LocationPicker
                   location={formData.address}
+                  barangay={formData.barangay}
                   latitude={formData.latitude}
                   longitude={formData.longitude}
-                  onChange={({ location, latitude, longitude }) => {
-                    setFormData(prev => ({
+                  onChange={({ location, barangay, latitude, longitude }) => {
+                    setFormData((prev) => ({
                       ...prev,
                       address: location,
+                      barangay,
                       latitude,
-                      longitude
+                      longitude,
                     }));
                   }}
                 />
@@ -260,7 +307,16 @@ export default function Profile() {
             <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setFormData({ name: user.name || '', phone: user.phone || '', address: user.address || '' })}
+                onClick={() =>
+                  setFormData({
+                    name: user.name || "",
+                    phone: user.phone || "",
+                    address: user.address || "",
+                    barangay: user.barangay || "",
+                    latitude: user.latitude ?? null,
+                    longitude: user.longitude ?? null,
+                  })
+                }
                 className="px-5 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition"
               >
                 Discard
@@ -270,7 +326,9 @@ export default function Profile() {
                 disabled={loading}
                 className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white px-6 py-2 rounded-lg font-semibold text-sm disabled:opacity-50 transition shadow-sm"
               >
-                {loading ? 'Saving...' : (
+                {loading ? (
+                  "Saving..."
+                ) : (
                   <>
                     <Save className="w-4 h-4" /> Save Changes
                   </>
@@ -288,8 +346,12 @@ export default function Profile() {
             <KeyRound className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Security & Password</h2>
-            <p className="text-xs text-gray-500">Update your password to keep your account safe</p>
+            <h2 className="text-lg font-bold text-gray-900">
+              Security & Password
+            </h2>
+            <p className="text-xs text-gray-500">
+              Update your password to keep your account safe
+            </p>
           </div>
         </div>
 
@@ -305,7 +367,12 @@ export default function Profile() {
               <input
                 type="password"
                 value={passwords.currentPassword}
-                onChange={e => setPasswords(p => ({ ...p, currentPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswords((p) => ({
+                    ...p,
+                    currentPassword: e.target.value,
+                  }))
+                }
                 required
                 className="w-full pl-9 pr-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-[#1e3a8a] outline-none transition"
                 placeholder="••••••••"
@@ -324,10 +391,12 @@ export default function Profile() {
               <input
                 type="password"
                 value={passwords.newPassword}
-                onChange={e => setPasswords(p => ({ ...p, newPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswords((p) => ({ ...p, newPassword: e.target.value }))
+                }
                 required
                 className="w-full pl-9 pr-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-[#1e3a8a] outline-none transition"
-                placeholder="At least 6 characters"
+                placeholder="At least 12 characters"
               />
             </div>
           </div>
@@ -343,7 +412,12 @@ export default function Profile() {
               <input
                 type="password"
                 value={passwords.confirmPassword}
-                onChange={e => setPasswords(p => ({ ...p, confirmPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswords((p) => ({
+                    ...p,
+                    confirmPassword: e.target.value,
+                  }))
+                }
                 required
                 className="w-full pl-9 pr-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-[#1e3a8a] outline-none transition"
                 placeholder="Re-enter new password"
@@ -357,7 +431,7 @@ export default function Profile() {
               disabled={passwordLoading}
               className="bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition disabled:opacity-60 shadow-sm"
             >
-              {passwordLoading ? 'Updating Password...' : 'Update Password'}
+              {passwordLoading ? "Updating Password..." : "Update Password"}
             </button>
           </div>
         </form>

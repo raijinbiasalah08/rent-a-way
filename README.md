@@ -1,53 +1,28 @@
-# RentAway - Find Better Ways to Save
+# Rent-A-Way
 
-A full-stack rental marketplace platform built with React + Node.js.
+Rental equipment marketplace for Roxas, Oriental Mindoro, with customer, supplier, and administrator workspaces. React/Vite frontend, Express/Socket.IO backend, PostgreSQL in production, and SQLite for local development.
 
-## Quick Start
+Bookings use supplier approval, handover, return, and completion. There is no payment processing. Displayed rental prices are informational estimates.
 
-### 1. Start the Backend Server
-```
-cd server
-node src/index.js
-```
-Backend runs at: http://localhost:5000
+## Run locally
 
-### 2. Start the Frontend Dev Server
-```
-cd client
-npm run dev
-```
-Frontend runs at: http://localhost:5173
+Use Node 24. Run `npm ci` in `server` and `client`. Copy `.env.example` to `.env` in each directory and set a random `JWT_SECRET` of at least 32 characters in the server environment.
 
-## Initial Admin Account
+Run `npm run dev` in `server` for the API on port 5000 and in `client` for the frontend on port 5173. Local data is stored in `server/rentaway.db`; uploads are under `server/uploads`. No sample data is inserted automatically.
 
-The Render start command creates the initial admin from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` whenever the database is empty. Keep both values set in Render and use a unique password with at least 12 characters. On the free plan, the database can be erased when the service spins down or restarts, so this restores the admin but not other app data.
+Create the first admin by setting `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` (12–72 characters), then running `npm run bootstrap` in `server`. Remove the bootstrap password after creation. Admin bootstrap is idempotent and does not overwrite an existing account.
 
-## Project Structure
+## Verify
 
-```
-rent a way 2/
-|- client/       React + Vite frontend (port 5173)
-|- server/       Node.js + Express backend (port 5000)
-|  |- rentaway.db   SQLite database
-|  +- uploads/      Product images
-+- README.md
-```
+- In `server`: `npm test` runs isolated API, security, and migration checks.
+- Set `TEST_POSTGRES=1` and run `node --test test/flows.test.js` for the PostgreSQL dialect checks.
+- In `server`: `node test/browser.cjs` runs headless Chrome checks with temporary data. Install client dependencies and Chrome first; port 5179 must be free.
+- In `client`: `npm run build` creates the production bundle.
 
-## Deploy on Vercel and Render
+## Deployment
 
-The repository includes `client/vercel.json` for client-side routes and a root `render.yaml` for the API, health check, and admin bootstrap.
+Use the Vercel frontend and Render Free backend. Production requires persistent PostgreSQL, Cloudinary images, and Resend email credentials. The server refuses ephemeral SQLite in production. The Render configuration uses no paid disk or paid instance.
 
-The Render Blueprint uses the Free web service plan and no paid disk. This keeps the hosted services at $0 within free usage limits, but is suitable for demos only: Render can spin the service down after 15 minutes without traffic, startup can take about a minute, and local SQLite data and uploaded images are erased whenever the service spins down, restarts, or redeploys. Keep a copy of anything important outside the service.
+Read [DEPLOYMENT.md](DEPLOYMENT.md) for exact environment variables, Google OAuth origins, migrations, backups, rollback, free-service constraints, and required external-service verification. Read [API.md](API.md) for route and authorization rules.
 
-1. Import this GitHub repository into Vercel and set the project root directory to `client`.
-2. Deploy once to get the Vercel production URL.
-3. Create a Render Blueprint from this repository and provide the prompted environment values:
-   - `GOOGLE_CLIENT_ID`: the Google OAuth Web client ID.
-   - `CLIENT_ORIGIN` and `FRONTEND_URL`: the Vercel production origin, such as `https://your-project.vercel.app`.
-   - `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`: the first admin login.
-   - `PAYMONGO_SECRET_KEY`: optional for account browsing; required to enable real PayMongo checkout.
-4. After Render deploys, copy its API origin (for example, `https://rentaway-api.onrender.com`) into Vercel as `VITE_API_URL`, then redeploy the frontend.
-5. Add the Vercel production origin to the Google OAuth client's Authorized JavaScript origins.
-6. Keep `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` set in Render so the admin can be recreated after a free-tier filesystem reset.
-
-The hosted database and uploads start empty. The local `server/rentaway.db` and `server/uploads` are not copied to hosting. Render Free can suspend service activity if workspace free usage limits are exceeded; avoid adding paid resources or a payment method if you need to prevent overage charges.
+Existing financial records are archived by migration rather than silently deleted. Keep a database and upload backup before updating an existing installation. Do not deploy until the required external credentials are configured.

@@ -1,24 +1,28 @@
-import { useState } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
-import { createComplaint } from '../api/admin';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { X, AlertTriangle } from "lucide-react";
+import { createComplaint } from "../api/admin";
+import toast from "react-hot-toast";
 
-export default function ComplaintModal({ onClose, reportedId = null, context = '' }) {
-  const [subject, setSubject] = useState('');
-  const [details, setDetails] = useState('');
+export default function ComplaintModal({
+  onClose,
+  reportedId = null,
+  context = "",
+}) {
+  const [subject, setSubject] = useState("");
+  const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!subject.trim()) return toast.error('Subject is required');
-    if (!details.trim()) return toast.error('Details are required');
+    if (!subject.trim()) return toast.error("Subject is required");
+    if (!details.trim()) return toast.error("Details are required");
     setSubmitting(true);
     try {
       await createComplaint({ reported_id: reportedId, subject, details });
-      toast.success('Complaint filed successfully. Our team will review it.');
+      toast.success("Complaint filed successfully. Our team will review it.");
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to file complaint');
+      toast.error(err.response?.data?.message || "Failed to file complaint");
     } finally {
       setSubmitting(false);
     }
@@ -31,9 +35,14 @@ export default function ComplaintModal({ onClose, reportedId = null, context = '
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-500" />
-            <h2 className="font-bold text-lg text-navy-700">File a Complaint</h2>
+            <h2 className="font-bold text-lg text-navy-700">
+              File a Complaint
+            </h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 transition"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -46,31 +55,36 @@ export default function ComplaintModal({ onClose, reportedId = null, context = '
           )}
 
           <div>
-            <label className="label">Subject <span className="text-red-400">*</span></label>
+            <label className="label">
+              Subject <span className="text-red-400">*</span>
+            </label>
             <input
               type="text"
               className="input"
               placeholder="e.g. Item damaged, Late return, False listing..."
               value={subject}
-              onChange={e => setSubject(e.target.value)}
+              onChange={(e) => setSubject(e.target.value)}
               maxLength={100}
               required
             />
           </div>
 
           <div>
-            <label className="label">Details <span className="text-red-400">*</span></label>
+            <label className="label">
+              Details <span className="text-red-400">*</span>
+            </label>
             <textarea
               className="input h-32 resize-none"
               placeholder="Please describe the issue in detail..."
               value={details}
-              onChange={e => setDetails(e.target.value)}
+              onChange={(e) => setDetails(e.target.value)}
               required
             />
           </div>
 
           <p className="text-xs text-gray-400">
-            Our admin team will review your complaint within 24–48 hours. Thank you for helping keep RentAway safe.
+            Our admin team will review your complaint within 24–48 hours. Thank
+            you for helping keep RentAway safe.
           </p>
 
           <div className="flex gap-3 pt-2">
@@ -79,9 +93,13 @@ export default function ComplaintModal({ onClose, reportedId = null, context = '
               disabled={submitting}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl transition disabled:opacity-60"
             >
-              {submitting ? 'Submitting...' : 'Submit Complaint'}
+              {submitting ? "Submitting..." : "Submit Complaint"}
             </button>
-            <button type="button" onClick={onClose} className="btn-outline flex-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-outline flex-1"
+            >
               Cancel
             </button>
           </div>

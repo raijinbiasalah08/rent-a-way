@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { getRentals } from '../../api/rentals';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { getRentals } from "../../api/rentals";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   LayoutDashboard,
   Store,
@@ -32,52 +32,61 @@ import {
   ExternalLink,
   ChevronRight,
   SlidersHorizontal,
-  ChevronLeft
-} from 'lucide-react';
+  ChevronLeft,
+} from "lucide-react";
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [dbRentals, setDbRentals] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedRental, setSelectedRental] = useState(null);
 
   useEffect(() => {
     getRentals()
-      .then(res => setDbRentals(res.data?.data || []))
-      .catch(err => console.warn('Could not load rentals:', err))
+      .then((res) => {
+        setDbRentals(res.data?.data || []);
+        setSummary(res.data.summary || {});
+        setActivity(res.data.activity || []);
+      })
+      .catch((err) => console.warn("Could not load rentals:", err))
       .finally(() => setLoading(false));
   }, []);
 
   // Format database rentals
   const allRentals = useMemo(() => {
-    return dbRentals.map(r => {
+    return dbRentals.map((r) => {
       const start = new Date(r.start_date);
       const end = new Date(r.end_date);
-      const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+      const diffDays = Math.max(
+        1,
+        Math.round((end - start) / (1000 * 60 * 60 * 24)),
+      );
       return {
         ...r,
-        duration_days: diffDays
+        duration_days: diffDays,
       };
     });
   }, [dbRentals]);
 
   // Aggregate Metrics (pure real database values, 0 when empty)
   const metrics = useMemo(() => {
-    const total = allRentals.length;
-    const active = allRentals.filter(r => r.status === 'active' || r.status === 'approved').length;
-    const completed = allRentals.filter(r => r.status === 'completed' || r.status === 'returned').length;
-    const pending = allRentals.filter(r => r.status === 'pending').length;
+    const total = summary.total || 0;
+    const active = summary.active || 0;
+    const completed = summary.completed || 0;
+    const pending = summary.pending || 0;
     return { total, active, completed, pending };
-  }, [allRentals]);
+  }, [summary]);
 
   // Filter agreements by status tab & search query
   const filteredRentals = useMemo(() => {
-    return allRentals.filter(r => {
+    return allRentals.filter((r) => {
       const matchesSearch =
         !searchQuery ||
         r.product_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -86,37 +95,64 @@ export default function CustomerDashboard() {
 
       if (!matchesSearch) return false;
 
-      if (activeTab === 'All') return true;
-      if (activeTab === 'Active') return r.status === 'active' || r.status === 'approved';
-      if (activeTab === 'Pending') return r.status === 'pending';
-      if (activeTab === 'Completed') return r.status === 'completed' || r.status === 'returned';
-      if (activeTab === 'Overdue') return r.status === 'overdue';
+      if (activeTab === "All") return true;
+      if (activeTab === "Active")
+        return r.status === "active" || r.status === "approved";
+      if (activeTab === "Pending") return r.status === "pending";
+      if (activeTab === "Completed")
+        return r.status === "completed" || r.status === "returned";
+      if (activeTab === "Overdue") return r.is_overdue;
       return true;
     });
   }, [allRentals, activeTab, searchQuery]);
 
   // 7-day activity data computed from real rentals (clean 0s when no rentals)
   const weeklyActivity = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days.map(day => ({ day, checkouts: 0, returns: 0 }));
-  }, [allRentals]);
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+    }).format(new Date());
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(Date.parse(today) - (6 - index) * 86400000);
+      const key = date.toISOString().slice(0, 10);
+      return {
+        day: date.toLocaleDateString("en-PH", {
+          weekday: "short",
+          timeZone: "UTC",
+        }),
+        checkouts:
+          Number(
+            activity.find((row) => row.date === key && row.kind === "starts")
+              ?.count,
+          ) || 0,
+        returns:
+          Number(
+            activity.find((row) => row.date === key && row.kind === "returns")
+              ?.count,
+          ) || 0,
+      };
+    });
+  }, [activity]);
 
-  const userName = user?.name ? user.name.split(' ')[0] : 'Aaron';
+  const userName = user?.name ? user.name.split(" ")[0] : "Aaron";
   const userInitials = user?.name
-    ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : 'AW';
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "AW";
 
   return (
     <div className="min-h-screen bg-[#f5f0e8] text-gray-900 font-sans flex flex-col">
       {/* ══════════════════════════════════════════════════════════
-          WORKSPACE CONTAINER (SIDEBAR + MAIN CONTENT)
-      ══════════════════════════════════════════════════════════ */}
+           WORKSPACE CONTAINER (SIDEBAR + MAIN CONTENT)
+        ══════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex max-w-[1720px] w-full mx-auto">
-
         {/* ── LEFT SIDEBAR (Pic 2 & 3 layout, No Upgrade To Pro) ── */}
         <aside
           className={`${
-            sidebarCollapsed ? 'w-20' : 'w-64'
+            sidebarCollapsed ? "w-20" : "w-64"
           } hidden lg:flex flex-col bg-white border-r border-gray-200/80 transition-all duration-300 flex-shrink-0 relative select-none`}
         >
           {/* Logo brand */}
@@ -127,9 +163,12 @@ export default function CustomerDashboard() {
                 alt="Rent-A-Way Logo"
                 className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
               />
+
               {!sidebarCollapsed && (
                 <div>
-                  <div className="text-gray-900 font-extrabold text-sm leading-none">Rent-A-Way</div>
+                  <div className="text-gray-900 font-extrabold text-sm leading-none">
+                    Rent-A-Way
+                  </div>
                   <div className="text-amber-600 text-[8px] font-bold tracking-widest uppercase mt-0.5">
                     Find better ways to save
                   </div>
@@ -140,9 +179,11 @@ export default function CustomerDashboard() {
               type="button"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <ChevronLeft className={`w-4 h-4 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+              <ChevronLeft
+                className={`w-4 h-4 transition-transform duration-200 ${sidebarCollapsed ? "rotate-180" : ""}`}
+              />
             </button>
           </div>
 
@@ -152,7 +193,8 @@ export default function CustomerDashboard() {
             <div>
               {!sidebarCollapsed && (
                 <div className="text-[10px] font-bold text-gray-400 tracking-widest uppercase px-3 mb-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Workspace
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>{" "}
+                  Workspace
                 </div>
               )}
               <nav className="space-y-1">
@@ -163,7 +205,6 @@ export default function CustomerDashboard() {
                   <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
                   {!sidebarCollapsed && <span>Dashboard</span>}
                 </Link>
-
 
                 <Link
                   to="/customer/rentals"
@@ -248,14 +289,21 @@ export default function CustomerDashboard() {
 
           {/* User profile footer */}
           <div className="p-3.5 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between">
-            <Link to="/customer/profile" className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition">
+            <Link
+              to="/customer/profile"
+              className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition"
+            >
               <div className="w-8 h-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-2xs">
                 {userInitials}
               </div>
               {!sidebarCollapsed && (
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-gray-800 truncate">{user?.name || 'Aaron Jasper'}</div>
-                  <div className="text-[10px] text-gray-400 truncate capitalize">{user?.role || 'Renter'} · Roxas</div>
+                  <div className="text-xs font-bold text-gray-800 truncate">
+                    {user?.name || "Aaron Jasper"}
+                  </div>
+                  <div className="text-[10px] text-gray-400 truncate capitalize">
+                    {user?.role || "Renter"} · Roxas
+                  </div>
                 </div>
               )}
             </Link>
@@ -264,15 +312,11 @@ export default function CustomerDashboard() {
 
         {/* ── RIGHT MAIN DASHBOARD CONTENT ── */}
         <div className="flex-1 flex flex-col min-w-0">
-
-
-
           {/* Main Dashboard Scroll Area */}
           <main className="p-4 sm:p-7 space-y-7">
-
             {/* ══════════════════════════════════════════════════════
-                HERO OVERVIEW BANNER (Dark Technical Navy matching Pic 1 theme & Pic 2 layout)
-            ══════════════════════════════════════════════════════ */}
+                 HERO OVERVIEW BANNER (Dark Technical Navy matching Pic 1 theme & Pic 2 layout)
+              ══════════════════════════════════════════════════════ */}
             <div className="relative bg-[#0f1729] rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-white overflow-hidden shadow-lg border border-blue-900/40">
               {/* Radial glow background & subtle grid */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -284,14 +328,30 @@ export default function CustomerDashboard() {
                   <div className="text-blue-300/80 text-[10px] font-mono tracking-widest uppercase mb-2 flex items-center gap-2">
                     <span>OVERVIEW</span>
                     <span className="w-6 h-px bg-blue-400/40"></span>
-                    <span>{new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
+                    <span>
+                      {new Date()
+                        .toLocaleDateString("en-US", {
+                          month: "short",
+                          year: "numeric",
+                        })
+                        .toUpperCase()}
+                    </span>
                   </div>
                   <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">
                     Welcome back, {userName}
                   </h1>
                   <p className="text-gray-300 text-xs sm:text-sm max-w-xl leading-relaxed">
-                    You have <span className="text-amber-400 font-bold">{metrics.active} active rental{metrics.active !== 1 ? 's' : ''}</span> and{' '}
-                    <span className="text-blue-300 font-bold">{metrics.pending} booking{metrics.pending !== 1 ? 's' : ''}</span> awaiting supplier confirmation in Roxas.
+                    You have{" "}
+                    <span className="text-amber-400 font-bold">
+                      {metrics.active} active rental
+                      {metrics.active !== 1 ? "s" : ""}
+                    </span>{" "}
+                    and{" "}
+                    <span className="text-blue-300 font-bold">
+                      {metrics.pending} booking
+                      {metrics.pending !== 1 ? "s" : ""}
+                    </span>{" "}
+                    awaiting supplier confirmation in Roxas.
                   </p>
                 </div>
 
@@ -299,7 +359,7 @@ export default function CustomerDashboard() {
                 <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                   <div className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[100px]">
                     <div className="text-2xl sm:text-3xl font-mono font-extrabold text-white leading-none mb-1">
-                      {String(metrics.active).padStart(2, '0')}
+                      {String(metrics.active).padStart(2, "0")}
                     </div>
                     <div className="text-[9px] font-bold text-gray-400 tracking-wider uppercase">
                       Active Rentals
@@ -308,7 +368,7 @@ export default function CustomerDashboard() {
 
                   <div className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[100px]">
                     <div className="text-2xl sm:text-3xl font-mono font-extrabold text-amber-400 leading-none mb-1">
-                      {String(metrics.pending).padStart(2, '0')}
+                      {String(metrics.pending).padStart(2, "0")}
                     </div>
                     <div className="text-[9px] font-bold text-gray-400 tracking-wider uppercase">
                       Returns Due
@@ -329,42 +389,56 @@ export default function CustomerDashboard() {
                 {metrics.active > 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="font-bold text-white uppercase text-[9px] tracking-wider">LIVE</span>
+                    <span className="font-bold text-white uppercase text-[9px] tracking-wider">
+                      LIVE
+                    </span>
                     <span className="text-gray-300">
-                      {metrics.active} rental{metrics.active !== 1 ? 's' : ''} currently active in Roxas
+                      {metrics.active} rental{metrics.active !== 1 ? "s" : ""}{" "}
+                      currently active in Roxas
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                    <span className="font-bold text-gray-400 uppercase text-[9px] tracking-wider">STATUS</span>
-                    <span className="text-gray-300">No active rentals in progress</span>
+                    <span className="font-bold text-gray-400 uppercase text-[9px] tracking-wider">
+                      STATUS
+                    </span>
+                    <span className="text-gray-300">
+                      No active rentals in progress
+                    </span>
                   </div>
                 )}
 
                 {metrics.pending > 0 ? (
                   <div className="flex items-center gap-1.5 text-amber-300">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{metrics.pending} booking request{metrics.pending !== 1 ? 's' : ''} pending confirmation</span>
+                    <span>
+                      {metrics.pending} booking request
+                      {metrics.pending !== 1 ? "s" : ""} pending confirmation
+                    </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 text-gray-300">
                     <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Explore available rentals across 20 Roxas Barangays</span>
+                    <span>
+                      Explore available rentals across 20 Roxas Barangays
+                    </span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* ══════════════════════════════════════════════════════
-                SECTION 01: KEY METRICS (Exact 4 Cards from Pic 2)
-            ══════════════════════════════════════════════════════ */}
+                 SECTION 01: KEY METRICS (Exact 4 Cards from Pic 2)
+              ══════════════════════════════════════════════════════ */}
             <section className="space-y-3">
               <div className="flex items-baseline gap-2.5">
                 <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-xs">
                   01
                 </span>
-                <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Key Metrics</h2>
+                <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+                  Key Metrics
+                </h2>
                 <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase ml-2 hidden sm:inline">
                   Your rolling 30-day performance snapshot
                 </span>
@@ -385,7 +459,9 @@ export default function CustomerDashboard() {
                   <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
                     Total Rentals
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">All bookings recorded</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    All bookings recorded
+                  </div>
                 </div>
 
                 {/* Metric Card 2: ACTIVE RENTALS */}
@@ -402,7 +478,9 @@ export default function CustomerDashboard() {
                   <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
                     Active Rentals
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">Currently in your possession</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    Currently in your possession
+                  </div>
                 </div>
 
                 {/* Metric Card 3: COMPLETED */}
@@ -419,7 +497,9 @@ export default function CustomerDashboard() {
                   <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
                     Completed
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">Successfully returned items</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    Successfully returned items
+                  </div>
                 </div>
 
                 {/* Metric Card 4: PENDING APPROVAL */}
@@ -441,14 +521,16 @@ export default function CustomerDashboard() {
                   <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
                     Pending Approval
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">Awaiting supplier response</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    Awaiting supplier response
+                  </div>
                 </div>
               </div>
             </section>
 
             {/* ══════════════════════════════════════════════════════
-                SECTION 02: ACTIVE & APPROVED RENTALS (Pic 3 Layout)
-            ══════════════════════════════════════════════════════ */}
+                 SECTION 02: ACTIVE & APPROVED RENTALS (Pic 3 Layout)
+              ══════════════════════════════════════════════════════ */}
             <section className="bg-white border border-gray-200/90 rounded-2xl p-5 sm:p-7 shadow-xs">
               {/* Header row with numbered badge, title, subtitle & tabs */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100">
@@ -468,20 +550,22 @@ export default function CustomerDashboard() {
 
                 {/* Filter Tabs matching Pic 3 */}
                 <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl self-start sm:self-auto overflow-x-auto max-w-full">
-                  {['All', 'Active', 'Pending', 'Completed', 'Overdue'].map(tab => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                        activeTab === tab
-                          ? 'bg-white text-gray-900 shadow-xs'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
+                  {["All", "Active", "Pending", "Completed", "Overdue"].map(
+                    (tab) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                          activeTab === tab
+                            ? "bg-white text-gray-900 shadow-xs"
+                            : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
 
@@ -506,10 +590,15 @@ export default function CustomerDashboard() {
                         </td>
                       </tr>
                     ) : filteredRentals.length > 0 ? (
-                      filteredRentals.map(rental => {
-                        const status = (rental.status || 'active').toLowerCase();
+                      filteredRentals.map((rental) => {
+                        const status = rental.is_overdue
+                          ? "overdue"
+                          : (rental.status || "pending").toLowerCase();
                         return (
-                          <tr key={rental.id} className="hover:bg-gray-50/70 transition group">
+                          <tr
+                            key={rental.id}
+                            className="hover:bg-gray-50/70 transition group"
+                          >
                             {/* RENTAL PRODUCT */}
                             <td className="py-3.5 px-3">
                               <div className="flex items-center gap-3">
@@ -518,10 +607,11 @@ export default function CustomerDashboard() {
                                 </div>
                                 <div className="min-w-0">
                                   <div className="font-bold text-gray-900 text-sm truncate group-hover:text-[#1e3a8a] transition">
-                                    {rental.product_title || 'Equipment Item'}
+                                    {rental.product_title || "Equipment Item"}
                                   </div>
                                   <div className="text-[11px] font-mono text-gray-400">
-                                    {rental.id?.slice(0, 7).toUpperCase()} · {rental.product_category || 'General'}
+                                    {rental.id?.slice(0, 7).toUpperCase()} ·{" "}
+                                    {rental.product_category || "General"}
                                   </div>
                                 </div>
                               </div>
@@ -532,15 +622,21 @@ export default function CustomerDashboard() {
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
                                   {rental.supplier_name
-                                    ? rental.supplier_name.split(' ').map(n => n[0]).join('').slice(0, 2)
-                                    : 'SU'}
+                                    ? rental.supplier_name
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .slice(0, 2)
+                                    : "SU"}
                                 </div>
                                 <div>
                                   <div className="font-semibold text-gray-800 truncate max-w-[130px]">
-                                    {rental.supplier_name || 'Verified Supplier'}
+                                    {rental.supplier_name ||
+                                      "Verified Supplier"}
                                   </div>
                                   <div className="text-[10px] text-gray-400 truncate">
-                                    Brgy. {rental.supplier_barangay || 'San Aquilino'}
+                                    Brgy.{" "}
+                                    {rental.supplier_barangay || "San Aquilino"}
                                   </div>
                                 </div>
                               </div>
@@ -549,8 +645,15 @@ export default function CustomerDashboard() {
                             {/* PERIOD */}
                             <td className="py-3.5 px-3 whitespace-nowrap text-gray-600 font-medium">
                               <div>
-                                {new Date(rental.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} —{' '}
-                                {new Date(rental.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                {new Date(rental.start_date).toLocaleDateString(
+                                  "en-US",
+                                  { month: "short", day: "numeric" },
+                                )}{" "}
+                                —{" "}
+                                {new Date(rental.end_date).toLocaleDateString(
+                                  "en-US",
+                                  { month: "short", day: "numeric" },
+                                )}
                                 <span className="ml-1.5 text-gray-400 text-[11px]">
                                   ({rental.duration_days || 1}d)
                                 </span>
@@ -564,27 +667,32 @@ export default function CustomerDashboard() {
 
                             {/* STATUS BADGE */}
                             <td className="py-3.5 px-3 whitespace-nowrap">
-                              {status === 'active' && (
+                              {status === "active" && (
                                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700">
                                   Active
                                 </span>
                               )}
-                              {status === 'pending' && (
+                              {status === "pending" && (
                                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
                                   Pending
                                 </span>
                               )}
-                              {status === 'completed' && (
+                              {status === "completed" && (
                                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700">
                                   Completed
                                 </span>
                               )}
-                              {status === 'overdue' && (
+                              {status === "overdue" && (
                                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#0f1729] text-white">
                                   Overdue
                                 </span>
                               )}
-                              {!['active', 'pending', 'completed', 'overdue'].includes(status) && (
+                              {![
+                                "active",
+                                "pending",
+                                "completed",
+                                "overdue",
+                              ].includes(status) && (
                                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 uppercase">
                                   {status}
                                 </span>
@@ -606,7 +714,10 @@ export default function CustomerDashboard() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="py-10 text-center text-gray-400">
+                        <td
+                          colSpan={6}
+                          className="py-10 text-center text-gray-400"
+                        >
                           No agreements matching the selected filter.
                         </td>
                       </tr>
@@ -617,8 +728,8 @@ export default function CustomerDashboard() {
             </section>
 
             {/* ══════════════════════════════════════════════════════
-                SECTION 03: RENTAL ACTIVITY (Pic 3 Layout)
-            ══════════════════════════════════════════════════════ */}
+                 SECTION 03: RENTAL ACTIVITY (Pic 3 Layout)
+              ══════════════════════════════════════════════════════ */}
             <section className="bg-white border border-gray-200/90 rounded-2xl p-5 sm:p-7 shadow-xs space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -626,10 +737,13 @@ export default function CustomerDashboard() {
                     <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-xs">
                       03
                     </span>
-                    <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Rental Activity</h2>
+                    <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+                      Rental Activity
+                    </h2>
                   </div>
                   <div className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase">
-                    Checkouts vs. returns across the last 7 days · {metrics.total} total bookings
+                    Scheduled starts and returns across the last 7 days ·{" "}
+                    {metrics.total} total bookings
                   </div>
                 </div>
 
@@ -637,11 +751,15 @@ export default function CustomerDashboard() {
                 <div className="flex items-center gap-4 text-xs font-bold">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]"></span>
-                    <span className="text-gray-600 font-mono text-[11px] tracking-wider uppercase">Checkouts</span>
+                    <span className="text-gray-600 font-mono text-[11px] tracking-wider uppercase">
+                      Scheduled starts
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                    <span className="text-gray-600 font-mono text-[11px] tracking-wider uppercase">Returns</span>
+                    <span className="text-gray-600 font-mono text-[11px] tracking-wider uppercase">
+                      Scheduled returns
+                    </span>
                   </div>
                 </div>
               </div>
@@ -649,37 +767,48 @@ export default function CustomerDashboard() {
               {/* Activity Chart Bars */}
               {metrics.total > 0 ? (
                 <div className="grid grid-cols-7 gap-2 sm:gap-6 pt-6 pb-2 border-t border-gray-100">
-                  {weeklyActivity.map(item => (
-                    <div key={item.day} className="flex flex-col items-center gap-2 group">
+                  {weeklyActivity.map((item) => (
+                    <div
+                      key={item.day}
+                      className="flex flex-col items-center gap-2 group"
+                    >
                       <div className="h-36 w-full flex items-end justify-center gap-1.5 px-1 pb-1">
                         {/* Checkouts Bar (Navy) */}
                         <div
-                          style={{ height: `${Math.max(4, item.checkouts * 2.5)}px` }}
+                          style={{
+                            height: `${Math.max(4, item.checkouts * 2.5)}px`,
+                          }}
                           className="w-full max-w-[14px] bg-[#1e3a8a] rounded-t-sm group-hover:bg-[#1d4ed8] transition"
                           title={`Checkouts: ${item.checkouts}`}
                         ></div>
                         {/* Returns Bar (Amber) */}
                         <div
-                          style={{ height: `${Math.max(4, item.returns * 2.5)}px` }}
+                          style={{
+                            height: `${Math.max(4, item.returns * 2.5)}px`,
+                          }}
                           className="w-full max-w-[14px] bg-amber-400 rounded-t-sm group-hover:bg-amber-300 transition"
                           title={`Returns: ${item.returns}`}
                         ></div>
                       </div>
-                      <span className="text-[11px] font-mono font-bold text-gray-500 uppercase">{item.day}</span>
+                      <span className="text-[11px] font-mono font-bold text-gray-500 uppercase">
+                        {item.day}
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="pt-8 pb-6 border-t border-gray-100 text-center flex flex-col items-center justify-center">
                   <Calendar className="w-8 h-8 text-gray-300 mb-2" />
-                  <div className="text-xs font-bold text-gray-700">No rental activity this week</div>
+                  <div className="text-xs font-bold text-gray-700">
+                    No rental activity this week
+                  </div>
                   <p className="text-[11px] text-gray-400 max-w-xs mt-0.5">
-                    Your scheduled item pick-ups and return dates will automatically graph here.
+                    Your scheduled item pick-ups and return dates will
+                    automatically graph here.
                   </p>
                 </div>
               )}
             </section>
-
           </main>
         </div>
       </div>

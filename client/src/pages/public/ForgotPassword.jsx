@@ -1,83 +1,58 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { forgotPassword } from '../../api/auth';
-import toast from 'react-hot-toast';
-
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { forgotPassword } from "../../api/auth";
 export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [resetToken, setResetToken] = useState(null);
-
-  const handleSubmit = async (e) => {
+  const [email, setEmail] = useState(""),
+    [busy, setBusy] = useState(false),
+    [done, setDone] = useState(false),
+    [error, setError] = useState("");
+  async function submit(e) {
     e.preventDefault();
-    if (!email.trim()) return toast.error('Please enter your email');
-    setLoading(true);
+    setBusy(true);
+    setError("");
     try {
-      const res = await forgotPassword({ email });
-      setResetToken(res.data?.resetToken);
-      toast.success('Reset instructions generated!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Email not found');
+      await forgotPassword({ email });
+      setDone(true);
+    } catch (e) {
+      setError(e.response?.data?.message || "Unable to send instructions");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
-
+  }
   return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <div className="card w-full max-w-md">
-        {!resetToken ? (
-          <>
-            <div className="text-center mb-6">
-              <div className="text-4xl mb-3">🔑</div>
-              <h2 className="text-2xl font-bold text-navy-700">Reset Password</h2>
-              <p className="text-sm text-gray-500 mt-2">Enter your email and we'll generate a reset token for you.</p>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  className="input"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary w-full disabled:opacity-60"
-              >
-                {loading ? 'Sending...' : 'Send Reset Instructions'}
-              </button>
-            </form>
-            <Link to="/login" className="block text-sm text-navy-600 mt-6 hover:underline text-center">
-              ← Back to Login
-            </Link>
-          </>
-        ) : (
-          /* Success State */
-          <div className="text-center">
-            <div className="text-4xl mb-4">✅</div>
-            <h2 className="text-xl font-bold text-navy-700 mb-2">Reset Token Generated</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              In production, this would be emailed to you. For now, here is your reset token:
+    <div className="max-w-md mx-auto my-12 card p-6">
+      <h1 className="text-2xl font-bold mb-4">Reset your password</h1>
+      {done ? (
+        <p role="status">
+          If an account exists for that email address, you will receive a
+          password reset link.
+        </p>
+      ) : (
+        <form className="space-y-4" onSubmit={submit}>
+          {error && (
+            <p role="alert" className="text-red-700">
+              {error}
             </p>
-            <div className="bg-navy-50 border border-navy-200 rounded-xl p-4 mb-5">
-              <p className="text-xs text-gray-400 mb-1">Reset Token</p>
-              <p className="font-mono text-sm text-navy-700 break-all font-bold">{resetToken}</p>
-            </div>
-            <p className="text-xs text-gray-400 mb-6">
-              Contact your administrator with this token to complete the password reset.
-            </p>
-            <Link to="/login" className="btn-primary inline-block px-8">
-              Back to Login
-            </Link>
-          </div>
-        )}
-      </div>
+          )}
+          <label className="block">
+            Email address
+            <input
+              type="email"
+              autoComplete="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <button className="btn-primary w-full" disabled={busy}>
+            {busy ? "Sending…" : "Send reset link"}
+          </button>
+        </form>
+      )}
+      <Link className="text-blue-700 block mt-6" to="/login">
+        ← Back to sign in
+      </Link>
     </div>
   );
 }

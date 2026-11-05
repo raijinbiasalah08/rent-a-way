@@ -1,5 +1,8 @@
-import API from './axios';
+import API from "./axios";
 
-export const getNotifications = () => API.get('/notifications');
-export const markNotificationRead = (id) => API.put('/notifications/' + id + '/read');
-export const markAllNotificationsRead = () => API.put('/notifications/read-all');
+export const getNotifications = (params) =>
+  API.get("/notifications", { params });
+export const markNotificationRead = (id) =>
+  API.put("/notifications/" + id + "/read");
+export const markAllNotificationsRead = () =>
+  API.put("/notifications/read-all");

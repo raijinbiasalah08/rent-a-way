@@ -1,7 +1,7 @@
 /**
  * Haversine formula to calculate the great-circle distance between two points
  * on the Earth given their latitudes and longitudes in decimal degrees.
- * 
+ *
  * @param {number} lat1 Latitude of point 1
  * @param {number} lon1 Longitude of point 1
  * @param {number} lat2 Latitude of point 2
@@ -14,7 +14,8 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   const numLon1 = Number(lon1);
   const numLat2 = Number(lat2);
   const numLon2 = Number(lon2);
-  if (isNaN(numLat1) || isNaN(numLon1) || isNaN(numLat2) || isNaN(numLon2)) return null;
+  if (isNaN(numLat1) || isNaN(numLon1) || isNaN(numLat2) || isNaN(numLon2))
+    return null;
 
   const R = 6371; // Earth's radius in km
   const dLat = (numLat2 - numLat1) * (Math.PI / 180);
@@ -31,7 +32,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
 
 /**
  * Format distance in kilometers into a human-friendly string (e.g. "450 m away" or "2.4 km away").
- * 
+ *
  * @param {number|null} distanceKm Distance in kilometers
  * @returns {string|null}
  */
@@ -46,7 +47,7 @@ export function formatDistance(distanceKm) {
 
 /**
  * Convenience helper to compute and format distance from a customer location tuple [lat, lng].
- * 
+ *
  * @param {[number, number]|null} customerCoords [lat, lng] of customer
  * @param {number|null} targetLat Latitude of item
  * @param {number|null} targetLng Longitude of item
@@ -54,6 +55,11 @@ export function formatDistance(distanceKm) {
  */
 export function getDistanceText(customerCoords, targetLat, targetLng) {
   if (!customerCoords || !customerCoords[0] || !customerCoords[1]) return null;
-  const dist = calculateDistance(customerCoords[0], customerCoords[1], targetLat, targetLng);
+  const dist = calculateDistance(
+    customerCoords[0],
+    customerCoords[1],
+    targetLat,
+    targetLng,
+  );
   return formatDistance(dist);
 }

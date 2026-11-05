@@ -1,35 +1,52 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { MapPin, LocateFixed, Search, CheckCircle2, AlertCircle, Loader2, Compass } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import {
+  MapPin,
+  LocateFixed,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Compass,
+} from "lucide-react";
 import {
   ROXAS_CENTER,
   ROXAS_BOUNDS,
   ROXAS_BARANGAYS,
   isWithinRoxas,
   getBarangayCoordinates,
-  formatRoxasAddress
-} from '../utils/roxasLocation';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
+  formatRoxasAddress,
+} from "../utils/roxasLocation";
+import api from "../api/axios";
+import toast from "react-hot-toast";
 
 // Fix Leaflet's default icon path in Vite/React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 // Custom pinpoint marker icon
 const listerPinIcon = L.icon({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [28, 44],
   iconAnchor: [14, 44],
-  popupAnchor: [1, -38]
+  popupAnchor: [1, -38],
 });
 
 // Helper component to handle map clicks
@@ -54,31 +71,36 @@ function MapCenterController({ center }) {
 }
 
 export default function LocationPicker({
-  location = '',
-  barangay = '',
-  street = '',
-  landmark = '',
+  location = "",
+  barangay = "",
+  street = "",
+  landmark = "",
   latitude = null,
   longitude = null,
   onChange,
   required = false,
-  error = ''
+  error = "",
 }) {
   // Validate incoming coords or default to Roxas Town Center (Poblacion)
-  const hasValidInputCoords = latitude != null && longitude != null && isWithinRoxas(latitude, longitude);
+  const hasValidInputCoords =
+    latitude != null && longitude != null && isWithinRoxas(latitude, longitude);
 
   const initialLat = hasValidInputCoords ? Number(latitude) : ROXAS_CENTER[0];
   const initialLng = hasValidInputCoords ? Number(longitude) : ROXAS_CENTER[1];
 
   // Default to the first available barangay (Bagumbayan) if none provided
-  const initialBarangay = barangay || (location && location.includes('San Aquilino') ? 'San Aquilino' : ROXAS_BARANGAYS[0].name);
+  const initialBarangay =
+    barangay ||
+    (location && location.includes("San Aquilino")
+      ? "San Aquilino"
+      : ROXAS_BARANGAYS[0].name);
 
   const [selectedBarangay, setSelectedBarangay] = useState(initialBarangay);
-  const [streetInput, setStreetInput] = useState(street || '');
-  const [landmarkInput, setLandmarkInput] = useState(landmark || '');
+  const [streetInput, setStreetInput] = useState(street || "");
+  const [landmarkInput, setLandmarkInput] = useState(landmark || "");
   const [coords, setCoords] = useState([initialLat, initialLng]);
   const [hasCustomCoords, setHasCustomCoords] = useState(hasValidInputCoords);
-  const [boundaryError, setBoundaryError] = useState('');
+  const [boundaryError, setBoundaryError] = useState("");
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
 
@@ -106,13 +128,13 @@ export default function LocationPicker({
         }
       },
     }),
-    [selectedBarangay, streetInput, landmarkInput]
+    [selectedBarangay, streetInput, landmarkInput],
   );
 
   // Validate and update coordinates strictly within Roxas
   const handleUpdatePosition = (lat, lng) => {
     if (!isWithinRoxas(lat, lng)) {
-      const err = 'Only locations within Roxas, Oriental Mindoro are allowed.';
+      const err = "Only locations within Roxas, Oriental Mindoro are allowed.";
       setBoundaryError(err);
       toast.error(err);
       // Snap marker back to current valid coords
@@ -121,36 +143,60 @@ export default function LocationPicker({
       return;
     }
 
-    setBoundaryError('');
+    setBoundaryError("");
     const roundedLat = parseFloat(lat.toFixed(6));
     const roundedLng = parseFloat(lng.toFixed(6));
     setCoords([roundedLat, roundedLng]);
     setHasCustomCoords(true);
 
-    notifyChange(selectedBarangay, streetInput, landmarkInput, roundedLat, roundedLng);
+    notifyChange(
+      selectedBarangay,
+      streetInput,
+      landmarkInput,
+      roundedLat,
+      roundedLng,
+    );
   };
 
   // When Barangay selection changes
   const handleBarangayChange = (newBarangay) => {
     setSelectedBarangay(newBarangay);
-    setBoundaryError('');
+    setBoundaryError("");
 
     // Center map on the selected Barangay
     const newCoords = getBarangayCoordinates(newBarangay);
     setCoords(newCoords);
     setHasCustomCoords(true);
 
-    notifyChange(newBarangay, streetInput, landmarkInput, newCoords[0], newCoords[1]);
+    notifyChange(
+      newBarangay,
+      streetInput,
+      landmarkInput,
+      newCoords[0],
+      newCoords[1],
+    );
   };
 
   const handleStreetChange = (newStreet) => {
     setStreetInput(newStreet);
-    notifyChange(selectedBarangay, newStreet, landmarkInput, coords[0], coords[1]);
+    notifyChange(
+      selectedBarangay,
+      newStreet,
+      landmarkInput,
+      coords[0],
+      coords[1],
+    );
   };
 
   const handleLandmarkChange = (newLandmark) => {
     setLandmarkInput(newLandmark);
-    notifyChange(selectedBarangay, streetInput, newLandmark, coords[0], coords[1]);
+    notifyChange(
+      selectedBarangay,
+      streetInput,
+      newLandmark,
+      coords[0],
+      coords[1],
+    );
   };
 
   const notifyChange = (b, s, l, lat, lng) => {
@@ -161,14 +207,14 @@ export default function LocationPicker({
       landmark: l,
       location: fullAddress,
       latitude: lat,
-      longitude: lng
+      longitude: lng,
     });
   };
 
   // Device GPS Location Handler (Restricted to Roxas)
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      return toast.error('Geolocation is not supported by your browser');
+      return toast.error("Geolocation is not supported by your browser");
     }
 
     setLocating(true);
@@ -178,28 +224,37 @@ export default function LocationPicker({
         setLocating(false);
 
         if (!isWithinRoxas(gpsLat, gpsLng)) {
-          const err = 'Only locations within Roxas, Oriental Mindoro are allowed.';
+          const err =
+            "Only locations within Roxas, Oriental Mindoro are allowed.";
           setBoundaryError(err);
           toast.error(
-            'Your current device GPS is outside Roxas, Oriental Mindoro. Please pick a Barangay and Purok on the map.'
+            "Your current device GPS is outside Roxas, Oriental Mindoro. Please pick a Barangay and Purok on the map.",
           );
           return;
         }
 
-        setBoundaryError('');
+        setBoundaryError("");
         const roundedLat = parseFloat(gpsLat.toFixed(6));
         const roundedLng = parseFloat(gpsLng.toFixed(6));
         setCoords([roundedLat, roundedLng]);
         setHasCustomCoords(true);
-        toast.success('Roxas GPS coordinates captured!');
-        notifyChange(selectedBarangay, streetInput, landmarkInput, roundedLat, roundedLng);
+        toast.success("Roxas GPS coordinates captured!");
+        notifyChange(
+          selectedBarangay,
+          streetInput,
+          landmarkInput,
+          roundedLat,
+          roundedLng,
+        );
       },
       (err) => {
         setLocating(false);
-        console.warn('GPS location error:', err);
-        toast.error('Unable to get GPS position. Please choose your Barangay from the dropdown.');
+        console.warn("GPS location error:", err);
+        toast.error(
+          "Unable to get GPS position. Please choose your Barangay from the dropdown.",
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -214,7 +269,9 @@ export default function LocationPicker({
             {required && <span className="text-red-500">*</span>}
           </label>
           <p className="text-xs text-gray-500">
-            Restricted to <strong className="text-gray-700">Roxas, Oriental Mindoro</strong> only
+            Restricted to{" "}
+            <strong className="text-gray-700">Roxas, Oriental Mindoro</strong>{" "}
+            only
           </p>
         </div>
         <span className="text-[11px] bg-blue-50 text-[#1e3a8a] border border-blue-100 font-semibold px-2 py-0.5 rounded-full">
@@ -224,7 +281,6 @@ export default function LocationPicker({
 
       {/* ── BARANGAY-BASED ADDRESS SYSTEM ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-        
         {/* 1. Barangay Selector */}
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -246,7 +302,8 @@ export default function LocationPicker({
         {/* 2. Street / Purok / Sitio */}
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Street / Purok / Sitio <span className="text-gray-400 font-normal">(optional)</span>
+            Street / Purok / Sitio{" "}
+            <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
             type="text"
@@ -260,7 +317,8 @@ export default function LocationPicker({
         {/* 3. Landmark */}
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Landmark <span className="text-gray-400 font-normal">(optional)</span>
+            Landmark{" "}
+            <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
             type="text"
@@ -270,7 +328,6 @@ export default function LocationPicker({
             className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/10 transition shadow-2xs"
           />
         </div>
-
       </div>
 
       {/* Generated Address String Preview */}
@@ -278,7 +335,8 @@ export default function LocationPicker({
         <div className="flex items-center gap-2 truncate">
           <Compass className="w-4 h-4 text-blue-600 flex-shrink-0" />
           <span className="truncate">
-            <strong>Address:</strong> {formatRoxasAddress(selectedBarangay, streetInput, landmarkInput)}
+            <strong>Address:</strong>{" "}
+            {formatRoxasAddress(selectedBarangay, streetInput, landmarkInput)}
           </span>
         </div>
 
@@ -289,8 +347,12 @@ export default function LocationPicker({
           title="Verify your current location with device GPS"
           className="flex items-center gap-1 text-[11px] font-semibold text-[#1e3a8a] hover:bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 transition whitespace-nowrap cursor-pointer flex-shrink-0"
         >
-          {locating ? <Loader2 className="w-3 h-3 animate-spin" /> : <LocateFixed className="w-3 h-3" />}
-          <span>{locating ? 'Checking…' : 'GPS Check'}</span>
+          {locating ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <LocateFixed className="w-3 h-3" />
+          )}
+          <span>{locating ? "Checking…" : "GPS Check"}</span>
         </button>
       </div>
 
@@ -312,13 +374,14 @@ export default function LocationPicker({
           maxBoundsViscosity={1.0}
           scrollWheelZoom={false}
           className="h-full w-full"
-          style={{ height: '100%', width: '100%', zIndex: 1 }}
+          style={{ height: "100%", width: "100%", zIndex: 1 }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
           />
+
           <MapCenterController center={coords} />
           <MapClickSetter onClick={handleUpdatePosition} />
           <Marker
@@ -330,11 +393,19 @@ export default function LocationPicker({
           >
             <Popup>
               <div className="p-1 text-xs font-sans">
-                <p className="font-bold text-gray-900 mb-0.5">Brgy. {selectedBarangay}</p>
-                <p className="text-gray-600 leading-tight mb-1 text-[11px]">
-                  {formatRoxasAddress(selectedBarangay, streetInput, landmarkInput)}
+                <p className="font-bold text-gray-900 mb-0.5">
+                  Brgy. {selectedBarangay}
                 </p>
-                <p className="text-[10px] text-gray-400">Drag pin to set exact doorstep inside Roxas</p>
+                <p className="text-gray-600 leading-tight mb-1 text-[11px]">
+                  {formatRoxasAddress(
+                    selectedBarangay,
+                    streetInput,
+                    landmarkInput,
+                  )}
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  Drag pin to set exact doorstep inside Roxas
+                </p>
               </div>
             </Popup>
           </Marker>
@@ -344,7 +415,10 @@ export default function LocationPicker({
         <div className="absolute bottom-2 left-2 z-[400] bg-white/90 backdrop-blur-xs border border-gray-200 px-2.5 py-1 rounded-lg text-[11px] text-gray-700 shadow-xs flex items-center gap-1.5 pointer-events-none">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
           <span>
-            Roxas Pin: <strong className="font-mono">{coords[0].toFixed(5)}, {coords[1].toFixed(5)}</strong>
+            Roxas Pin:{" "}
+            <strong className="font-mono">
+              {coords[0].toFixed(5)}, {coords[1].toFixed(5)}
+            </strong>
           </span>
         </div>
       </div>

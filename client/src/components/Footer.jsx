@@ -1,30 +1,25 @@
-import { Link } from 'react-router-dom';
-import { Shield, Facebook, Instagram, Youtube } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Shield, Facebook, Instagram, Youtube } from "lucide-react";
 
 const RENTALS = [
-  { label: 'Cameras & Drones', to: '/browse?category=Cameras' },
-  { label: 'Camping Equipment', to: '/browse?category=Camping' },
-  { label: 'Sports Equipment', to: '/browse?category=Sports' },
-  { label: 'Event Equipment', to: '/browse?category=Event' },
-  { label: 'Household Equipment', to: '/browse?category=Household' },
-  { label: 'School Project Equipment', to: '/browse?category=School' },
+  { label: "Cameras & Drones", to: "/browse?category=Cameras" },
+  { label: "Camping Equipment", to: "/browse?category=Camping" },
+  { label: "Sports Equipment", to: "/browse?category=Sports" },
+  { label: "Event Equipment", to: "/browse?category=Event" },
+  { label: "Household Equipment", to: "/browse?category=Household" },
+  { label: "School Project Equipment", to: "/browse?category=School" },
 ];
 
 const COMPANY = [
-  { label: 'How It Works', to: '/how-it-works' },
-  { label: 'For Suppliers', to: '/for-suppliers' },
-  { label: 'My Rentals', to: '/customer/rentals' },
-  { label: 'Community', to: '/community' },
-  { label: 'Browse Equipment', to: '/browse' },
-  { label: 'Admin Console', to: '/admin/dashboard' },
+  { label: "How It Works", to: "/how-it-works" },
+  { label: "For Suppliers", to: "/for-suppliers" },
+  { label: "My Rentals", to: "/customer/rentals" },
+  { label: "Community", to: "/community" },
+  { label: "Browse Equipment", to: "/browse" },
+  { label: "Admin Console", to: "/admin/dashboard" },
 ];
 
-const SUPPORT = [
-  { label: 'Help & FAQs', to: '#' },
-  { label: 'Rental Terms', to: '#' },
-  { label: 'Trust & Safety', to: '#' },
-  { label: 'Contact Us', to: '#' },
-];
+const SUPPORT = [{ label: "Help & FAQs", to: "/help" }];
 
 // TikTok icon (not in lucide)
 function TikTokIcon() {
@@ -40,7 +35,6 @@ export default function Footer() {
     <footer className="bg-[#0f1729] text-gray-400">
       {/* Main footer grid */}
       <div className="max-w-6xl mx-auto px-4 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-
         {/* Brand column */}
         <div>
           {/* Logo */}
@@ -50,26 +44,33 @@ export default function Footer() {
               alt="Rent-A-Way Logo"
               className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
             />
+
             <div className="leading-none">
-              <div className="font-bold text-white text-sm tracking-tight">Rent-A-Way</div>
-              <div className="text-[9px] text-amber-400 font-semibold tracking-widest uppercase">Find Better Ways to Save</div>
+              <div className="font-bold text-white text-sm tracking-tight">
+                Rent-A-Way
+              </div>
+              <div className="text-[9px] text-amber-400 font-semibold tracking-widest uppercase">
+                Find Better Ways to Save
+              </div>
             </div>
           </Link>
 
           <p className="text-sm text-gray-400 leading-relaxed mb-6">
-            The <span className="text-[#4a7fd4]">rental marketplace</span> that connects{' '}
-            <span className="text-[#4a7fd4]">people</span> who need things with trusted local{' '}
-            <span className="text-[#4a7fd4]">suppliers</span> — cameras, camping gear, sports, event, household and school{' '}
+            The <span className="text-[#4a7fd4]">rental marketplace</span> that
+            connects <span className="text-[#4a7fd4]">people</span> who need
+            things with trusted local{" "}
+            <span className="text-[#4a7fd4]">suppliers</span> — cameras, camping
+            gear, sports, event, household and school{" "}
             <span className="text-[#4a7fd4]">equipment</span>.
           </p>
 
           {/* Socials */}
           <div className="flex items-center gap-3">
             {[
-              { icon: Facebook, href: '#' },
-              { icon: Instagram, href: '#' },
-              { icon: TikTokIcon, href: '#' },
-              { icon: Youtube, href: '#' },
+              { icon: Facebook, href: "#" },
+              { icon: Instagram, href: "#" },
+              { icon: TikTokIcon, href: "#" },
+              { icon: Youtube, href: "#" },
             ].map(({ icon: Icon, href }, i) => (
               <a
                 key={i}
@@ -84,11 +85,16 @@ export default function Footer() {
 
         {/* Rentals column */}
         <div>
-          <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-5">Rentals</h4>
+          <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-5">
+            Rentals
+          </h4>
           <ul className="space-y-3">
-            {RENTALS.map(l => (
+            {RENTALS.map((l) => (
               <li key={l.to}>
-                <Link to={l.to} className="text-sm text-gray-400 hover:text-white transition">
+                <Link
+                  to={l.to}
+                  className="text-sm text-gray-400 hover:text-white transition"
+                >
                   {l.label}
                 </Link>
               </li>
@@ -98,11 +104,16 @@ export default function Footer() {
 
         {/* Company column */}
         <div>
-          <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-5">Company</h4>
+          <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-5">
+            Company
+          </h4>
           <ul className="space-y-3">
-            {COMPANY.map(l => (
+            {COMPANY.map((l) => (
               <li key={l.to}>
-                <Link to={l.to} className={`text-sm hover:text-white transition ${['For Suppliers', 'Community'].includes(l.label) ? 'text-[#4a7fd4]' : 'text-gray-400'}`}>
+                <Link
+                  to={l.to}
+                  className={`text-sm hover:text-white transition ${["For Suppliers", "Community"].includes(l.label) ? "text-[#4a7fd4]" : "text-gray-400"}`}
+                >
                   {l.label}
                 </Link>
               </li>
@@ -112,11 +123,18 @@ export default function Footer() {
 
         {/* Support column */}
         <div>
-          <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-5">Support</h4>
+          <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-5">
+            Support
+          </h4>
           <ul className="space-y-3 mb-6">
-            {SUPPORT.map(l => (
+            {SUPPORT.map((l) => (
               <li key={l.label}>
-                <a href={l.to} className="text-sm text-gray-400 hover:text-white transition">{l.label}</a>
+                <a
+                  href={l.to}
+                  className="text-sm text-gray-400 hover:text-white transition"
+                >
+                  {l.label}
+                </a>
               </li>
             ))}
           </ul>
@@ -127,8 +145,12 @@ export default function Footer() {
               <Shield className="w-3.5 h-3.5 text-green-400" />
             </div>
             <div>
-              <div className="text-white text-sm font-semibold">Verified suppliers only</div>
-              <div className="text-gray-500 text-xs mt-0.5">Every listing is reviewed before it goes live.</div>
+              <div className="text-white text-sm font-semibold">
+                Verified suppliers only
+              </div>
+              <div className="text-gray-500 text-xs mt-0.5">
+                Every listing is reviewed before it goes live.
+              </div>
             </div>
           </div>
         </div>
@@ -137,14 +159,10 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-xs text-gray-600">© 2026 Rent-A-Way. All rights reserved.</span>
-          <div className="flex items-center gap-4 text-xs text-gray-600">
-            <a href="#" className="hover:text-gray-400 transition">Terms of Service</a>
-            <span className="text-gray-700">|</span>
-            <a href="#" className="hover:text-gray-400 transition">Privacy Policy</a>
-            <span className="text-gray-700">|</span>
-            <a href="#" className="hover:text-gray-400 transition">Rental Agreement</a>
-          </div>
+          <span className="text-xs text-gray-600">
+            © 2026 Rent-A-Way. All rights reserved.
+          </span>
+          <div className="flex items-center gap-4 text-xs text-gray-600"></div>
         </div>
       </div>
     </footer>

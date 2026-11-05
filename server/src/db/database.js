@@ -1,265 +1,217 @@
-const { DatabaseSync } = require('node:sqlite');
-const fs = require('fs');
-const path = require('path');
-
-const dbPath = path.resolve(process.env.DATABASE_PATH || path.join(__dirname, '../../rentaway.db'));
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-const db = new DatabaseSync(dbPath);
-
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
-
-// Initialize schema
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'customer',
-  phone TEXT,
-  address TEXT,
-  latitude REAL,
-  longitude REAL,
-  avatar TEXT,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS products (
-  id TEXT PRIMARY KEY,
-  supplier_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  category TEXT NOT NULL,
-  price_per_day REAL NOT NULL,
-  min_days INTEGER NOT NULL DEFAULT 1,
-  max_days INTEGER NOT NULL DEFAULT 30,
-  availability TEXT NOT NULL DEFAULT 'available',
-  specs TEXT,
-  location TEXT,
-  latitude REAL,
-  longitude REAL,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (supplier_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS product_images (
-  id TEXT PRIMARY KEY,
-  product_id TEXT NOT NULL,
-  url TEXT NOT NULL,
-  is_primary INTEGER NOT NULL DEFAULT 0,
-  FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
-CREATE TABLE IF NOT EXISTS rentals (
-  id TEXT PRIMARY KEY,
-  product_id TEXT NOT NULL,
-  customer_id TEXT NOT NULL,
-  start_date TEXT NOT NULL,
-  end_date TEXT NOT NULL,
-  total_price REAL NOT NULL,
-  security_deposit REAL NOT NULL DEFAULT 0,
-  payment_intent_id TEXT,
-  status TEXT NOT NULL DEFAULT 'pending',
-  notes TEXT,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (product_id) REFERENCES products(id),
-  FOREIGN KEY (customer_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS payments (
-  id TEXT PRIMARY KEY,
-  rental_id TEXT NOT NULL,
-  amount REAL NOT NULL,
-  method TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  transaction_ref TEXT,
-  paid_at TEXT,
-  FOREIGN KEY (rental_id) REFERENCES rentals(id)
-);
-
-CREATE TABLE IF NOT EXISTS reviews (
-  id TEXT PRIMARY KEY,
-  product_id TEXT NOT NULL,
-  customer_id TEXT NOT NULL,
-  rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
-  comment TEXT,
-  image_url TEXT,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (product_id) REFERENCES products(id),
-  FOREIGN KEY (customer_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS community_posts (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  content TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'experience',
-  likes INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS complaints (
-  id TEXT PRIMARY KEY,
-  reporter_id TEXT NOT NULL,
-  reported_id TEXT,
-  subject TEXT NOT NULL,
-  details TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'open',
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (reporter_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS favorites (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (product_id) REFERENCES products(id),
-  UNIQUE(user_id, product_id)
-);
-
-CREATE TABLE IF NOT EXISTS notifications (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  message TEXT NOT NULL,
-  link TEXT,
-  is_read INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS messages (
-  id TEXT PRIMARY KEY,
-  sender_id TEXT NOT NULL,
-  receiver_id TEXT NOT NULL,
-  product_id TEXT,
-  content TEXT NOT NULL,
-  is_read INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (sender_id) REFERENCES users(id),
-  FOREIGN KEY (receiver_id) REFERENCES users(id),
-  FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
--- High-Performance Search (FTS5)
-CREATE VIRTUAL TABLE IF NOT EXISTS products_fts USING fts5(
-  id UNINDEXED,
-  title,
-  description,
-  category,
-  content='products',
-  content_rowid='rowid'
-);
-
--- Triggers to keep FTS table in sync
-CREATE TRIGGER IF NOT EXISTS products_ai AFTER INSERT ON products BEGIN
-  INSERT INTO products_fts(rowid, id, title, description, category) VALUES (new.rowid, new.id, new.title, new.description, new.category);
-END;
-CREATE TRIGGER IF NOT EXISTS products_ad AFTER DELETE ON products BEGIN
-  INSERT INTO products_fts(products_fts, rowid, id, title, description, category) VALUES('delete', old.rowid, old.id, old.title, old.description, old.category);
-END;
-CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
-  INSERT INTO products_fts(products_fts, rowid, id, title, description, category) VALUES('delete', old.rowid, old.id, old.title, old.description, old.category);
-  INSERT INTO products_fts(rowid, id, title, description, category) VALUES (new.rowid, new.id, new.title, new.description, new.category);
-END;
-`);
-
-// Auto-migrate schema columns on startup
-function ensureColumn(table, column, definition) {
+const { AsyncLocalStorage } = require("node:async_hooks");
+const context = new AsyncLocalStorage();
+const pg = Boolean(process.env.DATABASE_URL);
+let engine;
+let queue = Promise.resolve();
+const locked = async (callback) => {
+  const previous = queue;
+  let release;
+  queue = new Promise((resolve) => {
+    release = resolve;
+  });
+  await previous;
   try {
-    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
-    if (!columns.includes(column)) {
-      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-    }
-  } catch (err) {
-    // Ignore migration collision
+    return await callback();
+  } finally {
+    release();
   }
+};
+if (pg) {
+  const { Pool, types } = require("pg");
+  types.setTypeParser(20, (value) => Number(value));
+  engine = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 5,
+    connectionTimeoutMillis: 15000,
+  });
+} else {
+  if (process.env.NODE_ENV === "production")
+    throw new Error(
+      "Production requires DATABASE_URL for persistent PostgreSQL storage.",
+    );
+  const path = require("node:path");
+  const dbPath = path.resolve(
+    process.env.DATABASE_PATH || path.join(__dirname, "../../rentaway.db"),
+  );
+  require("node:fs").mkdirSync(path.dirname(dbPath), { recursive: true });
+  engine = new (require("node:sqlite").DatabaseSync)(dbPath);
+  engine.exec(
+    "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;",
+  );
 }
-
-ensureColumn('products', 'location', 'TEXT');
-ensureColumn('products', 'latitude', 'REAL');
-ensureColumn('products', 'longitude', 'REAL');
-ensureColumn('products', 'barangay', 'TEXT');
-ensureColumn('users', 'latitude', 'REAL');
-ensureColumn('users', 'longitude', 'REAL');
-ensureColumn('users', 'barangay', 'TEXT');
-ensureColumn('rentals', 'security_deposit', 'REAL NOT NULL DEFAULT 0');
-ensureColumn('rentals', 'payment_intent_id', 'TEXT');
-ensureColumn('reviews', 'image_url', 'TEXT');
-ensureColumn('payments', 'receipt_image', 'TEXT');
-ensureColumn('payments', 'sender_name', 'TEXT');
-ensureColumn('payments', 'sender_phone', 'TEXT');
-ensureColumn('users', 'gcash_number', 'TEXT');
-ensureColumn('users', 'gcash_name', 'TEXT');
-ensureColumn('users', 'gcash_qr', 'TEXT');
-ensureColumn('users', 'maya_number', 'TEXT');
-ensureColumn('users', 'maya_name', 'TEXT');
-ensureColumn('users', 'maya_qr', 'TEXT');
-
-// ── Enhanced messaging columns ──────────────────────────────────────────────
-ensureColumn('messages', 'type', "TEXT NOT NULL DEFAULT 'text'"); // text | image | equipment_card | location | system
-ensureColumn('messages', 'image_url', 'TEXT');
-ensureColumn('messages', 'reply_to_id', 'TEXT');
-ensureColumn('messages', 'reply_preview', 'TEXT');
-ensureColumn('messages', 'location_lat', 'REAL');
-ensureColumn('messages', 'location_lng', 'REAL');
-ensureColumn('messages', 'location_label', 'TEXT');
-ensureColumn('messages', 'equipment_id', 'TEXT');
-ensureColumn('messages', 'equipment_data', 'TEXT'); // JSON blob
-ensureColumn('messages', 'delivered_at', 'TEXT');
-ensureColumn('messages', 'read_at', 'TEXT');
-
-// Blocked users table
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS blocked_users (
-    id TEXT PRIMARY KEY,
-    blocker_id TEXT NOT NULL,
-    blocked_id TEXT NOT NULL,
-    reason TEXT,
-    created_at TEXT NOT NULL,
-    UNIQUE(blocker_id, blocked_id),
-    FOREIGN KEY (blocker_id) REFERENCES users(id),
-    FOREIGN KEY (blocked_id) REFERENCES users(id)
-  );`);
-} catch(e) { /* already exists */ }
-
-// Roxas, Oriental Mindoro Reference Table & Seed
-db.exec(`
-CREATE TABLE IF NOT EXISTS roxas_barangays (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT UNIQUE NOT NULL,
-  latitude REAL NOT NULL,
-  longitude REAL NOT NULL,
-  description TEXT
-);
-`);
-
-const { ROXAS_BARANGAYS, isWithinRoxas } = require('../utils/roxasLocation');
-
-try {
-  const countBarangays = db.prepare('SELECT count(*) as c FROM roxas_barangays').get().c;
-  if (countBarangays === 0) {
-    const insertStmt = db.prepare('INSERT OR IGNORE INTO roxas_barangays (name, latitude, longitude, description) VALUES (?, ?, ?, ?)');
-    for (const b of ROXAS_BARANGAYS) {
-      insertStmt.run(b.name, b.lat, b.lng, b.description);
+function postgresSQL(sql) {
+  let index = 0;
+  return sql.replace(/'(?:''|[^'])*'|\?/g, (match) =>
+    match === "?" ? `$${++index}` : match,
+  );
+}
+async function execute(sql, params, mode) {
+  const run = async () => {
+    if (pg) {
+      const result = await (context.getStore() || engine).query(
+        postgresSQL(sql),
+        params,
+      );
+      return mode === "get"
+        ? result.rows[0]
+        : mode === "all"
+          ? result.rows
+          : { changes: result.rowCount };
     }
-  }
-} catch (e) {
-  console.warn('Barangays seed warning:', e.message);
+    return engine
+      .prepare(sql)
+      [mode](...params.map((p) => (p === undefined ? null : p)));
+  };
+  return pg || context.getStore() ? run() : locked(run);
 }
-
-// Ensure FTS5 index is clean and synced
-try {
-  db.exec("INSERT INTO products_fts(products_fts) VALUES('rebuild');");
-} catch (e) {
-  // Ignore
-}
-
+const db = {
+  dialect: pg ? "postgres" : "sqlite",
+  prepare(sql) {
+    return Object.fromEntries(
+      ["get", "all", "run"].map((mode) => [
+        mode,
+        (...params) => execute(sql, params, mode),
+      ]),
+    );
+  },
+  async exec(sql) {
+    const run = () =>
+      pg ? (context.getStore() || engine).query(sql) : engine.exec(sql);
+    return pg || context.getStore() ? run() : locked(run);
+  },
+  async transaction(callback) {
+    if (context.getStore()) return callback();
+    const run = async () => {
+      const connection = pg ? await engine.connect() : true;
+      return context.run(connection, async () => {
+        try {
+          await db.exec(pg ? "BEGIN" : "BEGIN IMMEDIATE");
+          const value = await callback();
+          await db.exec("COMMIT");
+          return value;
+        } catch (error) {
+          await db.exec("ROLLBACK");
+          throw error;
+        } finally {
+          if (pg) connection.release();
+        }
+      });
+    };
+    return pg ? run() : locked(run);
+  },
+  async initialize() {
+    const { sql, columns } = require("./schema");
+    await db.transaction(async () => {
+      if (pg) await db.exec("SELECT pg_advisory_xact_lock(7834521)");
+      await db.exec(
+        pg
+          ? sql
+              .replaceAll(
+                "INTEGER PRIMARY KEY AUTOINCREMENT",
+                "SERIAL PRIMARY KEY",
+              )
+              .replaceAll(" REAL", " DOUBLE PRECISION")
+          : sql,
+      );
+      for (const [table, column, type] of columns) {
+        const exists = pg
+          ? await db
+              .prepare(
+                "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?",
+              )
+              .get(table, column)
+          : (await db.prepare(`PRAGMA table_info(${table})`).all()).find(
+              (c) => c.name === column,
+            );
+        if (!exists)
+          await db.exec(
+            `ALTER TABLE ${table} ADD COLUMN ${column} ${pg ? type.replace("REAL", "DOUBLE PRECISION") : type}`,
+          );
+      }
+      await db.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS review_rental_unique ON reviews(rental_id);
+        CREATE INDEX IF NOT EXISTS rental_availability ON rentals(product_id, status, start_date, end_date);
+        CREATE INDEX IF NOT EXISTS messages_participants ON messages(sender_id, receiver_id, created_at);
+        CREATE INDEX IF NOT EXISTS notifications_owner ON notifications(user_id, is_read, created_at);
+        CREATE INDEX IF NOT EXISTS products_supplier ON products(supplier_id, is_active);
+        CREATE INDEX IF NOT EXISTS rentals_customer ON rentals(customer_id, created_at);
+      `);
+      const tables = pg
+        ? await db
+            .prepare(
+              "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = current_schema()",
+            )
+            .all()
+        : await db
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .all();
+      if (tables.some((t) => t.name === "payments"))
+        await db.exec("ALTER TABLE payments RENAME TO legacy_payments_archive");
+      for (const [table, fields] of [
+        [
+          "users",
+          [
+            "gcash_number",
+            "gcash_name",
+            "gcash_qr",
+            "maya_number",
+            "maya_name",
+            "maya_qr",
+          ],
+        ],
+        ["rentals", ["payment_intent_id", "security_deposit"]],
+      ]) {
+        const names = pg
+          ? (
+              await db
+                .prepare(
+                  "SELECT column_name AS name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ?",
+                )
+                .all(table)
+            ).map((c) => c.name)
+          : (await db.prepare(`PRAGMA table_info(${table})`).all()).map(
+              (c) => c.name,
+            );
+        const found = fields.filter((f) => names.includes(f));
+        if (found.length) {
+          await db.exec(
+            `CREATE TABLE IF NOT EXISTS legacy_${table}_financial_archive AS SELECT id, ${found.join(", ")} FROM ${table}`,
+          );
+          for (const field of found)
+            await db.exec(`ALTER TABLE ${table} DROP COLUMN ${field}`);
+        }
+      }
+      await db
+        .prepare(
+          "INSERT INTO schema_migrations (version, applied_at) VALUES (1, ?) ON CONFLICT(version) DO NOTHING",
+        )
+        .run(new Date().toISOString());
+      if (
+        !(await db
+          .prepare("SELECT version FROM schema_migrations WHERE version = 2")
+          .get())
+      ) {
+        await db.exec(`CREATE TABLE IF NOT EXISTS uploaded_assets (url TEXT PRIMARY KEY, public_id TEXT, filename TEXT, created_at TEXT NOT NULL);
+          ALTER TABLE product_images ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
+          CREATE INDEX IF NOT EXISTS products_catalog ON products(is_active, category, barangay);
+          CREATE INDEX IF NOT EXISTS users_role ON users(role, is_active);`);
+        await db
+          .prepare(
+            "INSERT INTO schema_migrations (version, applied_at) VALUES (2, ?)",
+          )
+          .run(new Date().toISOString());
+      }
+      for (const b of require("../utils/roxasLocation").ROXAS_BARANGAYS) {
+        await db
+          .prepare(
+            "INSERT INTO roxas_barangays (name, latitude, longitude, description) VALUES (?, ?, ?, ?) ON CONFLICT(name) DO NOTHING",
+          )
+          .run(b.name, b.lat, b.lng, b.description);
+      }
+    });
+  },
+  async close() {
+    return pg ? engine.end() : engine.close();
+  },
+};
 module.exports = db;
-

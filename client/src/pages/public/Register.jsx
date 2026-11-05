@@ -1,5 +1,13 @@
-import { Link } from 'react-router-dom';
-import { ShoppingBag, Tag, ArrowRight, ArrowLeft, Check, ShieldCheck, MapPin } from 'lucide-react';
+import { Link } from "react-router-dom";
+import {
+  ShoppingBag,
+  Tag,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  ShieldCheck,
+  MapPin,
+} from "lucide-react";
 
 export default function Register() {
   return (
@@ -18,8 +26,11 @@ export default function Register() {
               alt="Rent-A-Way Logo"
               className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
             />
+
             <div>
-              <div className="text-white font-extrabold text-base leading-none">Rent-A-Way</div>
+              <div className="text-white font-extrabold text-base leading-none">
+                Rent-A-Way
+              </div>
               <div className="text-amber-400 text-[9px] font-bold tracking-widest uppercase">
                 Find better ways to save
               </div>
@@ -27,7 +38,8 @@ export default function Register() {
           </Link>
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold mb-6">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Dedicated Registration
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Dedicated
+            Registration
           </div>
 
           <h2 className="text-white text-4xl font-extrabold leading-tight mb-6">
@@ -36,10 +48,10 @@ export default function Register() {
 
           <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
             {[
-              'Dedicated portals for Renters and verified Equipment Suppliers',
-              'Permanent role registration: you only need to choose once',
-              'Fast access to 20 Roxas barangays with precise GPS mapping',
-              'Quick and secure direct account registration'
+              "Dedicated portals for Renters and verified Equipment Suppliers",
+              "Permanent role registration: you only need to choose once",
+              "Fast access to 20 Roxas barangays with precise GPS mapping",
+              "Quick and secure direct account registration",
             ].map((benefit) => (
               <div key={benefit} className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -54,7 +66,9 @@ export default function Register() {
         {/* Location badge */}
         <div className="relative flex items-center gap-2 text-xs text-amber-400/90 bg-[#1a2744]/60 border border-blue-900/40 rounded-xl p-3">
           <MapPin className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <span>Restricted exclusively to Roxas, Oriental Mindoro, Philippines</span>
+          <span>
+            Restricted exclusively to Roxas, Oriental Mindoro, Philippines
+          </span>
         </div>
       </div>
 
@@ -69,8 +83,11 @@ export default function Register() {
             <ArrowLeft className="w-4 h-4" /> Back to site
           </Link>
           <div className="text-xs sm:text-sm text-gray-500">
-            Already have an account?{' '}
-            <Link to="/login" className="text-[#1e3a8a] font-semibold hover:underline">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-[#1e3a8a] font-semibold hover:underline"
+            >
               Sign in
             </Link>
           </div>
@@ -87,7 +104,8 @@ export default function Register() {
                 Choose your registration type
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
-                Users register through separate dedicated pages. Your role is permanently saved so you never need to choose again.
+                Users register through separate dedicated pages. Your role is
+                permanently saved so you never need to choose again.
               </p>
             </div>
 
@@ -117,7 +135,8 @@ export default function Register() {
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pl-[62px]">
-                  Browse, compare, and rent equipment, power tools, cameras, camping gear, and event supplies across Roxas.
+                  Browse, compare, and rent equipment, power tools, cameras,
+                  camping gear, and event supplies across Roxas.
                 </p>
               </Link>
 
@@ -145,16 +164,21 @@ export default function Register() {
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pl-[62px]">
-                  List your tools, vehicles, and equipment with exact Roxas barangay location to earn steady passive rental income.
+                  List your tools, vehicles, and equipment with exact Roxas
+                  barangay location to earn steady passive rental income.
                 </p>
               </Link>
             </div>
 
             <div className="mt-8 text-center text-xs text-gray-500">
-              Need help? Contact support or learn more about{' '}
-              <Link to="/for-suppliers" className="text-[#1e3a8a] font-semibold hover:underline">
+              Need help? Contact support or learn more about{" "}
+              <Link
+                to="/for-suppliers"
+                className="text-[#1e3a8a] font-semibold hover:underline"
+              >
                 how Rent-A-Way works
-              </Link>.
+              </Link>
+              .
             </div>
           </div>
         </div>

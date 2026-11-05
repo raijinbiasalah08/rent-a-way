@@ -27,6 +27,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.log
+server/.local-mail/
+server/backups/
+test-results/
+playwright-report/
 
 # Editor directories and OS files
 .vscode/

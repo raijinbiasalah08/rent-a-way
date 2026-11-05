@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from './AuthContext';
-import { getFavorites, addFavorite, removeFavorite } from '../api/favorites';
-import toast from 'react-hot-toast';
+import { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "./AuthContext";
+import { getFavorites, addFavorite, removeFavorite } from "../api/favorites";
+import toast from "react-hot-toast";
 
 const FavoritesContext = createContext();
 
@@ -11,9 +11,11 @@ export function FavoritesProvider({ children }) {
 
   useEffect(() => {
     if (user) {
-      getFavorites().then(res => {
-        setFavoriteIds(new Set(res.data.data.ids));
-      }).catch(console.error);
+      getFavorites()
+        .then((res) => {
+          setFavoriteIds(new Set(res.data.data.ids));
+        })
+        .catch(console.error);
     } else {
       setFavoriteIds(new Set());
     }
@@ -21,30 +23,30 @@ export function FavoritesProvider({ children }) {
 
   const toggleFavorite = async (productId) => {
     if (!user) {
-      toast.error('Please log in to save items.');
+      toast.error("Please log in to save items.");
       return;
     }
 
     try {
       if (favoriteIds.has(productId)) {
         await removeFavorite(productId);
-        setFavoriteIds(prev => {
+        setFavoriteIds((prev) => {
           const next = new Set(prev);
           next.delete(productId);
           return next;
         });
-        toast.success('Removed from favorites');
+        toast.success("Removed from favorites");
       } else {
         await addFavorite(productId);
-        setFavoriteIds(prev => {
+        setFavoriteIds((prev) => {
           const next = new Set(prev);
           next.add(productId);
           return next;
         });
-        toast.success('Added to favorites');
+        toast.success("Added to favorites");
       }
     } catch (err) {
-      toast.error('Failed to update favorites');
+      toast.error("Failed to update favorites");
     }
   };
 

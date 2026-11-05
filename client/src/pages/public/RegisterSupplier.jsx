@@ -1,38 +1,56 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft,
-  Check, User, Phone, MapPin, Tag, LocateFixed, Loader2, AlertCircle
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import LocationPicker from '../../components/LocationPicker';
-import { isWithinRoxas, ROXAS_BARANGAYS, formatRoxasAddress } from '../../utils/roxasLocation';
-import api from '../../api/axios';
-import toast from 'react-hot-toast';
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  User,
+  Phone,
+  MapPin,
+  Tag,
+  LocateFixed,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import LocationPicker from "../../components/LocationPicker";
+import {
+  isWithinRoxas,
+  ROXAS_BARANGAYS,
+  formatRoxasAddress,
+} from "../../utils/roxasLocation";
+import api from "../../api/axios";
+import toast from "react-hot-toast";
 
 export default function RegisterSupplier() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [barangay, setBarangay] = useState('San Aquilino');
-  const [street, setStreet] = useState('');
-  const [landmark, setLandmark] = useState('');
-  const [location, setLocation] = useState('Brgy. San Aquilino, Roxas, Oriental Mindoro');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [barangay, setBarangay] = useState("San Aquilino");
+  const [street, setStreet] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [location, setLocation] = useState(
+    "Brgy. San Aquilino, Roxas, Oriental Mindoro",
+  );
   const [coords, setCoords] = useState([12.5967, 121.4841]); // San Aquilino center
   const [detectingLocation, setDetectingLocation] = useState(false);
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
-      return toast.error('Geolocation is not supported by your browser');
+      return toast.error("Geolocation is not supported by your browser");
     }
     setDetectingLocation(true);
     navigator.geolocation.getCurrentPosition(
@@ -41,50 +59,60 @@ export default function RegisterSupplier() {
         const lng = parseFloat(pos.coords.longitude.toFixed(6));
         setCoords([lat, lng]);
         setDetectingLocation(false);
-        toast.success('GPS coordinates detected!');
+        toast.success("GPS coordinates detected!");
         try {
-          const res = await api.get('/products/geocode/reverse', {
-            params: { lat, lng }
+          const res = await api.get("/products/geocode/reverse", {
+            params: { lat, lng },
           });
           if (res.data?.data?.display_name) {
             setLocation(res.data.data.display_name);
           }
         } catch (err) {
-          console.warn('Reverse geocoding error:', err);
+          console.warn("Reverse geocoding error:", err);
         }
       },
       (err) => {
         setDetectingLocation(false);
-        console.warn('Geolocation error:', err);
-        toast.error('Unable to retrieve your location. Please check browser permissions.');
+        console.warn("Geolocation error:", err);
+        toast.error(
+          "Unable to retrieve your location. Please check browser permissions.",
+        );
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 8000 },
     );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     if (password !== confirm) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters.");
       return;
     }
     if (!barangay) {
-      setError('Please select an official Barangay in Roxas, Oriental Mindoro.');
+      setError(
+        "Please select an official Barangay in Roxas, Oriental Mindoro.",
+      );
       return;
     }
-    if (!coords || !coords[0] || !coords[1] || !isWithinRoxas(coords[0], coords[1])) {
-      setError('Only locations within Roxas, Oriental Mindoro are allowed.');
+    if (
+      !coords ||
+      !coords[0] ||
+      !coords[1] ||
+      !isWithinRoxas(coords[0], coords[1])
+    ) {
+      setError("Only locations within Roxas, Oriental Mindoro are allowed.");
       return;
     }
 
     setLoading(true);
     try {
-      const fullAddress = location?.trim() || formatRoxasAddress(barangay, street, landmark);
+      const fullAddress =
+        location?.trim() || formatRoxasAddress(barangay, street, landmark);
       await register({
         name: fullName,
         email,
@@ -94,12 +122,15 @@ export default function RegisterSupplier() {
         latitude: coords ? coords[0] : null,
         longitude: coords ? coords[1] : null,
         password,
-        role: 'supplier'
+        role: "supplier",
       });
-      toast.success('Supplier account registered successfully!');
-      navigate('/supplier', { replace: true });
+      toast.success("Supplier account registered successfully!");
+      navigate("/supplier", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not create supplier account. Please try again.');
+      setError(
+        err.response?.data?.message ||
+          "Could not create supplier account. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -121,9 +152,14 @@ export default function RegisterSupplier() {
               alt="Rent-A-Way Logo"
               className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
             />
+
             <div>
-              <div className="text-white font-extrabold text-base leading-none">Rent-A-Way</div>
-              <div className="text-amber-400 text-[9px] font-bold tracking-widest uppercase">Find better ways to save</div>
+              <div className="text-white font-extrabold text-base leading-none">
+                Rent-A-Way
+              </div>
+              <div className="text-amber-400 text-[9px] font-bold tracking-widest uppercase">
+                Find better ways to save
+              </div>
             </div>
           </Link>
 
@@ -137,10 +173,10 @@ export default function RegisterSupplier() {
 
           <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
             {[
-              'List tools, event equipment, party rentals, vehicles & machinery',
-              'Set your own rates per day and specify your exact Roxas Barangay pickup spot',
-              'Direct GPS mapping ensures nearby renters find your listings first',
-              'Manage rental requests, track bookings, and confirm payouts directly'
+              "List tools, event equipment, party rentals, vehicles & machinery",
+              "Set your own rates per day and specify your exact Roxas Barangay pickup spot",
+              "Direct GPS mapping ensures nearby renters find your listings first",
+              "Manage rental requests, track bookings, and confirm handover directly",
             ].map((benefit) => (
               <div key={benefit} className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -177,8 +213,11 @@ export default function RegisterSupplier() {
             <ArrowLeft className="w-4 h-4" /> Back to site
           </Link>
           <div className="text-xs sm:text-sm text-gray-500">
-            Already registered?{' '}
-            <Link to="/login" className="text-[#1e3a8a] font-semibold hover:underline">
+            Already registered?{" "}
+            <Link
+              to="/login"
+              className="text-[#1e3a8a] font-semibold hover:underline"
+            >
               Sign in
             </Link>
           </div>
@@ -195,7 +234,8 @@ export default function RegisterSupplier() {
                 Create your Supplier account
               </h1>
               <p className="text-xs sm:text-sm text-gray-500">
-                Register as a verified equipment supplier in Roxas, Oriental Mindoro.
+                Register as a verified equipment supplier in Roxas, Oriental
+                Mindoro.
               </p>
             </div>
 
@@ -207,18 +247,19 @@ export default function RegisterSupplier() {
               </div>
             )}
 
-
             {/* Registration Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name / Business</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Full Name / Business
+                  </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
                       value={fullName}
-                      onChange={e => setFullName(e.target.value)}
+                      onChange={(e) => setFullName(e.target.value)}
                       placeholder="Roxas Tools & Rentals"
                       required
                       className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-500/10"
@@ -227,13 +268,15 @@ export default function RegisterSupplier() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Contact Mobile</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Contact Mobile
+                  </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="tel"
                       value={mobile}
-                      onChange={e => setMobile(e.target.value)}
+                      onChange={(e) => setMobile(e.target.value)}
                       placeholder="0917 123 4567"
                       required
                       className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-500/10"
@@ -243,13 +286,15 @@ export default function RegisterSupplier() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Email address</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Email address
+                </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="supplier@example.com"
                     required
                     className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-500/10"
@@ -273,7 +318,9 @@ export default function RegisterSupplier() {
                   onChange={(e) => {
                     const newBrgy = e.target.value;
                     setBarangay(newBrgy);
-                    const brgyObj = ROXAS_BARANGAYS.find(b => b.name === newBrgy);
+                    const brgyObj = ROXAS_BARANGAYS.find(
+                      (b) => b.name === newBrgy,
+                    );
                     if (brgyObj) {
                       setCoords([brgyObj.lat, brgyObj.lng]);
                     }
@@ -282,32 +329,46 @@ export default function RegisterSupplier() {
                   className="w-full bg-amber-50/40 border border-amber-300 rounded-lg px-3 py-2 text-xs sm:text-sm text-gray-800 font-medium outline-none focus:border-amber-600 mb-3"
                 >
                   {ROXAS_BARANGAYS.map((b) => (
-                    <option key={b.name} value={b.name}>Brgy. {b.name}</option>
+                    <option key={b.name} value={b.name}>
+                      Brgy. {b.name}
+                    </option>
                   ))}
                 </select>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-1">Street / Purok / Sitio</label>
+                    <label className="block text-[11px] text-gray-600 mb-1">
+                      Street / Purok / Sitio
+                    </label>
                     <input
                       type="text"
                       value={street}
                       onChange={(e) => {
                         setStreet(e.target.value);
-                        setLocation(formatRoxasAddress(barangay, e.target.value, landmark));
+                        setLocation(
+                          formatRoxasAddress(
+                            barangay,
+                            e.target.value,
+                            landmark,
+                          ),
+                        );
                       }}
                       placeholder="e.g. Purok 3, Rizal St."
                       className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-800 outline-none focus:border-amber-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-1">Landmark (Optional)</label>
+                    <label className="block text-[11px] text-gray-600 mb-1">
+                      Landmark (Optional)
+                    </label>
                     <input
                       type="text"
                       value={landmark}
                       onChange={(e) => {
                         setLandmark(e.target.value);
-                        setLocation(formatRoxasAddress(barangay, street, e.target.value));
+                        setLocation(
+                          formatRoxasAddress(barangay, street, e.target.value),
+                        );
                       }}
                       placeholder="Near Barangay Hall"
                       className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-800 outline-none focus:border-amber-600"
@@ -317,14 +378,20 @@ export default function RegisterSupplier() {
 
                 {/* Location Map Picker */}
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] text-gray-600 font-medium">Pin exact Roxas location:</span>
+                  <span className="text-[11px] text-gray-600 font-medium">
+                    Pin exact Roxas location:
+                  </span>
                   <button
                     type="button"
                     onClick={handleDetectLocation}
                     disabled={detectingLocation}
                     className="inline-flex items-center gap-1 text-[11px] text-[#1e3a8a] hover:text-[#1d4ed8] font-semibold cursor-pointer"
                   >
-                    {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <LocateFixed className="w-3 h-3" />}
+                    {detectingLocation ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <LocateFixed className="w-3 h-3" />
+                    )}
                     Use my GPS
                   </button>
                 </div>
@@ -340,45 +407,59 @@ export default function RegisterSupplier() {
               {/* Password Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={e => setPassword(e.target.value)}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
                       className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-9 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-500/10"
                     />
+
                     <button
                       type="button"
-                      onClick={() => setShowPassword(v => !v)}
+                      onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showPassword ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Confirm Password</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Confirm Password
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
-                      type={showConfirm ? 'text' : 'password'}
+                      type={showConfirm ? "text" : "password"}
                       value={confirm}
-                      onChange={e => setConfirm(e.target.value)}
+                      onChange={(e) => setConfirm(e.target.value)}
                       placeholder="••••••••"
                       required
                       className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-9 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-500/10"
                     />
+
                     <button
                       type="button"
-                      onClick={() => setShowConfirm(v => !v)}
+                      onClick={() => setShowConfirm((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                     >
-                      {showConfirm ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showConfirm ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -389,13 +470,23 @@ export default function RegisterSupplier() {
                 disabled={loading}
                 className="w-full mt-2 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-white font-semibold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition cursor-pointer"
               >
-                {loading ? 'Registering Supplier…' : <>Complete Supplier Registration <ArrowRight className="w-4 h-4" /></>}
+                {loading ? (
+                  "Registering Supplier…"
+                ) : (
+                  <>
+                    Complete Supplier Registration{" "}
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </form>
 
             <p className="text-center text-xs text-gray-500 mt-4">
-              Want to rent items instead?{' '}
-              <Link to="/register-renter" className="text-[#1e3a8a] font-semibold hover:underline">
+              Want to rent items instead?{" "}
+              <Link
+                to="/register-renter"
+                className="text-[#1e3a8a] font-semibold hover:underline"
+              >
                 Register as Renter
               </Link>
             </p>

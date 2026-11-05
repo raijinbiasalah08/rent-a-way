@@ -1,17 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Tag, ArrowRight, Check, Sparkles, Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ShoppingBag,
+  Tag,
+  ArrowRight,
+  Check,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 export default function ChooseRole() {
   const navigate = useNavigate();
-  const { user, loading, pendingGoogleUser, assignRoleAndFinalize, roleDashboard } = useAuth();
+  const {
+    user,
+    loading,
+    pendingGoogleUser,
+    assignRoleAndFinalize,
+    roleDashboard,
+  } = useAuth();
 
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submittingRole, setSubmittingRole] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (loading) return;
@@ -20,7 +34,7 @@ export default function ChooseRole() {
       return;
     }
     if (!pendingGoogleUser?.credential) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
     setChecking(false);
@@ -29,16 +43,17 @@ export default function ChooseRole() {
   const activeAuthUser = pendingGoogleUser;
 
   const handleSelectRole = async (role) => {
-    setError('');
+    setError("");
     setSubmitting(true);
     setSubmittingRole(role);
     try {
       const result = await assignRoleAndFinalize(role);
-      toast.success(`Account created as ${role === 'supplier' ? 'Supplier' : 'Renter'}!`);
+      toast.success(
+        `Account created as ${role === "supplier" ? "Supplier" : "Renter"}!`,
+      );
       navigate(roleDashboard(result.role), { replace: true });
     } catch (err) {
-      console.error('Error assigning role:', err);
-      setError(err.message || 'Could not save your role. Please try again.');
+      setError(err.message || "Could not save your role. Please try again.");
       setSubmitting(false);
       setSubmittingRole(null);
     }
@@ -48,7 +63,9 @@ export default function ChooseRole() {
     return (
       <div className="min-h-screen bg-[#f5f0e8] flex flex-col items-center justify-center p-6">
         <Loader2 className="w-9 h-9 text-[#1e3a8a] animate-spin mb-3" />
-        <p className="text-gray-600 text-sm font-medium">Verifying your account status…</p>
+        <p className="text-gray-600 text-sm font-medium">
+          Verifying your account status…
+        </p>
       </div>
     );
   }
@@ -63,9 +80,14 @@ export default function ChooseRole() {
             alt="Rent-A-Way Logo"
             className="w-10 h-10 object-contain drop-shadow-sm"
           />
+
           <div>
-            <div className="text-gray-900 font-extrabold text-sm leading-none">Rent-A-Way</div>
-            <div className="text-amber-600 text-[9px] font-bold tracking-widest uppercase">Roxas, Oriental Mindoro</div>
+            <div className="text-gray-900 font-extrabold text-sm leading-none">
+              Rent-A-Way
+            </div>
+            <div className="text-amber-600 text-[9px] font-bold tracking-widest uppercase">
+              Roxas, Oriental Mindoro
+            </div>
           </div>
         </div>
 
@@ -74,12 +96,12 @@ export default function ChooseRole() {
             {activeAuthUser.picture ? (
               <img
                 src={activeAuthUser.picture}
-                alt={activeAuthUser.name || 'User'}
+                alt={activeAuthUser.name || "User"}
                 className="w-6 h-6 rounded-full object-cover"
               />
             ) : (
               <div className="w-6 h-6 rounded-full bg-[#1e3a8a] text-white text-[10px] font-bold flex items-center justify-center">
-                {(activeAuthUser.email?.[0] || 'U').toUpperCase()}
+                {(activeAuthUser.email?.[0] || "U").toUpperCase()}
               </div>
             )}
             <span className="text-xs text-gray-700 font-medium hidden sm:inline max-w-[180px] truncate">
@@ -99,7 +121,8 @@ export default function ChooseRole() {
             How do you want to use Rent-A-Way?
           </h1>
           <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Select your primary role. This determines your dashboard and features. You will only need to choose this once.
+            Select your primary role. This determines your dashboard and
+            features. You will only need to choose this once.
           </p>
         </div>
 
@@ -114,12 +137,16 @@ export default function ChooseRole() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto w-full">
           {/* Card 1: RENTER */}
           <div
-            onClick={() => !submitting && handleSelectRole('renter')}
+            onClick={() => !submitting && handleSelectRole("renter")}
             className={`relative group bg-white border-2 rounded-2xl p-6 sm:p-7 transition-all duration-200 flex flex-col justify-between cursor-pointer ${
-              submittingRole === 'renter'
-                ? 'border-[#1e3a8a] ring-4 ring-[#1e3a8a]/10 shadow-lg'
-                : 'border-gray-200 hover:border-[#1e3a8a] hover:shadow-xl hover:-translate-y-1'
-            } ${submitting && submittingRole !== 'renter' ? 'opacity-50 pointer-events-none' : ''}`}
+              submittingRole === "renter"
+                ? "border-[#1e3a8a] ring-4 ring-[#1e3a8a]/10 shadow-lg"
+                : "border-gray-200 hover:border-[#1e3a8a] hover:shadow-xl hover:-translate-y-1"
+            } ${
+              submitting && submittingRole !== "renter"
+                ? "opacity-50 pointer-events-none"
+                : ""
+            }`}
           >
             <div>
               <div className="flex items-center justify-between mb-5">
@@ -135,25 +162,36 @@ export default function ChooseRole() {
                 I want to rent equipment
               </h2>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-6">
-                Browse cameras, construction tools, sound systems, event equipment, and party gear from verified local suppliers in Roxas.
+                Browse cameras, construction tools, sound systems, event
+                equipment, and party gear from verified local suppliers in
+                Roxas.
               </p>
 
               <div className="space-y-2.5 mb-6 pt-4 border-t border-gray-100 text-xs sm:text-sm text-gray-600">
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-[#1e3a8a]" strokeWidth={3} />
+                    <Check
+                      className="w-2.5 h-2.5 text-[#1e3a8a]"
+                      strokeWidth={3}
+                    />
                   </div>
                   <span>Instant access to tools without buying</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-[#1e3a8a]" strokeWidth={3} />
+                    <Check
+                      className="w-2.5 h-2.5 text-[#1e3a8a]"
+                      strokeWidth={3}
+                    />
                   </div>
                   <span>Distance readouts from Roxas barangays</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-[#1e3a8a]" strokeWidth={3} />
+                    <Check
+                      className="w-2.5 h-2.5 text-[#1e3a8a]"
+                      strokeWidth={3}
+                    />
                   </div>
                   <span>Transparent rates and verified owners</span>
                 </div>
@@ -165,24 +203,32 @@ export default function ChooseRole() {
               disabled={submitting}
               className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] group-hover:bg-[#1d4ed8] text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
             >
-              {submittingRole === 'renter' ? (
+              {submittingRole === "renter" ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Renter role…
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Renter
+                  role…
                 </span>
               ) : (
-                <>Continue as Renter <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></>
+                <>
+                  Continue as Renter{" "}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </>
               )}
             </button>
           </div>
 
           {/* Card 2: SUPPLIER */}
           <div
-            onClick={() => !submitting && handleSelectRole('supplier')}
+            onClick={() => !submitting && handleSelectRole("supplier")}
             className={`relative group bg-white border-2 rounded-2xl p-6 sm:p-7 transition-all duration-200 flex flex-col justify-between cursor-pointer ${
-              submittingRole === 'supplier'
-                ? 'border-amber-500 ring-4 ring-amber-500/10 shadow-lg'
-                : 'border-gray-200 hover:border-amber-500 hover:shadow-xl hover:-translate-y-1'
-            } ${submitting && submittingRole !== 'supplier' ? 'opacity-50 pointer-events-none' : ''}`}
+              submittingRole === "supplier"
+                ? "border-amber-500 ring-4 ring-amber-500/10 shadow-lg"
+                : "border-gray-200 hover:border-amber-500 hover:shadow-xl hover:-translate-y-1"
+            } ${
+              submitting && submittingRole !== "supplier"
+                ? "opacity-50 pointer-events-none"
+                : ""
+            }`}
           >
             <div>
               <div className="flex items-center justify-between mb-5">
@@ -198,27 +244,37 @@ export default function ChooseRole() {
                 I want to list equipment
               </h2>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-6">
-                Turn your idle tools, machinery, electronics, and rental gear into passive income by listing them for renters in Roxas.
+                Turn your idle tools, machinery, electronics, and rental gear
+                into passive income by listing them for renters in Roxas.
               </p>
 
               <div className="space-y-2.5 mb-6 pt-4 border-t border-gray-100 text-xs sm:text-sm text-gray-600">
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-amber-700" strokeWidth={3} />
+                    <Check
+                      className="w-2.5 h-2.5 text-amber-700"
+                      strokeWidth={3}
+                    />
                   </div>
                   <span>Set your own daily rental prices</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-amber-700" strokeWidth={3} />
+                    <Check
+                      className="w-2.5 h-2.5 text-amber-700"
+                      strokeWidth={3}
+                    />
                   </div>
                   <span>Accurate Roxas barangay pickup pin</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-amber-700" strokeWidth={3} />
+                    <Check
+                      className="w-2.5 h-2.5 text-amber-700"
+                      strokeWidth={3}
+                    />
                   </div>
-                  <span>Manage rental bookings and payouts</span>
+                  <span>Manage rental bookings and handover</span>
                 </div>
               </div>
             </div>
@@ -228,12 +284,16 @@ export default function ChooseRole() {
               disabled={submitting}
               className="w-full flex items-center justify-center gap-2 bg-amber-600 group-hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
             >
-              {submittingRole === 'supplier' ? (
+              {submittingRole === "supplier" ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Supplier role…
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Supplier
+                  role…
                 </span>
               ) : (
-                <>Continue as Supplier <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></>
+                <>
+                  Continue as Supplier{" "}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </>
               )}
             </button>
           </div>

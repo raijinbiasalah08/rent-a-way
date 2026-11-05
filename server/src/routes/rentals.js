@@ -1,244 +1,313 @@
-const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const db = require('../db/database');
-const { authenticate, authorize } = require('../middleware/auth');
-const socket = require('../socket');
-
-const router = express.Router();
-
-router.post('/', authenticate, authorize('customer'), (req, res) => {
+const router = require("express").Router();
+const { randomUUID } = require("node:crypto");
+const db = require("../db/database");
+const { authenticate, authorize } = require("../middleware/auth");
+const { z, date, validate } = require("../middleware/validation");
+const socket = require("../socket");
+const today = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(
+    new Date(),
+  );
+const failure = (message, status = 400) =>
+  Object.assign(new Error(message), { status });
+const select = `SELECT r.*, p.title AS product_title, p.supplier_id, p.category AS product_category,
+  (SELECT url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC LIMIT 1) AS primary_image,
+  c.name AS customer_name, c.phone AS customer_phone, s.name AS supplier_name, s.avatar AS supplier_avatar,
+  s.barangay AS supplier_barangay,
+  (SELECT id FROM reviews WHERE rental_id = r.id LIMIT 1) AS review_id
+  FROM rentals r JOIN products p ON p.id = r.product_id JOIN users c ON c.id = r.customer_id JOIN users s ON s.id = p.supplier_id`;
+const decorate = (r) => ({
+  ...r,
+  is_overdue: r.status === "active" && r.end_date < today(),
+});
+const allowed = (user, r) =>
+  user.role === "admin" ||
+  user.id === r.customer_id ||
+  user.id === r.supplier_id;
+async function lockProduct(id) {
+  return db
+    .prepare(
+      `SELECT * FROM products WHERE id = ?${db.dialect === "postgres" ? " FOR UPDATE" : ""}`,
+    )
+    .get(id);
+}
+async function conflict(productId, start, end, excluding = "") {
+  return db
+    .prepare(
+      "SELECT id FROM rentals WHERE product_id = ? AND id <> ? AND status IN ('pending','approved','active','returned') AND start_date < ? AND end_date > ? LIMIT 1",
+    )
+    .get(productId, excluding, end, start);
+}
+async function notify(userId, rental, status, link) {
+  const data = {
+    id: randomUUID(),
+    user_id: userId,
+    title: "Rental update",
+    message: `${rental.product_title || "Rental request"}: ${status}`,
+    link,
+    created_at: new Date().toISOString(),
+    is_read: 0,
+  };
+  await db
+    .prepare(
+      "INSERT INTO notifications (id,user_id,title,message,link,created_at) VALUES (?,?,?,?,?,?)",
+    )
+    .run(data.id, userId, data.title, data.message, link, data.created_at);
+  return data;
+}
+function emit(data, rental) {
   try {
-    const { product_id, start_date, end_date, notes, security_deposit } = req.body;
-    const product = db.prepare('SELECT id, title, supplier_id, price_per_day, is_active FROM products WHERE id = ?').get(product_id);
-    if (!product || !product.is_active) {
-      return res.status(404).json({ success: false, message: 'Product not found or inactive' });
-    }
-
-    const start = new Date(start_date);
-    const end = new Date(end_date);
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    if (days <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid dates' });
-    }
-
-    const total_price = days * product.price_per_day;
-    const id = uuidv4();
-    const createdAt = new Date().toISOString();
-
-    db.prepare(`
-      INSERT INTO rentals (id, product_id, customer_id, start_date, end_date, total_price, security_deposit, status, notes, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
-    `).run(id, product_id, req.user.id, start_date, end_date, total_price, Number(security_deposit || 0), notes || null, createdAt);
-
-    // Notify supplier of new pending booking request
-    const notifId = uuidv4();
-    const notifTitle = 'New Rental Request! 📦';
-    const notifMessage = `${req.user.name || 'A customer'} submitted a rental request for "${product.title}".`;
-    db.prepare(`
-      INSERT INTO notifications (id, user_id, title, message, link, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(notifId, product.supplier_id, notifTitle, notifMessage, '/supplier/rentals', createdAt);
-
+    const io = socket.getIO();
+    io.to(`user:${data.user_id}`).emit("new_notification", data);
+    io.to(`user:${data.user_id}`).emit("rental_status_changed", rental);
+  } catch {
+    /* Durable notification remains available over HTTP. */
+  }
+}
+router.post(
+  "/",
+  authenticate,
+  authorize("customer"),
+  validate(
+    z.object({
+      product_id: z.string().uuid(),
+      start_date: date,
+      end_date: date,
+      notes: z.string().trim().max(2000).optional(),
+    }),
+  ),
+  async (req, res, next) => {
     try {
-      const io = socket.getIO();
-      const receiverSocketId = socket.getUserSocketId(product.supplier_id);
-      if (receiverSocketId) {
-        const notif = db.prepare('SELECT * FROM notifications WHERE id = ?').get(notifId);
-        io.to(receiverSocketId).emit('new_notification', notif);
-        io.to(receiverSocketId).emit('rental_status_changed', { rentalId: id, status: 'pending' });
-      }
-    } catch (e) {
-      // Socket non-fatal
+      const { product_id, start_date, end_date, notes } = req.body;
+      const result = await db.transaction(async () => {
+        const product = await lockProduct(product_id);
+        if (!product?.is_active) throw failure("Equipment not found", 404);
+        if (product.supplier_id === req.user.id)
+          throw failure("You cannot rent your own equipment");
+        if (product.availability !== "available")
+          throw failure("Equipment is not currently available", 409);
+        const days = (Date.parse(end_date) - Date.parse(start_date)) / 86400000;
+        if (
+          start_date < today() ||
+          days < product.min_days ||
+          days > product.max_days
+        )
+          throw failure(
+            `Choose future dates between ${product.min_days} and ${product.max_days} rental days`,
+          );
+        if (await conflict(product_id, start_date, end_date))
+          throw failure(
+            "These dates are already reserved. Choose another date range.",
+            409,
+          );
+        const id = randomUUID();
+        await db
+          .prepare(
+            "INSERT INTO rentals (id,product_id,customer_id,start_date,end_date,total_price,status,notes,created_at) VALUES (?,?,?,?,?,?,'pending',?,?)",
+          )
+          .run(
+            id,
+            product_id,
+            req.user.id,
+            start_date,
+            end_date,
+            Math.round(days * product.price_per_day * 100) / 100,
+            notes || null,
+            new Date().toISOString(),
+          );
+        const rental = await db.prepare(select + " WHERE r.id = ?").get(id);
+        return {
+          rental,
+          notification: await notify(
+            product.supplier_id,
+            rental,
+            "pending",
+            "/supplier/rentals",
+          ),
+        };
+      });
+      emit(result.notification, result.rental);
+      res.status(201).json({ success: true, data: decorate(result.rental) });
+    } catch (error) {
+      next(error);
     }
-
-    const rental = db.prepare('SELECT * FROM rentals WHERE id = ?').get(id);
-    res.status(201).json({ success: true, data: rental });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-router.get('/', authenticate, (req, res) => {
+  },
+);
+router.get("/", authenticate, async (req, res, next) => {
   try {
-    let query;
-    let params = [];
-
-    const baseSelect = `
-      SELECT r.*, 
-             p.title as product_title, 
-             p.category as product_category,
-             (SELECT url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC LIMIT 1) as primary_image,
-             u1.name as customer_name, 
-             u1.phone as customer_phone,
-             u2.name as supplier_name,
-             u2.avatar as supplier_avatar,
-             u2.barangay as supplier_barangay,
-             pay.method as payment_method,
-             pay.status as payment_status,
-             pay.transaction_ref as payment_ref,
-             pay.receipt_image as payment_receipt,
-             pay.sender_name as payment_sender_name,
-             pay.sender_phone as payment_sender_phone
-      FROM rentals r
-      JOIN products p ON r.product_id = p.id
-      JOIN users u1 ON r.customer_id = u1.id
-      JOIN users u2 ON p.supplier_id = u2.id
-      LEFT JOIN payments pay ON pay.rental_id = r.id
-    `;
-
-    if (req.user.role === 'customer') {
-      query = baseSelect + ' WHERE r.customer_id = ?';
-      params.push(req.user.id);
-    } else if (req.user.role === 'supplier') {
-      query = baseSelect + ' WHERE p.supplier_id = ?';
-      params.push(req.user.id);
-    } else if (req.user.role === 'admin') {
-      query = baseSelect;
+    const where =
+      req.user.role === "customer"
+        ? " WHERE r.customer_id = ?"
+        : req.user.role === "supplier"
+          ? " WHERE p.supplier_id = ?"
+          : " WHERE 1=1";
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
+    const offset =
+      (Math.min(100000, Math.max(1, parseInt(req.query.page) || 1)) - 1) *
+      limit;
+    const params = req.user.role === "admin" ? [] : [req.user.id];
+    const source = " FROM rentals r JOIN products p ON p.id = r.product_id";
+    const counts = await db
+      .prepare(
+        "SELECT r.status,COUNT(*) AS count" +
+          source +
+          where +
+          " GROUP BY r.status",
+      )
+      .all(...params);
+    const summary = Object.fromEntries(
+      counts.map((row) => [row.status, Number(row.count)]),
+    );
+    summary.total = counts.reduce((sum, row) => sum + Number(row.count), 0);
+    const start = new Date(Date.parse(today()) - 6 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const activity = await db
+      .prepare(
+        `SELECT r.start_date AS date,'starts' AS kind,COUNT(*) AS count${source}${where} AND r.status IN ('approved','active','returned','completed') AND r.start_date BETWEEN ? AND ? GROUP BY r.start_date
+      UNION ALL SELECT r.end_date AS date,'returns' AS kind,COUNT(*) AS count${source}${where} AND r.status IN ('approved','active','returned','completed') AND r.end_date BETWEEN ? AND ? GROUP BY r.end_date`,
+      )
+      .all(...params, start, today(), ...params, start, today());
+    let filter = "";
+    const filterParams = [];
+    if (req.query.status && req.query.status !== "all") {
+      if (req.query.status === "overdue") {
+        filter = " AND r.status = 'active' AND r.end_date < ?";
+        filterParams.push(today());
+      } else if (
+        [
+          "pending",
+          "approved",
+          "active",
+          "returned",
+          "completed",
+          "cancelled",
+          "rejected",
+        ].includes(req.query.status)
+      ) {
+        filter = " AND r.status = ?";
+        filterParams.push(req.query.status);
+      } else
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid rental status" });
     }
-
-    const rentals = db.prepare(query + ' ORDER BY r.created_at DESC').all(...[...params]);
-    res.json({ success: true, data: rentals });
+    const rows = await db
+      .prepare(
+        select +
+          where +
+          filter +
+          " ORDER BY r.created_at DESC,r.id LIMIT ? OFFSET ?",
+      )
+      .all(...params, ...filterParams, limit + 1, offset);
+    res.json({
+      success: true,
+      data: rows.slice(0, limit).map(decorate),
+      hasMore: rows.length > limit,
+      summary,
+      activity,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
-
-router.get('/:id', authenticate, (req, res) => {
+router.get("/:id", authenticate, async (req, res, next) => {
   try {
-    const rental = db.prepare(`
-      SELECT r.*, p.title as product_title, p.supplier_id, u1.name as customer_name, u2.name as supplier_name 
-      FROM rentals r
-      JOIN products p ON r.product_id = p.id
-      JOIN users u1 ON r.customer_id = u1.id
-      JOIN users u2 ON p.supplier_id = u2.id
-      WHERE r.id = ?
-    `).get(req.params.id);
-
-    if (!rental) return res.status(404).json({ success: false, message: 'Rental not found' });
-
-    if (req.user.role === 'customer' && rental.customer_id !== req.user.id) return res.status(403).json({ success: false, message: 'Forbidden' });
-    if (req.user.role === 'supplier' && rental.supplier_id !== req.user.id) return res.status(403).json({ success: false, message: 'Forbidden' });
-
-    const payment = db.prepare('SELECT * FROM payments WHERE rental_id = ?').get(rental.id);
-    rental.payment = payment;
-
-    res.json({ success: true, data: rental });
+    const rental = await db
+      .prepare(select + " WHERE r.id = ?")
+      .get(req.params.id);
+    if (!rental) throw failure("Rental not found", 404);
+    if (!allowed(req.user, rental)) throw failure("Access denied", 403);
+    res.json({ success: true, data: decorate(rental) });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
-
-router.put('/:id/status', authenticate, (req, res) => {
-  try {
-    const { status, notes } = req.body;
-    const rental = db.prepare(`
-      SELECT r.*, p.title as product_title, p.supplier_id, u1.name as customer_name, u2.name as supplier_name
-      FROM rentals r
-      JOIN products p ON r.product_id = p.id
-      JOIN users u1 ON r.customer_id = u1.id
-      JOIN users u2 ON p.supplier_id = u2.id
-      WHERE r.id = ?
-    `).get(req.params.id);
-
-    if (!rental) return res.status(404).json({ success: false, message: 'Rental not found' });
-
-    let targetUserId = null;
-    let notifTitle = '';
-    let notifMessage = '';
-    let notifLink = '';
-
-    if (req.user.role === 'customer') {
-      if (rental.customer_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: 'Forbidden' });
-      }
-
-      if (status === 'cancelled') {
-        if (!['pending', 'approved'].includes(rental.status)) {
-          return res.status(400).json({ success: false, message: 'Can only cancel pending or approved rentals before pickup' });
-        }
-        targetUserId = rental.supplier_id;
-        notifTitle = 'Rental Cancelled';
-        notifMessage = `${rental.customer_name} cancelled their rental for "${rental.product_title}"${notes ? `: "${notes}"` : '.'}`;
-        notifLink = '/supplier/rentals';
-      } else if (status === 'returned') {
-        if (rental.status !== 'active') {
-          return res.status(400).json({ success: false, message: 'Only active rentals can be marked as returned' });
-        }
-        targetUserId = rental.supplier_id;
-        notifTitle = 'Item Returned';
-        notifMessage = `${rental.customer_name} marked "${rental.product_title}" as returned. Please verify and confirm return.`;
-        notifLink = '/supplier/rentals';
-      } else {
-        return res.status(400).json({ success: false, message: 'Invalid status update for customer' });
-      }
-
-    } else if (req.user.role === 'supplier' || req.user.role === 'admin') {
-      if (req.user.role === 'supplier' && rental.supplier_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: 'Forbidden' });
-      }
-
-      targetUserId = rental.customer_id;
-      notifLink = '/customer/rentals';
-
-      if (status === 'approved') {
-        if (rental.status !== 'pending') return res.status(400).json({ success: false, message: 'Only pending rentals can be approved' });
-        notifTitle = 'Rental Approved! 🎉';
-        notifMessage = `Your rental request for "${rental.product_title}" has been approved by ${rental.supplier_name}.`;
-      } else if (status === 'rejected') {
-        if (rental.status !== 'pending') return res.status(400).json({ success: false, message: 'Only pending rentals can be rejected' });
-        notifTitle = 'Rental Request Declined';
-        notifMessage = `Your rental request for "${rental.product_title}" was declined${notes ? `: "${notes}"` : '.'}`;
-      } else if (status === 'active') {
-        if (rental.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved rentals can be marked active (handed over)' });
-        notifTitle = 'Item Handed Over — Rental Active 🚀';
-        notifMessage = `The item "${rental.product_title}" has been handed over. Enjoy your rental!`;
-      } else if (status === 'completed') {
-        if (!['active', 'returned'].includes(rental.status)) return res.status(400).json({ success: false, message: 'Only active or returned items can be marked completed' });
-        notifTitle = 'Rental Completed & Return Verified ✅';
-        notifMessage = `Return of "${rental.product_title}" has been verified by the supplier. Please leave a review!`;
-      } else {
-        return res.status(400).json({ success: false, message: 'Invalid status update for supplier' });
-      }
+router.put(
+  "/:id/status",
+  authenticate,
+  validate(
+    z.object({
+      status: z.enum([
+        "approved",
+        "rejected",
+        "cancelled",
+        "active",
+        "returned",
+        "completed",
+      ]),
+      notes: z.string().trim().max(2000).optional(),
+    }),
+  ),
+  async (req, res, next) => {
+    try {
+      const result = await db.transaction(async () => {
+        let rental = await db
+          .prepare(select + " WHERE r.id = ?")
+          .get(req.params.id);
+        if (!rental) throw failure("Rental not found", 404);
+        if (!allowed(req.user, rental)) throw failure("Access denied", 403);
+        await lockProduct(rental.product_id);
+        rental = await db
+          .prepare(select + " WHERE r.id = ?")
+          .get(req.params.id);
+        const customer = req.user.role === "customer";
+        const transitions = customer
+          ? {
+              pending: ["cancelled"],
+              approved: ["cancelled"],
+              active: ["returned"],
+            }
+          : {
+              pending: ["approved", "rejected"],
+              approved: ["active", "cancelled"],
+              active: ["returned"],
+              returned: ["completed"],
+            };
+        const { status, notes } = req.body;
+        if (customer && !["cancelled", "returned"].includes(status))
+          throw failure("Customers cannot approve or activate rentals", 403);
+        if (!transitions[rental.status]?.includes(status))
+          throw failure("This status change is not allowed", 409);
+        if (
+          status === "active" &&
+          (rental.start_date > today() || rental.end_date < today())
+        )
+          throw failure("Handover must occur within the reserved dates");
+        if (
+          status === "approved" &&
+          (rental.start_date < today() ||
+            (await conflict(
+              rental.product_id,
+              rental.start_date,
+              rental.end_date,
+              rental.id,
+            )))
+        )
+          throw failure("The reservation dates are no longer available", 409);
+        await db
+          .prepare("UPDATE rentals SET status = ?, notes = ? WHERE id = ?")
+          .run(
+            status,
+            notes
+              ? [rental.notes, notes].filter(Boolean).join(" | ")
+              : rental.notes,
+            rental.id,
+          );
+        const updated = { ...rental, status };
+        const notification = await notify(
+          customer ? rental.supplier_id : rental.customer_id,
+          updated,
+          status,
+          customer ? "/supplier/rentals" : "/customer/rentals",
+        );
+        return { rental: updated, notification };
+      });
+      emit(result.notification, result.rental);
+      res.json({ success: true, data: decorate(result.rental) });
+    } catch (error) {
+      next(error);
     }
-
-    let updateQuery = 'UPDATE rentals SET status = ?';
-    const updateParams = [status];
-    if (notes) {
-      updateQuery += ", notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || ' | ' || ? END";
-      updateParams.push(notes, notes);
-    }
-    updateQuery += ' WHERE id = ?';
-    updateParams.push(req.params.id);
-
-    db.prepare(updateQuery).run(...updateParams);
-    const updated = db.prepare('SELECT * FROM rentals WHERE id = ?').get(req.params.id);
-
-    // Emit notification and real-time socket events
-    if (targetUserId) {
-      const notifId = uuidv4();
-      const createdAt = new Date().toISOString();
-      db.prepare(`
-        INSERT INTO notifications (id, user_id, title, message, link, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(notifId, targetUserId, notifTitle, notifMessage, notifLink, createdAt);
-
-      try {
-        const io = socket.getIO();
-        const receiverSocketId = socket.getUserSocketId(targetUserId);
-        if (receiverSocketId) {
-          const notif = db.prepare('SELECT * FROM notifications WHERE id = ?').get(notifId);
-          io.to(receiverSocketId).emit('new_notification', notif);
-          io.to(receiverSocketId).emit('rental_status_changed', { rentalId: rental.id, status, notes });
-        }
-      } catch (err) {
-        console.error('Socket notification error:', err.message);
-      }
-    }
-
-    res.json({ success: true, data: updated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
+  },
+);
 module.exports = router;
