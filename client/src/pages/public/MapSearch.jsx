@@ -1,5 +1,16 @@
+import "./MapSearch.css";
+import {
+  LayoutGrid,
+  Camera,
+  Tent,
+  Dumbbell,
+  CalendarDays,
+  Home,
+  GraduationCap,
+  RotateCcw,
+} from "lucide-react";
 import { apiAssetUrl } from "../../config";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   MapContainer,
@@ -46,26 +57,46 @@ import api from "../../api/axios";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import toast from "react-hot-toast";
 
-// Fix Leaflet default marker icons in Vite/React
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-const BASE_URL = API_ORIGIN;
-
 const CATEGORIES = [
-  { id: "", label: "All Equipment" },
-  { id: "Cameras", label: "📷 Cameras & Drones" },
-  { id: "Camping", label: "⛺ Camping" },
-  { id: "Sports", label: "🏄 Sports" },
-  { id: "Event", label: "🎉 Event" },
-  { id: "Household", label: "🔧 Household" },
-  { id: "School", label: "🔬 School Projects" },
+  { id: "", label: "All equipment", icon: LayoutGrid },
+  { id: "Cameras", label: "Cameras", icon: Camera },
+  { id: "Camping", label: "Camping", icon: Tent },
+  { id: "Sports", label: "Sports", icon: Dumbbell },
+  { id: "Event", label: "Events", icon: CalendarDays },
+  { id: "Household", label: "Household", icon: Home },
+  { id: "School", label: "School", icon: GraduationCap },
 ];
+function priceIcon(price, active) {
+  const amount = Number(price);
+  return L.divIcon({
+    className: "rental-price-marker",
+    html:
+      '<span class="' +
+      (active ? "is-active" : "") +
+      '">₱' +
+      (Number.isFinite(amount) ? amount.toLocaleString("en-PH") : "—") +
+      "</span>",
+    iconSize: [92, 38],
+    iconAnchor: [46, 38],
+    popupAnchor: [0, -40],
+  });
+}
+
+function EquipmentMarker({ product, active, children, ...props }) {
+  const position = useMemo(
+    () => [Number(product.latitude), Number(product.longitude)],
+    [product.latitude, product.longitude],
+  );
+  const icon = useMemo(
+    () => priceIcon(product.price_per_day, active),
+    [product.price_per_day, active],
+  );
+  return (
+    <Marker position={position} icon={icon} {...props}>
+      {children}
+    </Marker>
+  );
+}
 
 const RADIUS_OPTIONS = [
   { label: "All", value: null },
@@ -90,20 +121,16 @@ const userBeaconIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
-// Custom Highlighted Item Icon
-const highlightedItemIcon = L.icon({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [32, 50],
-  iconAnchor: [16, 50],
-  popupAnchor: [1, -42],
-});
-
 // Helper component to handle map instance and smooth fly-to
 function MapController({ flyTarget, onBoundsChange }) {
   const map = useMap();
+  useEffect(() => {
+    const observer = new ResizeObserver(() =>
+      map.invalidateSize({ animate: false, debounceMoveend: true }),
+    );
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
 
   useEffect(() => {
     if (
@@ -112,7 +139,10 @@ function MapController({ flyTarget, onBoundsChange }) {
       flyTarget.coords[0] &&
       flyTarget.coords[1]
     ) {
-      map.flyTo(flyTarget.coords, flyTarget.zoom || 14, { duration: 1.4 });
+      map.flyTo(flyTarget.coords, flyTarget.zoom || 14, {
+        duration: 0.7,
+        animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      });
     }
   }, [flyTarget, map]);
 
@@ -153,13 +183,15 @@ export default function MapSearch() {
   const [selectedCategory, setSelectedCategory] = useState(categoryParam);
   const [selectedBarangay, setSelectedBarangay] = useState(barangayParam);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const mapPanelRef = useRef(null);
   const [bounds, setBounds] = useState(null);
 
   // Geolocation & Radius state
   const {
     customerCoords,
-    getItemDistance,
     setCustomerCoords,
     requestCustomerLocation,
     selectBarangay,
@@ -194,8 +226,16 @@ export default function MapSearch() {
   // Auto-prompt GPS on initial mount with enableHighAccuracy: true
   useEffect(() => {
     if (customerCoords) {
-      setUserLocation(customerCoords);
-      setFlyTarget({ coords: customerCoords, zoom: 14 });
+      const initialCoords = barangayParam
+        ? getBarangayCoordinates(barangayParam)
+        : customerCoords;
+      setUserLocation(initialCoords);
+      setFlyTarget({
+        coords: barangayParam
+          ? getBarangayCoordinates(barangayParam)
+          : customerCoords,
+        zoom: 14,
+      });
     } else {
       // Prompt user for high-accuracy browser geolocation
       requestCustomerLocation(true)
@@ -214,6 +254,11 @@ export default function MapSearch() {
     }
   }, []);
 
+  useEffect(() => {
+    setSelectedCategory(categoryParam);
+    setSelectedBarangay(barangayParam);
+  }, [categoryParam, barangayParam]);
+
   // Sync category param with URL
   const handleCategorySelect = (catId) => {
     setSelectedCategory(catId);
@@ -230,6 +275,8 @@ export default function MapSearch() {
     if (bName) {
       newParams.set("barangay", bName);
       selectBarangay(bName);
+      setUserLocation(getBarangayCoordinates(bName));
+      setIsGpsSource(false);
       const bCoords = getBarangayCoordinates(bName);
       setFlyTarget({ coords: bCoords, zoom: 15 });
     } else {
@@ -321,6 +368,8 @@ export default function MapSearch() {
         setFlyTarget({ coords, zoom: 15 });
         toast.success(`Location set: ${topResult.display_name.split(",")[0]}`);
         setShowManualBar(false);
+        setPermissionDenied(false);
+        setIsManualPinMode(false);
       } else {
         toast.error(
           'Location not found in Roxas. Select a Barangay or click "Pin on Map".',
@@ -353,12 +402,15 @@ export default function MapSearch() {
     setIsGpsSource(false);
     setIsManualPinMode(false);
     setShowManualBar(false);
-    toast.success(`Beacon pinned inside Roxas: ${roundedLat}, ${roundedLng}`);
+    setPermissionDenied(false);
+    toast.success("Search location updated");
   };
 
   // Fetch products whenever bounds, category, barangay, or radius changes
   useEffect(() => {
+    let current = true;
     setLoading(true);
+    setLoadError("");
 
     const query = { limit: 60 };
 
@@ -384,15 +436,26 @@ export default function MapSearch() {
     }
 
     getProducts(query)
-      .then((res) => setProducts(res.data?.data?.products || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (current) setProducts(res.data?.data?.products || []);
+      })
+      .catch(() => {
+        if (current)
+          setLoadError("We couldn’t load this area. Please try again.");
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
   }, [
     bounds,
     selectedCategory,
     selectedBarangay,
     selectedRadius,
     userLocation,
+    retry,
   ]);
 
   // Center for the radius circle overlay
@@ -429,659 +492,708 @@ export default function MapSearch() {
         )
       : null;
 
+  const browseParams = new URLSearchParams();
+  if (selectedCategory) browseParams.set("category", selectedCategory);
+  if (selectedBarangay) browseParams.set("barangay", selectedBarangay);
+  const browseUrl = "/browse" + (browseParams.size ? "?" + browseParams : "");
+  function resetFilters() {
+    setSelectedRadius(null);
+    setSelectedCategory("");
+    setSelectedBarangay("");
+    setSearchParams({});
+    setSelectedId(null);
+    setFlyTarget({ coords: ROXAS_CENTER, zoom: 13 });
+  }
+  function showProductOnMap(product) {
+    setSelectedId(product.id);
+    if (product.latitude && product.longitude) {
+      setFlyTarget({
+        coords: [Number(product.latitude), Number(product.longitude)],
+        zoom: 15,
+      });
+      if (window.innerWidth < 768)
+        mapPanelRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+    }
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-white font-sans">
-      {/* ══ TOP CONTROLS & FILTER BAR ════════════════════════════════ */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 z-20 shadow-xs flex flex-col gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Left: View Switch, Barangay Selector & Count */}
-          <div className="flex items-center flex-wrap gap-2.5">
-            <Link
-              to="/browse"
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
-            >
-              <Filter className="w-3.5 h-3.5" /> List View
+    <div className="map-explorer">
+      <div className="map-explorer-container">
+        <header className="map-page-heading">
+          <div>
+            <p className="map-eyebrow">Explore Roxas</p>
+            <h1>Great gear. Closer than you think.</h1>
+            <p>
+              Find local equipment and choose a pickup spot that works for you.
+            </p>
+          </div>
+          <div className="map-view-switch">
+            <Link to={browseUrl}>
+              <LayoutGrid size={16} />
+              List
             </Link>
-
-            {/* Barangay Dropdown Filter */}
-            <div className="flex items-center gap-1.5 bg-blue-50/70 border border-blue-200/80 rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
-              <MapPin className="w-3.5 h-3.5 text-[#1e3a8a] flex-shrink-0" />
-              <span className="font-bold text-[#1e3a8a] text-[11px] hidden sm:inline">
-                Barangay:
-              </span>
-              <select
-                value={selectedBarangay}
-                onChange={(e) => handleBarangaySelect(e.target.value)}
-                className="bg-transparent font-semibold text-gray-900 outline-none cursor-pointer text-xs pr-1 border-none"
-              >
-                <option value="">All Barangays (Roxas)</option>
-                {ROXAS_BARANGAYS.map((b) => (
-                  <option key={b.name} value={b.name}>
-                    Brgy. {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <span className="text-xs font-semibold text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-100">
-              {loading ? "Searching area..." : `${products.length} in Roxas`}
+            <span aria-current="page">
+              <MapPin size={16} />
+              Map
             </span>
           </div>
-
-          {/* Right: GPS Locate, Manual Select & Radius Chips */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* GPS High-Accuracy Button */}
+        </header>
+        <div className="map-toolbar">
+          <div className="map-location-controls">
+            <label className="map-barangay">
+              <MapPin size={20} />
+              <span>
+                <span className="map-control-label">Search area</span>
+                <select
+                  aria-label="Search barangay"
+                  value={selectedBarangay}
+                  onChange={(e) => handleBarangaySelect(e.target.value)}
+                >
+                  <option value="">All barangays, Roxas</option>
+                  {ROXAS_BARANGAYS.map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            </label>
             <button
+              className="map-control-button"
               onClick={handleLocateMe}
               disabled={locating}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition shadow-xs cursor-pointer ${
-                userLocation && isGpsSource
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                  : userLocation
-                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-              }`}
-              title="Detect exact GPS location using browser high accuracy"
             >
               <LocateFixed
-                className={`w-3.5 h-3.5 ${locating ? "animate-spin text-[#1e3a8a]" : userLocation ? "text-emerald-600" : "text-gray-500"}`}
+                size={17}
+                className={locating ? "animate-spin" : ""}
               />
-              <span>
-                {locating
-                  ? "Capturing GPS…"
-                  : userLocation
-                    ? isGpsSource
-                      ? "GPS Active"
-                      : "Beacon Active"
-                    : "Locate Me"}
-              </span>
+              {locating ? "Locating…" : "Use my location"}
             </button>
-
-            {/* Manual Location Input Toggle */}
             <button
+              className={
+                showManualBar
+                  ? "map-control-button is-active"
+                  : "map-control-button"
+              }
+              aria-expanded={showManualBar || permissionDenied}
+              aria-controls="manual-location-controls"
               onClick={() => {
                 setShowManualBar((v) => !v);
+                setPermissionDenied(false);
                 setIsManualPinMode(false);
               }}
-              className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
-                showManualBar || isManualPinMode
-                  ? "bg-amber-50 text-amber-800 border-amber-300"
-                  : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-              }`}
-              title="Set your location manually if GPS is denied"
             >
-              <Compass className="w-3.5 h-3.5 text-amber-600" />
-              <span>Set Manually</span>
+              <Compass size={17} />
+              Set location
             </button>
-
-            {/* Radius Filters: 500m, 1km, 2km, 5km, 10km, 15km */}
-            <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-xl border border-gray-200">
-              {RADIUS_OPTIONS.map((opt) => (
+            <div className="map-radius">
+              <span className="map-control-label">
+                Distance from search point
+              </span>
+              <div role="group" aria-label="Search radius">
+                {RADIUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.label}
+                    aria-pressed={selectedRadius === opt.value}
+                    onClick={() => setSelectedRadius(opt.value)}
+                    className={selectedRadius === opt.value ? "is-active" : ""}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <nav className="map-categories" aria-label="Map equipment categories">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              return (
                 <button
-                  key={opt.label}
-                  onClick={() => setSelectedRadius(opt.value)}
-                  className={`text-[11px] font-semibold px-2 py-1 rounded-lg transition cursor-pointer ${
-                    selectedRadius === opt.value
-                      ? "bg-[#1e3a8a] text-white shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
+                  key={cat.id}
+                  aria-pressed={selectedCategory === cat.id}
+                  onClick={() => handleCategorySelect(cat.id)}
+                  className={selectedCategory === cat.id ? "is-active" : ""}
+                >
+                  <Icon size={18} />
+                  {cat.label}
+                </button>
+              );
+            })}
+          </nav>
+          {/* ── PERMISSION DENIED OR MANUAL LOCATION BAR ── */}
+          {(showManualBar || permissionDenied) && (
+            <div id="manual-location-controls" className="map-manual-controls">
+              <div className="flex items-center gap-2 text-xs text-amber-900 font-medium">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>
+                  {permissionDenied
+                    ? "Location access denied or unavailable. Search a Roxas landmark or choose a point on the map."
+                    : "Search a Roxas landmark or choose a point on the map."}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <form
+                  onSubmit={handleManualSearch}
+                  className="relative flex-1 sm:w-64"
+                >
+                  <input
+                    type="text"
+                    value={manualQuery}
+                    onChange={(e) => setManualQuery(e.target.value)}
+                    aria-label="Roxas landmark"
+                    placeholder="e.g. Roxas municipal hall"
+                    className="w-full pl-8 pr-16 py-1.5 text-xs bg-white border border-amber-300 rounded-lg outline-none focus:ring-1 focus:ring-amber-500 text-gray-800"
+                  />
+
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <button
+                    type="submit"
+                    disabled={searchingManual}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-[#1e3a8a] text-white px-2 py-0.5 rounded cursor-pointer hover:bg-blue-800 disabled:opacity-50"
+                  >
+                    {searchingManual ? "Finding…" : "Find"}
+                  </button>
+                </form>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManualPinMode((v) => !v);
+                    mapPanelRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                    if (!isManualPinMode)
+                      toast.success(
+                        "Click anywhere on the map to set your location",
+                      );
+                  }}
+                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+                    isManualPinMode
+                      ? "bg-amber-600 text-white border-amber-700 animate-pulse"
+                      : "bg-white text-gray-700 border-amber-300 hover:bg-amber-100/50"
                   }`}
                 >
-                  {opt.label}
+                  <Crosshair className="w-3.5 h-3.5" />
+                  <span>
+                    {isManualPinMode ? "Click on Map Now" : "Pin on Map"}
+                  </span>
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* Categories Quick-Pills Row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {CATEGORIES.map((cat) => {
-            const isActive = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => handleCategorySelect(cat.id)}
-                className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
-                  isActive
-                    ? "bg-[#1e3a8a] text-white shadow-xs"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {cat.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── PERMISSION DENIED OR MANUAL LOCATION BAR ── */}
-        {(showManualBar || permissionDenied) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-fadeIn">
-            <div className="flex items-center gap-2 text-xs text-amber-900 font-medium">
-              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span>
-                {permissionDenied
-                  ? 'Location access denied or unavailable. Enter your city or click "Pin on Map" to calculate distances.'
-                  : 'Search your neighborhood/city or click "Pin on Map" to position your beacon.'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <form
-                onSubmit={handleManualSearch}
-                className="relative flex-1 sm:w-64"
-              >
-                <input
-                  type="text"
-                  value={manualQuery}
-                  onChange={(e) => setManualQuery(e.target.value)}
-                  placeholder="e.g. Quezon City, Pasig, BGC"
-                  className="w-full pl-8 pr-16 py-1.5 text-xs bg-white border border-amber-300 rounded-lg outline-none focus:ring-1 focus:ring-amber-500 text-gray-800"
-                />
-
-                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <button
-                  type="submit"
-                  disabled={searchingManual}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-[#1e3a8a] text-white px-2 py-0.5 rounded cursor-pointer hover:bg-blue-800 disabled:opacity-50"
+                  type="button"
+                  onClick={() => {
+                    setShowManualBar(false);
+                    setPermissionDenied(false);
+                    setIsManualPinMode(false);
+                  }}
+                  aria-label="Close location controls"
+                  className="text-gray-400 hover:text-gray-600 p-2 cursor-pointer"
                 >
-                  {searchingManual ? "Finding…" : "Find"}
+                  <X className="w-4 h-4" />
                 </button>
-              </form>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsManualPinMode((v) => !v);
-                  if (!isManualPinMode)
-                    toast.success(
-                      "Click anywhere on the map to set your location",
-                    );
-                }}
-                className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
-                  isManualPinMode
-                    ? "bg-amber-600 text-white border-amber-700 animate-pulse"
-                    : "bg-white text-gray-700 border-amber-300 hover:bg-amber-100/50"
-                }`}
-              >
-                <Crosshair className="w-3.5 h-3.5" />
-                <span>
-                  {isManualPinMode ? "Click on Map Now" : "Pin on Map"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setShowManualBar(false);
-                  setPermissionDenied(false);
-                  setIsManualPinMode(false);
-                }}
-                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ══ MAIN WORKSPACE: SIDEBAR + LEAFLET MAP ═══════════════════ */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Left Sidebar: Scrollable Item Cards */}
-        <div className="w-full md:w-[420px] lg:w-[460px] bg-[#fcfbfa] flex-shrink-0 flex flex-col h-full border-r border-gray-200 z-10 absolute md:relative top-0 left-0 bottom-0 pointer-events-none md:pointer-events-auto transition-transform">
-          <div className="p-4 flex-1 overflow-y-auto pointer-events-auto h-full space-y-3">
-            <div className="flex items-center justify-between mb-2">
-              <h1 className="text-base font-black text-gray-900 tracking-tight">
-                {selectedCategory
-                  ? `${selectedCategory} Equipment`
-                  : "Explore Nearby Equipment"}
-              </h1>
-              {selectedRadius && (
-                <span className="text-[11px] text-blue-700 font-bold bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                  within {selectedRadius} km
-                </span>
-              )}
-            </div>
-
-            {loading && !products.length ? (
-              <div className="flex justify-center p-12">
-                <LoadingSpinner />
               </div>
-            ) : products.length === 0 ? (
-              <div className="text-center p-12 text-gray-400 bg-white rounded-2xl border border-gray-100">
-                <MapPin className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                <p className="font-semibold text-gray-700 text-sm">
-                  No equipment found in this area
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Try expanding your radius, zooming out, or switching category.
-                </p>
-                {selectedRadius && (
-                  <button
-                    onClick={() => setSelectedRadius(null)}
-                    className="mt-3 text-xs text-[#1e3a8a] font-semibold hover:underline cursor-pointer"
-                  >
-                    Clear radius filter
-                  </button>
-                )}
-              </div>
-            ) : (
-              products.map((product) => {
-                const img = product.primary_image
-                  ? product.primary_image.startsWith("http")
-                    ? product.primary_image
-                    : apiAssetUrl(product.primary_image)
-                  : "/placeholder.svg";
-
-                const isHovered = hoveredId === product.id;
-                const isSelected = selectedId === product.id;
-                const distText = getItemDistance(
-                  product.latitude,
-                  product.longitude,
-                );
-
-                return (
-                  <div
-                    key={product.id}
-                    ref={(el) => (cardRefs.current[product.id] = el)}
-                    onMouseEnter={() => setHoveredId(product.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                    className={`bg-white rounded-2xl p-3 flex gap-3.5 border transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? "border-[#1e3a8a] shadow-md ring-2 ring-blue-100"
-                        : isHovered
-                          ? "border-blue-300 shadow-md translate-y-[-1px]"
-                          : "border-gray-100 shadow-xs hover:border-gray-200"
-                    }`}
-                    onClick={() => {
-                      setSelectedId(product.id);
-                      if (product.latitude && product.longitude) {
-                        setFlyTarget({
-                          coords: [product.latitude, product.longitude],
-                          zoom: 15,
-                        });
-                      }
-                    }}
-                  >
-                    {/* Image */}
-                    <div className="w-28 h-24 bg-[#f5f0e8] rounded-xl flex-shrink-0 overflow-hidden relative">
-                      <img
-                        src={img}
-                        alt={product.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 flex flex-col">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">
-                          {product.category}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                          <span className="text-xs font-bold text-gray-700">
-                            {Number(product.avg_rating || 0).toFixed(1)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-1 mb-0.5">
-                        {product.title}
-                      </h3>
-
-                      {/* Supplier & Distance Row */}
-                      <div className="text-[11px] text-gray-500 flex items-center justify-between gap-1 mb-1">
-                        <span className="truncate text-gray-600">
-                          By {product.supplier_name || "Verified Supplier"}
-                        </span>
-                        {distText && (
-                          <span className="text-[10px] font-bold text-[#1e3a8a] bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0">
-                            <Navigation className="w-2.5 h-2.5" />
-                            {distText}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-[11px] text-gray-500 flex items-center gap-1 line-clamp-1 mb-2">
-                        <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
-                        <span className="truncate font-medium text-gray-700">
-                          {product.barangay
-                            ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro`
-                            : product.location || "Roxas, Oriental Mindoro"}
-                        </span>
-                      </div>
-
-                      <div className="mt-auto flex items-end justify-between pt-1">
-                        <div>
-                          <span className="text-base font-black text-[#1e3a8a]">
-                            ₱{product.price_per_day?.toLocaleString()}
-                          </span>
-                          <span className="text-[11px] text-gray-400 font-medium">
-                            {" "}
-                            /day
-                          </span>
-                        </div>
-                        <Link
-                          to={`/product/${product.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-gray-100 hover:bg-[#1e3a8a] hover:text-white text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1"
-                        >
-                          View Details <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Side: Leaflet Interactive Map */}
-        <div className="flex-1 h-full z-0 relative bg-gray-100">
-          <MapContainer
-            center={defaultCenter}
-            zoom={13}
-            minZoom={12}
-            maxZoom={18}
-            maxBounds={ROXAS_BOUNDS}
-            maxBoundsViscosity={1.0}
-            style={{ width: "100%", height: "100%" }}
-            whenReady={(e) => {
-              const map = e.target;
-              const b = map.getBounds();
-              setBounds({
-                minLat: b.getSouth(),
-                maxLat: b.getNorth(),
-                minLng: b.getWest(),
-                maxLng: b.getEast(),
-                centerLat: map.getCenter().lat,
-                centerLng: map.getCenter().lng,
-              });
-            }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
-            <MapController flyTarget={flyTarget} onBoundsChange={setBounds} />
-            <MapClickHandler
-              active={isManualPinMode}
-              onSelectLocation={handleSelectMapPoint}
-            />
-
-            {/* Radius Overlay Circle */}
-            {selectedRadius && circleCenter && (
-              <Circle
-                center={circleCenter}
-                radius={selectedRadius * 1000}
-                pathOptions={{
-                  color: "#1e3a8a",
-                  fillColor: "#3b82f6",
-                  fillOpacity: 0.12,
-                  weight: 2,
-                  dashArray: "6, 6",
-                }}
-              />
-            )}
-
-            {/* User GPS Location Beacon */}
-            {userLocation && (
-              <Marker position={userLocation} icon={userBeaconIcon}>
-                <Popup className="rounded-xl overflow-hidden">
-                  <div className="text-center p-1.5 font-sans">
-                    <p className="font-bold text-gray-900 text-xs flex items-center justify-center gap-1">
-                      <span>📍</span>
-                      <span>You are here</span>
-                    </p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      {isGpsSource
-                        ? "High-Accuracy Browser GPS"
-                        : "Roxas Location Beacon"}
-                    </p>
-                    <p className="text-[10px] font-mono text-gray-400 mt-1">
-                      {userLocation[0].toFixed(5)}, {userLocation[1].toFixed(5)}
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-
-            {/* Product Markers with Rich Popups */}
-            {products.map((product) => {
-              if (!product.latitude || !product.longitude) return null;
-              const isHovered = hoveredId === product.id;
-              const isSelected = selectedId === product.id;
-              const distText = getItemDistance(
-                product.latitude,
-                product.longitude,
-              );
-
-              return (
-                <Marker
-                  key={product.id}
-                  position={[product.latitude, product.longitude]}
-                  icon={
-                    isHovered || isSelected
-                      ? highlightedItemIcon
-                      : new L.Icon.Default()
-                  }
-                  eventHandlers={{
-                    click: () => handleMarkerClick(product.id),
-                  }}
-                >
-                  <Popup className="rounded-2xl overflow-hidden shadow-xl">
-                    <div className="w-52 pb-1 font-sans">
-                      <div className="relative w-full h-28 overflow-hidden rounded-xl mb-2 bg-gray-100">
+        <div className="map-workspace">
+          <section className="map-results-panel" aria-label="Nearby equipment">
+            <div className="map-results-header">
+              <div>
+                <h2>Nearby equipment</h2>
+                <p role="status">
+                  {loading
+                    ? "Searching this area…"
+                    : loadError
+                      ? "Unable to load listings"
+                      : products.length +
+                        (products.length === 1
+                          ? " listing in view"
+                          : " listings in view")}
+                  {selectedRadius ? " · Within " + selectedRadius + " km" : ""}
+                </p>
+              </div>
+              <button
+                onClick={resetFilters}
+                aria-label="Reset map filters"
+                title="Reset filters"
+              >
+                <RotateCcw size={17} />
+              </button>
+            </div>
+            <p className="map-results-hint">
+              Select a price pin or a listing to explore.
+            </p>
+            <div className="map-result-cards">
+              {loadError ? (
+                <div className="map-empty" role="alert">
+                  <AlertCircle size={28} />
+                  <h3>Let’s try that again</h3>
+                  <p>{loadError}</p>
+                  <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
+                </div>
+              ) : loading && !products.length ? (
+                <div className="map-empty" role="status">
+                  <LoadingSpinner />
+                  <p>Finding equipment nearby…</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="map-empty">
+                  <MapPin size={30} />
+                  <h3>No equipment in this area</h3>
+                  <p>
+                    Try a wider radius, move the map, or explore another
+                    category.
+                  </p>
+                  <button onClick={resetFilters}>Reset filters</button>
+                </div>
+              ) : (
+                products.map((product) => {
+                  const distance = userLocation
+                    ? formatDistance(
+                        calculateDistance(
+                          ...userLocation,
+                          product.latitude,
+                          product.longitude,
+                        ),
+                      )
+                    : null;
+                  return (
+                    <article
+                      key={product.id}
+                      ref={(el) => (cardRefs.current[product.id] = el)}
+                      onMouseEnter={() => setHoveredId(product.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      className={
+                        selectedId === product.id
+                          ? "map-rental-card is-selected"
+                          : "map-rental-card"
+                      }
+                    >
+                      <button
+                        className="map-card-photo"
+                        onClick={() => showProductOnMap(product)}
+                        aria-label={"Show " + product.title + " on map"}
+                      >
                         <img
                           src={
-                            product.primary_image
-                              ? product.primary_image.startsWith("http")
-                                ? product.primary_image
-                                : apiAssetUrl(product.primary_image)
-                              : "/placeholder.svg"
+                            apiAssetUrl(product.primary_image) ||
+                            "/placeholder.svg"
                           }
-                          className="w-full h-full object-cover"
                           alt={product.title}
+                          loading="lazy"
+                          onError={(e) => {
+                            if (
+                              !e.currentTarget.src.endsWith("/placeholder.svg")
+                            )
+                              e.currentTarget.src = "/placeholder.svg";
+                          }}
                         />
-
-                        <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          {product.category}
+                        <span
+                          className={
+                            product.availability === "available"
+                              ? "available"
+                              : ""
+                          }
+                        >
+                          {product.availability === "available"
+                            ? "Available"
+                            : "Check availability"}
                         </span>
-                      </div>
-
-                      <h4 className="font-bold text-gray-900 text-sm mb-1 leading-tight line-clamp-1">
-                        {product.title}
-                      </h4>
-
-                      {/* Supplier Name */}
-                      <p className="text-[11px] text-gray-600 mb-1">
-                        Listed by:{" "}
-                        <strong className="text-gray-900 font-semibold">
-                          {product.supplier_name || "Verified Supplier"}
-                        </strong>
-                      </p>
-
-                      {/* Distance readout */}
-                      {distText && (
-                        <div className="flex items-center justify-between text-[11px] bg-blue-50 text-[#1e3a8a] px-2 py-1 rounded-lg font-semibold mb-2 border border-blue-100">
-                          <span className="flex items-center gap-1">
-                            <Navigation className="w-3 h-3" /> Distance:
-                          </span>
-                          <span className="font-bold">{distText}</span>
+                      </button>
+                      <div className="map-card-body">
+                        <div className="map-card-meta">
+                          <span>{product.category}</span>
+                          {Number(product.avg_rating) > 0 ? (
+                            <span>
+                              <Star size={13} fill="currentColor" />
+                              {Number(product.avg_rating).toFixed(1)}
+                            </span>
+                          ) : (
+                            <span>No reviews yet</span>
+                          )}
                         </div>
-                      )}
-
-                      <div className="text-[10px] text-gray-600 flex items-center gap-1 mb-2 line-clamp-1">
-                        <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
-                        <span className="truncate">
-                          {product.barangay
-                            ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro`
-                            : product.location || "Roxas, Oriental Mindoro"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-sm font-extrabold text-[#1e3a8a]">
-                          ₱{product.price_per_day?.toLocaleString()}{" "}
-                          <span className="text-[10px] font-normal text-gray-500">
-                            /day
+                        <h3>
+                          <button onClick={() => showProductOnMap(product)}>
+                            {product.title}
+                          </button>
+                        </h3>
+                        <p className="map-card-supplier">
+                          Listed by{" "}
+                          {product.supplier_name || "a local supplier"}
+                        </p>
+                        <div className="map-card-location">
+                          <MapPin size={14} />
+                          <span>
+                            {product.barangay
+                              ? product.barangay + ", Roxas"
+                              : product.location || "Roxas, Oriental Mindoro"}
                           </span>
-                        </span>
+                        </div>
+                        {distance && (
+                          <p className="map-card-distance">
+                            <Navigation size={13} />
+                            {distance}
+                            <span>from search point</span>
+                          </p>
+                        )}
+                        <div className="map-card-actions">
+                          <p>
+                            <strong>
+                              ₱
+                              {Number(
+                                product.price_per_day || 0,
+                              ).toLocaleString("en-PH")}
+                            </strong>
+                            <span> / day</span>
+                          </p>
+                          <Link to={"/product/" + product.id}>
+                            View details <ArrowRight size={16} />
+                          </Link>
+                        </div>
                       </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
+            <div className="map-results-footer">
+              <Compass size={17} />
+              <span>
+                Distances are straight-line estimates from your search point.
+              </span>
+            </div>
+          </section>
 
-                      <Link
-                        to={`/product/${product.id}`}
-                        className="block w-full bg-[#1e3a8a] hover:bg-blue-800 text-white text-center py-2 rounded-xl text-xs font-semibold shadow-xs transition"
-                      >
-                        View Details
-                      </Link>
+          {/* Right Side: Leaflet Interactive Map */}
+          <div
+            ref={mapPanelRef}
+            className={`map-canvas-panel ${isManualPinMode ? "is-pinning" : ""}`}
+            aria-label="Equipment map"
+          >
+            <div className="map-canvas-caption">
+              <span className="map-legend-dot" />
+              <span>
+                {isGpsSource ? "GPS search point" : "Selected search point"}
+              </span>
+              <span className="map-caption-divider" />
+              <span>Move the map to explore</span>
+            </div>
+            <MapContainer
+              center={defaultCenter}
+              zoom={13}
+              minZoom={12}
+              maxZoom={18}
+              maxBounds={ROXAS_BOUNDS}
+              maxBoundsViscosity={1.0}
+              style={{ width: "100%", height: "100%" }}
+              whenReady={(e) => {
+                const map = e.target;
+                const b = map.getBounds();
+                setBounds({
+                  minLat: b.getSouth(),
+                  maxLat: b.getNorth(),
+                  minLng: b.getWest(),
+                  maxLng: b.getEast(),
+                  centerLat: map.getCenter().lat,
+                  centerLng: map.getCenter().lng,
+                });
+              }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              <MapController flyTarget={flyTarget} onBoundsChange={setBounds} />
+              <MapClickHandler
+                active={isManualPinMode}
+                onSelectLocation={handleSelectMapPoint}
+              />
+
+              {/* Radius Overlay Circle */}
+              {selectedRadius && circleCenter && (
+                <Circle
+                  center={circleCenter}
+                  radius={selectedRadius * 1000}
+                  pathOptions={{
+                    color: "#1e3a8a",
+                    fillColor: "#3b82f6",
+                    fillOpacity: 0.12,
+                    weight: 2,
+                    dashArray: "6, 6",
+                  }}
+                />
+              )}
+
+              {/* User GPS Location Beacon */}
+              {userLocation && (
+                <Marker position={userLocation} icon={userBeaconIcon}>
+                  <Popup className="rounded-xl overflow-hidden">
+                    <div className="text-center p-1.5 font-sans">
+                      <p className="font-bold text-gray-900 text-xs flex items-center justify-center gap-1">
+                        <span>📍</span>
+                        <span>
+                          {isGpsSource
+                            ? "Your GPS location"
+                            : "Your search point"}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        {isGpsSource
+                          ? "High-Accuracy Browser GPS"
+                          : "Selected Roxas reference location"}
+                      </p>
+                      <p className="text-[10px] font-mono text-gray-400 mt-1">
+                        {userLocation[0].toFixed(5)},{" "}
+                        {userLocation[1].toFixed(5)}
+                      </p>
                     </div>
                   </Popup>
                 </Marker>
-              );
-            })}
-          </MapContainer>
+              )}
 
-          {/* Floating Manual Pin Mode Guide Pill */}
-          {isManualPinMode && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] bg-amber-500 text-white px-4 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-2 animate-bounce pointer-events-none">
-              <Crosshair className="w-4 h-4" />
-              <span>
-                Click anywhere on the map to place your location beacon
-              </span>
-            </div>
-          )}
+              {/* Product Markers with Rich Popups */}
+              {products.map((product) => {
+                if (!product.latitude || !product.longitude) return null;
+                const isHovered = hoveredId === product.id;
+                const isSelected = selectedId === product.id;
+                const distText = userLocation
+                  ? formatDistance(
+                      calculateDistance(
+                        ...userLocation,
+                        product.latitude,
+                        product.longitude,
+                      ),
+                    )
+                  : null;
 
-          {/* ══ DEVELOPER DEBUG PANEL: LOCATION INSPECTOR ══════════════ */}
-          {showDebugInspector && (
-            <div className="absolute bottom-4 right-4 z-[400] max-w-xs sm:max-w-sm w-full font-sans transition-all duration-300">
-              <div className="bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/70 rounded-2xl p-3.5 shadow-2xl space-y-2">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Bug className="w-4 h-4 text-amber-400" />
-                    <span className="font-bold text-xs tracking-wide">
-                      Location Inspector
-                    </span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">
-                      Live
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setIsInspectorMinimized((v) => !v)}
-                    className="text-slate-400 hover:text-white p-1 transition cursor-pointer"
-                    title={
-                      isInspectorMinimized
-                        ? "Expand inspector"
-                        : "Minimize inspector"
-                    }
+                return (
+                  <EquipmentMarker
+                    key={product.id}
+                    product={product}
+                    active={isHovered || isSelected}
+                    title={product.title}
+                    alt={`Show ${product.title}, ₱${Number(product.price_per_day).toLocaleString("en-PH")} per day`}
+                    zIndexOffset={isSelected || isHovered ? 1000 : 0}
+                    eventHandlers={{
+                      click: () => handleMarkerClick(product.id),
+                    }}
                   >
-                    {isInspectorMinimized ? (
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
+                    <Popup>
+                      <div className="w-52 pb-1 font-sans">
+                        <div className="relative w-full h-28 overflow-hidden rounded-xl mb-2 bg-gray-100">
+                          <img
+                            src={
+                              product.primary_image
+                                ? product.primary_image.startsWith("http")
+                                  ? product.primary_image
+                                  : apiAssetUrl(product.primary_image)
+                                : "/placeholder.svg"
+                            }
+                            className="w-full h-full object-cover"
+                            alt={product.title}
+                          />
 
-                {!isInspectorMinimized && (
-                  <div className="space-y-2 text-[11px] pt-1">
-                    {/* User GPS Coordinates */}
-                    <div className="bg-slate-800/80 rounded-xl p-2 border border-slate-700/50">
-                      <div className="text-slate-400 font-medium flex items-center justify-between mb-1">
-                        <span>User Coordinates:</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
-                            isGpsSource
-                              ? "bg-emerald-900/60 text-emerald-300"
-                              : "bg-blue-900/60 text-blue-300"
-                          }`}
-                        >
-                          {userLocation
-                            ? isGpsSource
-                              ? "GPS (High Accuracy)"
-                              : "Manual Pin"
-                            : "Not Set"}
-                        </span>
-                      </div>
-                      <div className="font-mono text-emerald-400 font-bold">
-                        {userLocation
-                          ? `${userLocation[0].toFixed(6)}, ${userLocation[1].toFixed(6)}`
-                          : "Awaiting GPS prompt..."}
-                      </div>
-                    </div>
-
-                    {/* Active/Target Equipment Coordinates */}
-                    <div className="bg-slate-800/80 rounded-xl p-2 border border-slate-700/50">
-                      <div className="text-slate-400 font-medium truncate mb-1">
-                        Equipment:{" "}
-                        <span className="text-white font-semibold">
-                          {activeProduct
-                            ? activeProduct.title
-                            : "None selected"}
-                        </span>
-                      </div>
-                      {activeProduct ? (
-                        <>
-                          <div className="font-mono text-blue-400 font-bold mb-0.5">
-                            {activeProduct.latitude && activeProduct.longitude
-                              ? `${Number(activeProduct.latitude).toFixed(6)}, ${Number(activeProduct.longitude).toFixed(6)}`
-                              : "No GPS calibrated"}
-                          </div>
-                          <div className="text-emerald-300 text-[10px] font-semibold truncate">
-                            {activeProduct.barangay
-                              ? `Brgy. ${activeProduct.barangay}, Roxas`
-                              : "Roxas, Oriental Mindoro"}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-slate-500 italic text-[10px]">
-                          Hover or click a card/pin
+                          <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            {product.category}
+                          </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Calculated Haversine Distance */}
-                    <div className="bg-slate-800/80 rounded-xl p-2 border border-slate-700/50 flex items-center justify-between">
-                      <span className="text-slate-400 font-medium">
-                        Haversine Distance:
-                      </span>
-                      <span className="font-mono text-amber-300 font-extrabold text-xs">
-                        {activeDistanceKm != null
-                          ? `${activeDistanceKm.toFixed(3)} km (${Math.round(activeDistanceKm * 1000)} m)`
-                          : "N/A (No Coords)"}
-                      </span>
-                    </div>
+                        <h4 className="font-bold text-gray-900 text-sm mb-1 leading-tight line-clamp-1">
+                          {product.title}
+                        </h4>
 
-                    {/* Radius & Listings Count */}
-                    <div className="flex items-center justify-between text-slate-400 text-[10px] px-1 pt-0.5">
-                      <span>
-                        Radius:{" "}
-                        <strong className="text-white">
-                          {selectedRadius ? `${selectedRadius} km` : "All"}
-                        </strong>
-                      </span>
-                      <span>
-                        Barangay:{" "}
-                        <strong className="text-white">
-                          {selectedBarangay || "All"}
-                        </strong>
-                      </span>
-                      <span>
-                        Listings:{" "}
-                        <strong className="text-white">
-                          {products.length}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-                )}
+                        {/* Supplier Name */}
+                        <p className="text-[11px] text-gray-600 mb-1">
+                          Listed by:{" "}
+                          <strong className="text-gray-900 font-semibold">
+                            {product.supplier_name || "Local supplier"}
+                          </strong>
+                        </p>
+
+                        {/* Distance readout */}
+                        {distText && (
+                          <div className="flex items-center justify-between text-[11px] bg-blue-50 text-[#1e3a8a] px-2 py-1 rounded-lg font-semibold mb-2 border border-blue-100">
+                            <span className="flex items-center gap-1">
+                              <Navigation className="w-3 h-3" /> Distance:
+                            </span>
+                            <span className="font-bold">{distText}</span>
+                          </div>
+                        )}
+
+                        <div className="text-[10px] text-gray-600 flex items-center gap-1 mb-2 line-clamp-1">
+                          <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
+                          <span className="truncate">
+                            {product.barangay
+                              ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro`
+                              : product.location || "Roxas, Oriental Mindoro"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-2.5">
+                          <span className="text-sm font-extrabold text-[#1e3a8a]">
+                            ₱{product.price_per_day?.toLocaleString()}{" "}
+                            <span className="text-[10px] font-normal text-gray-500">
+                              /day
+                            </span>
+                          </span>
+                        </div>
+
+                        <Link
+                          to={`/product/${product.id}`}
+                          className="block w-full bg-[#1e3a8a] hover:bg-blue-800 text-white text-center py-2 rounded-xl text-xs font-semibold shadow-xs transition"
+                        >
+                          View Details
+                        </Link>
+                      </div>
+                    </Popup>
+                  </EquipmentMarker>
+                );
+              })}
+            </MapContainer>
+
+            {/* Floating Manual Pin Mode Guide Pill */}
+            {isManualPinMode && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] bg-amber-500 text-white px-4 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-2 animate-bounce pointer-events-none">
+                <Crosshair className="w-4 h-4" />
+                <span>Click a point in Roxas to set your search location</span>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* ══ DEVELOPER DEBUG PANEL: LOCATION INSPECTOR ══════════════ */}
+            {showDebugInspector && (
+              <div className="absolute bottom-4 right-4 z-[400] max-w-xs sm:max-w-sm w-full font-sans transition-all duration-300">
+                <div className="bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/70 rounded-2xl p-3.5 shadow-2xl space-y-2">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Bug className="w-4 h-4 text-amber-400" />
+                      <span className="font-bold text-xs tracking-wide">
+                        Location Inspector
+                      </span>
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">
+                        Live
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setIsInspectorMinimized((v) => !v)}
+                      className="text-slate-400 hover:text-white p-1 transition cursor-pointer"
+                      title={
+                        isInspectorMinimized
+                          ? "Expand inspector"
+                          : "Minimize inspector"
+                      }
+                    >
+                      {isInspectorMinimized ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {!isInspectorMinimized && (
+                    <div className="space-y-2 text-[11px] pt-1">
+                      {/* User GPS Coordinates */}
+                      <div className="bg-slate-800/80 rounded-xl p-2 border border-slate-700/50">
+                        <div className="text-slate-400 font-medium flex items-center justify-between mb-1">
+                          <span>User Coordinates:</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+                              isGpsSource
+                                ? "bg-emerald-900/60 text-emerald-300"
+                                : "bg-blue-900/60 text-blue-300"
+                            }`}
+                          >
+                            {userLocation
+                              ? isGpsSource
+                                ? "GPS (High Accuracy)"
+                                : "Manual Pin"
+                              : "Not Set"}
+                          </span>
+                        </div>
+                        <div className="font-mono text-emerald-400 font-bold">
+                          {userLocation
+                            ? `${userLocation[0].toFixed(6)}, ${userLocation[1].toFixed(6)}`
+                            : "Awaiting GPS prompt..."}
+                        </div>
+                      </div>
+
+                      {/* Active/Target Equipment Coordinates */}
+                      <div className="bg-slate-800/80 rounded-xl p-2 border border-slate-700/50">
+                        <div className="text-slate-400 font-medium truncate mb-1">
+                          Equipment:{" "}
+                          <span className="text-white font-semibold">
+                            {activeProduct
+                              ? activeProduct.title
+                              : "None selected"}
+                          </span>
+                        </div>
+                        {activeProduct ? (
+                          <>
+                            <div className="font-mono text-blue-400 font-bold mb-0.5">
+                              {activeProduct.latitude && activeProduct.longitude
+                                ? `${Number(activeProduct.latitude).toFixed(6)}, ${Number(activeProduct.longitude).toFixed(6)}`
+                                : "No GPS calibrated"}
+                            </div>
+                            <div className="text-emerald-300 text-[10px] font-semibold truncate">
+                              {activeProduct.barangay
+                                ? `Brgy. ${activeProduct.barangay}, Roxas`
+                                : "Roxas, Oriental Mindoro"}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-slate-500 italic text-[10px]">
+                            Hover or click a card/pin
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Calculated Haversine Distance */}
+                      <div className="bg-slate-800/80 rounded-xl p-2 border border-slate-700/50 flex items-center justify-between">
+                        <span className="text-slate-400 font-medium">
+                          Haversine Distance:
+                        </span>
+                        <span className="font-mono text-amber-300 font-extrabold text-xs">
+                          {activeDistanceKm != null
+                            ? `${activeDistanceKm.toFixed(3)} km (${Math.round(activeDistanceKm * 1000)} m)`
+                            : "N/A (No Coords)"}
+                        </span>
+                      </div>
+
+                      {/* Radius & Listings Count */}
+                      <div className="flex items-center justify-between text-slate-400 text-[10px] px-1 pt-0.5">
+                        <span>
+                          Radius:{" "}
+                          <strong className="text-white">
+                            {selectedRadius ? `${selectedRadius} km` : "All"}
+                          </strong>
+                        </span>
+                        <span>
+                          Barangay:{" "}
+                          <strong className="text-white">
+                            {selectedBarangay || "All"}
+                          </strong>
+                        </span>
+                        <span>
+                          Listings:{" "}
+                          <strong className="text-white">
+                            {products.length}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
