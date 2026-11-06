@@ -72,6 +72,8 @@ export default function GoogleSignInButton({
       onCredentialRef.current?.(credential);
     credentialHandler = handleCredential;
     let cancelled = false;
+    let resizeObserver;
+    const container = buttonRef.current;
 
     if (!clientId)
       return () => {
@@ -100,18 +102,28 @@ export default function GoogleSignInButton({
           initializedClientId = clientId;
         }
 
-        buttonRef.current.replaceChildren();
-        googleIdentity.renderButton(buttonRef.current, {
-          type: "standard",
-          theme: "outline",
-          // Google personalizes large buttons for returning sessions. Use
-          // medium to keep the generic "Continue with Google" label.
-          size: "medium",
-          text: "continue_with",
-          shape: "rectangular",
-          logo_alignment: "left",
-          width: 400,
-        });
+        let lastWidth = 0;
+        const renderButton = () => {
+          if (cancelled || !container) return;
+          const width = Math.min(400, Math.floor(container.clientWidth));
+          if (!width || width === lastWidth) return;
+          lastWidth = width;
+          container.replaceChildren();
+          googleIdentity.renderButton(container, {
+            type: "standard",
+            theme: "outline",
+            // Google personalizes large buttons for returning sessions. Use
+            // medium to keep the generic "Continue with Google" label.
+            size: "medium",
+            text: "continue_with",
+            shape: "rectangular",
+            logo_alignment: "left",
+            width,
+          });
+        };
+        renderButton();
+        resizeObserver = new ResizeObserver(renderButton);
+        resizeObserver.observe(container);
       })
       .catch((error) => {
         if (!cancelled)
@@ -122,8 +134,9 @@ export default function GoogleSignInButton({
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       if (credentialHandler === handleCredential) credentialHandler = null;
-      if (buttonRef.current) buttonRef.current.replaceChildren();
+      container?.replaceChildren();
     };
   }, [clientId]);
 
@@ -151,10 +164,10 @@ export default function GoogleSignInButton({
   }
 
   return (
-    <div>
+    <div className="min-w-0 w-full">
       <div
         ref={buttonRef}
-        className={`w-full flex justify-center ${disabled ? "pointer-events-none opacity-60" : ""}`}
+        className={`w-full min-w-0 [contain:inline-size] flex justify-center ${disabled ? "pointer-events-none opacity-60" : ""}`}
         aria-disabled={disabled}
       />
       {loadError && (
