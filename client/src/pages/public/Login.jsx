@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ArrowLeft,
   Check,
   AlertCircle,
   Loader2,
@@ -195,28 +194,18 @@ export default function Login() {
 
       {/* ══ RIGHT PANEL — cream form ════════════════════════════ */}
       <div className="min-w-0 flex-1 bg-[#f5f0e8] flex flex-col">
-        {/* Back to site */}
-        <div className="mx-auto flex w-full max-w-xl justify-start px-5 pt-4 sm:px-8 sm:pt-6 lg:max-w-none lg:justify-end">
-          <Link
-            to="/"
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-slate-600 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back to site
-          </Link>
-        </div>
-
         {/* Form centred vertically */}
-        <div className="flex min-w-0 flex-1 items-start justify-center px-4 pb-10 pt-4 sm:px-8 sm:pt-6 lg:items-center lg:pb-12">
-          <div className="w-full min-w-0 max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-8">
+        <div className="flex min-w-0 flex-1 items-center justify-center px-3 py-5 sm:px-8 sm:py-8 lg:pb-12">
+          <div className="w-full min-w-0 max-w-md rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-8">
             {/* Heading */}
-            <div className="mb-7">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1e3a8a]">
+            <div className="mb-5 sm:mb-7">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-[#1e3a8a] sm:mb-5 sm:h-12 sm:w-12">
                 <KeyRound className="h-6 w-6" aria-hidden="true" />
               </div>
               <div className="text-amber-700 text-[11px] font-bold tracking-[0.15em] uppercase mb-2">
                 YOUR RENT-A-WAY ACCOUNT
               </div>
-              <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-[#0f1729] mb-3 sm:text-3xl">
+              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#0f1729] mb-2 sm:mb-3 sm:text-3xl">
                 Welcome back.
               </h1>
               <p className="text-sm text-slate-500 leading-relaxed">
@@ -244,13 +233,13 @@ export default function Login() {
               onSubmit={handleSubmit}
               noValidate
               aria-busy={busy}
-              className="space-y-5"
+              className="space-y-4 sm:space-y-5"
             >
               {/* Email */}
               <div>
                 <label
                   htmlFor="login-email"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
+                  className="mb-1.5 block text-sm font-semibold text-slate-700 sm:mb-2"
                 >
                   Email address
                 </label>
@@ -279,7 +268,7 @@ export default function Login() {
                     }}
                     placeholder="you@example.com"
                     required
-                    className="min-h-[52px] w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-4 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10"
+                    className="min-h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-4 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10 sm:min-h-[52px]"
                   />
                 </div>
                 {fieldErrors.email && (
@@ -296,7 +285,7 @@ export default function Login() {
               <div>
                 <label
                   htmlFor="login-password"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
+                  className="mb-1.5 block text-sm font-semibold text-slate-700 sm:mb-2"
                 >
                   Password
                 </label>
@@ -334,7 +323,7 @@ export default function Login() {
                     }}
                     placeholder="Enter your password"
                     required
-                    className="min-h-[52px] w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-12 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10"
+                    className="min-h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-12 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10 sm:min-h-[52px]"
                   />
 
                   <button
@@ -374,7 +363,7 @@ export default function Login() {
 
               {/* Keep signed in + Forgot */}
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs sm:text-sm">
-                <label className="flex min-h-11 cursor-pointer items-center gap-2 text-slate-600">
+                <label className="flex min-h-10 cursor-pointer items-center gap-2 text-slate-600 sm:min-h-11">
                   <input
                     type="checkbox"
                     disabled={busy}
@@ -386,7 +375,7 @@ export default function Login() {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="inline-flex min-h-11 items-center font-semibold text-[#1e3a8a] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+                  className="inline-flex min-h-10 items-center font-semibold text-[#1e3a8a] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 sm:min-h-11"
                 >
                   Forgot password?
                 </Link>
@@ -396,7 +385,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading || googleLoading}
-                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[52px]"
               >
                 {busy ? (
                   <>
@@ -416,7 +405,7 @@ export default function Login() {
             </form>
 
             {/* Visual Divider */}
-            <div className="flex items-center gap-3 my-6">
+            <div className="my-4 flex items-center gap-3 sm:my-6">
               <div className="flex-1 h-px bg-gray-200" />
               <span className="text-[11px] text-gray-400 font-medium">
                 or continue with
@@ -437,11 +426,11 @@ export default function Login() {
             />
 
             {/* Register link */}
-            <p className="mt-6 border-t border-slate-100 pt-5 text-center text-sm leading-7 text-slate-500">
+            <p className="mt-4 border-t border-slate-100 pt-4 text-center text-sm leading-7 text-slate-500 sm:mt-6 sm:pt-5">
               New to Rent-A-Way?{" "}
               <Link
                 to="/register"
-                className="inline-flex min-h-11 items-center rounded-md text-[#1e3a8a] font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+                className="inline-flex min-h-10 items-center rounded-md text-[#1e3a8a] font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 sm:min-h-11"
               >
                 Create an account
               </Link>

@@ -56,7 +56,7 @@ export default function AdminRecords({
 }) {
   const { data, loading, error, page, totalPages, setPage, reload } = list;
   return (
-    <div className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-8 pt-5 sm:px-6 sm:pt-8">
+    <div className="mx-auto w-full min-w-0 max-w-7xl px-3 pb-8 pt-5 sm:px-6 sm:pt-8">
       <Link
         to="/admin/dashboard"
         className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-slate-600 hover:text-blue-800"
@@ -76,7 +76,11 @@ export default function AdminRecords({
             {description}
           </p>
         </div>
-        {action}
+        {action && (
+          <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
+            {action}
+          </div>
+        )}
       </header>
       <nav
         aria-label="Admin sections"
@@ -264,14 +268,14 @@ export default function AdminRecords({
           )}
         </div>
         {!loading && !error && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-3 py-4 sm:px-5">
             <p role="status" className="text-xs text-slate-500">
               {data.length} {noun} on this page
             </p>
             {totalPages > 1 && (
               <nav
                 aria-label="Result pages"
-                className="flex items-center gap-2"
+                className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start"
               >
                 <button
                   aria-label="Previous page"

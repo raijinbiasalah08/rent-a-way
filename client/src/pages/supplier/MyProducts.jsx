@@ -24,11 +24,13 @@ export default function MyProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
   const [error, setError] = useState("");
 
   const fetchProducts = () => {
     setLoading(true);
+    setError("");
     api
       .get("/products/mine")
       .then((res) => setProducts(res.data.data || []))
@@ -55,6 +57,7 @@ export default function MyProducts() {
 
   const toggleAvailability = async (product) => {
     const next = product.availability === "available" ? "rented" : "available";
+    setUpdatingId(product.id);
     try {
       await api.put(`/products/${product.id}`, {
         title: product.title,
@@ -73,28 +76,40 @@ export default function MyProducts() {
       );
     } catch {
       setError("Failed to update availability.");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 font-sans">
+    <main className="mx-auto w-full max-w-6xl px-3 py-6 font-sans sm:px-5 sm:py-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">My Listings</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {products.length} listing{products.length !== 1 ? "s" : ""}
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+            Supplier workspace
           </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            My Listings
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage availability, pricing, and equipment details.
+          </p>
+          {!loading && !error && (
+            <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+              {products.length} listing{products.length === 1 ? "" : "s"}
+            </span>
+          )}
         </div>
         <Link
           to="/supplier/products/new"
-          className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] sm:w-auto"
         >
           <Plus className="w-4 h-4" /> Add New Listing
         </Link>
       </div>
 
-      {error && (
+      {error && products.length > 0 && (
         <div className="mb-5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {error}
           <button
@@ -109,6 +124,23 @@ export default function MyProducts() {
       {loading ? (
         <div className="flex justify-center py-24">
           <div className="w-8 h-8 border-4 border-[#1e3a8a] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : error && products.length === 0 ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-white px-5 py-10 text-center"
+        >
+          <h2 className="font-bold text-gray-900">
+            Couldn’t load your listings
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">{error}</p>
+          <button
+            type="button"
+            onClick={fetchProducts}
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#1e3a8a] px-5 font-semibold text-white"
+          >
+            Try again
+          </button>
         </div>
       ) : products.length === 0 ? (
         <div className="text-center py-24 bg-white rounded-2xl border border-gray-100">
@@ -142,6 +174,10 @@ export default function MyProducts() {
                     src={apiAssetUrl(product.primary_image)}
                     alt={product.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = "/placeholder.svg";
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -182,24 +218,29 @@ export default function MyProducts() {
 
                 {/* Toggle availability */}
                 <button
+                  type="button"
+                  disabled={updatingId === product.id}
+                  aria-pressed={product.availability === "available"}
                   onClick={() => toggleAvailability(product)}
-                  className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 mb-4 transition"
+                  className="mb-4 flex min-h-11 items-center gap-2 rounded-lg text-xs text-gray-500 transition hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 disabled:opacity-60"
                 >
                   {product.availability === "available" ? (
                     <ToggleRight className="w-4 h-4 text-green-500" />
                   ) : (
                     <ToggleLeft className="w-4 h-4 text-gray-400" />
                   )}
-                  {product.availability === "available"
-                    ? "Listed as available"
-                    : "Listed as unavailable"}
+                  {updatingId === product.id
+                    ? "Updating availability…"
+                    : product.availability === "available"
+                      ? "Listed as available"
+                      : "Listed as unavailable"}
                 </button>
 
                 {/* Actions */}
                 <div className="flex gap-2 mt-auto">
                   <Link
                     to={`/supplier/products/${product.id}/edit`}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 hover:border-[#1e3a8a] hover:text-[#1e3a8a] text-gray-600 text-xs font-semibold py-2 rounded-lg transition"
+                    className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#1e3a8a] hover:text-[#1e3a8a]"
                   >
                     <Edit2 className="w-3.5 h-3.5" /> Edit
                   </Link>
@@ -208,13 +249,13 @@ export default function MyProducts() {
                       <button
                         onClick={() => handleDelete(product.id)}
                         disabled={deletingId === product.id}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-2 rounded-lg transition disabled:opacity-60"
+                        className="min-h-11 flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                       >
                         {deletingId === product.id ? "…" : "Yes, delete"}
                       </button>
                       <button
                         onClick={() => setConfirmId(null)}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold py-2 rounded-lg transition"
+                        className="min-h-11 flex-1 rounded-lg bg-gray-100 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-200"
                       >
                         Cancel
                       </button>
@@ -222,7 +263,7 @@ export default function MyProducts() {
                   ) : (
                     <button
                       onClick={() => setConfirmId(product.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-2 rounded-lg transition"
+                      className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
@@ -233,6 +274,6 @@ export default function MyProducts() {
           ))}
         </div>
       )}
-    </div>
+    </main>
   );
 }

@@ -43,19 +43,26 @@ function ProductCard({ product }) {
           src={image}
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg";
+          }}
         />
         <div className="absolute top-3 left-3">
           <StatusBadge status={product.availability || "available"} />
         </div>
         <button
+          type="button"
+          aria-label={`Remove ${product.title} from favorites`}
+          title="Remove from favorites"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             toggleFavorite(product.product_id);
           }}
-          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition"
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
         >
           <svg
+            aria-hidden="true"
             className="w-4 h-4 text-red-500 fill-current"
             viewBox="0 0 24 24"
             fill="none"
@@ -115,31 +122,79 @@ function ProductCard({ product }) {
 export default function Favorites() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   const { favoriteIds } = useFavorites();
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
     getFavorites()
-      .then((res) => setFavorites(res.data.data.items))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [favoriteIds]); // Refetch if un-favorited
+      .then((res) => {
+        if (active) setFavorites(res.data?.data?.items || []);
+      })
+      .catch(() => {
+        if (active) setError("We couldn’t load your saved equipment.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [favoriteIds, retry]);
 
   return (
-    <div className="min-h-screen bg-[#f5f0e8] py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-          My Favorites
-        </h1>
-        <p className="text-sm text-gray-500 mb-8">
-          Items you have saved for later.
-        </p>
+    <main className="min-h-[70vh] bg-[#f6f5f1] px-3 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
+          <div>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+              Your account
+            </p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+              My Favorites
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Keep your shortlisted equipment handy.
+            </p>
+          </div>
+          {!loading && !error && favorites.length > 0 && (
+            <span className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+              {favorites.length} saved item{favorites.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div
+            role="status"
+            className="flex min-h-64 items-center justify-center rounded-2xl border border-slate-200 bg-white"
+          >
             <LoadingSpinner />
           </div>
+        ) : error ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-200 bg-white px-5 py-10 text-center sm:py-14"
+          >
+            <h2 className="text-lg font-bold text-slate-900">
+              Saved items are unavailable
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+              {error} Your favorites are still saved to your account.
+            </p>
+            <button
+              type="button"
+              onClick={() => setRetry((current) => current + 1)}
+              className="btn-primary mt-5 min-h-11"
+            >
+              Try again
+            </button>
+          </div>
         ) : favorites.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center shadow-sm sm:py-14">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
               <Heart className="w-8 h-8 text-red-400" />
             </div>
@@ -152,7 +207,7 @@ export default function Favorites() {
             </p>
             <Link
               to="/browse"
-              className="bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold px-6 py-3 rounded-xl transition"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1e3a8a] px-6 py-3 font-semibold text-white transition hover:bg-[#1d4ed8] sm:w-auto"
             >
               Browse Equipment
             </Link>
@@ -165,6 +220,6 @@ export default function Favorites() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }
