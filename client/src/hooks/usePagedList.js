@@ -8,12 +8,14 @@ export default function usePagedList(url, filters = {}) {
     [totalPages, setTotalPages] = useState(1),
     [revision, setRevision] = useState(0);
   const filterKey = JSON.stringify(filters);
+  const [error, setError] = useState(null);
   useEffect(() => {
     setPage(1);
   }, [filterKey]);
   useEffect(() => {
     let current = true;
     setLoading(true);
+    setError(null);
     api
       .get(url, { params: { ...JSON.parse(filterKey), page, limit: 50 } })
       .then((result) => {
@@ -23,10 +25,12 @@ export default function usePagedList(url, filters = {}) {
         }
       })
       .catch((error) => {
-        if (current)
+        if (current) {
+          setError(error);
           toast.error(
             error.response?.data?.message || "Could not load records.",
           );
+        }
       })
       .finally(() => {
         if (current) setLoading(false);
@@ -38,6 +42,7 @@ export default function usePagedList(url, filters = {}) {
   return {
     data,
     loading,
+    error,
     page,
     setPage,
     totalPages,

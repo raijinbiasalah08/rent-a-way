@@ -1,352 +1,332 @@
-import { useState, useEffect } from "react";
-import { getUsers, updateUser, deleteUser } from "../../api/admin";
-import { createAdminUser as register } from "../../api/admin";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import { useRef, useState } from "react";
+import { Users as UsersIcon, Plus, Pencil } from "lucide-react";
+import { createAdminUser, updateUser } from "../../api/admin";
 import toast from "react-hot-toast";
 import usePagedList from "../../hooks/usePagedList";
-import PageControls from "../../components/PageControls";
+import AdminRecords, {
+  AdminBadge,
+  AdminFilter,
+  adminActionClass,
+  adminDate,
+} from "../../components/AdminRecords";
+import AdminDialog from "../../components/AdminDialog";
 
 const ROLE_COLORS = {
-  admin: "bg-red-100 text-red-700",
-  supplier: "bg-blue-100 text-blue-700",
-  customer: "bg-green-100 text-green-700",
+  admin: "bg-rose-50 text-rose-700",
+  supplier: "bg-blue-50 text-blue-700",
+  customer: "bg-emerald-50 text-emerald-700",
 };
+const blankUser = () => ({
+  name: "",
+  email: "",
+  password: "",
+  role: "customer",
+  is_active: 1,
+});
 
 export default function Users() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [editUser, setEditUser] = useState(null);
+  const [dialog, setDialog] = useState(null);
+  const [form, setForm] = useState(blankUser);
   const [saving, setSaving] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
-
-  // Create user form state
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("customer");
-  const [creating, setCreating] = useState(false);
-
+  const [formError, setFormError] = useState("");
+  const savingRef = useRef(false);
   const list = usePagedList("/admin/users", { search, role: roleFilter });
-  const { data: users, loading, reload: fetchUsers } = list;
 
-  const handleToggleActive = async (user) => {
-    try {
-      await updateUser(user.id, {
-        name: user.name,
-        role: user.role,
-        is_active: user.is_active ? 0 : 1,
-      });
-      toast.success(`User ${user.is_active ? "deactivated" : "activated"}`);
-      fetchUsers();
-    } catch {
-      toast.error("Failed to update user");
-    }
+  const openDialog = (mode, user) => {
+    setFormError("");
+    setForm(user ? { ...user, password: "" } : blankUser());
+    setDialog(mode);
   };
-
-  const handleSaveEdit = async () => {
+  const closeDialog = () => {
+    if (!savingRef.current) setDialog(null);
+  };
+  const change = (key) => (e) =>
+    setForm((previous) => ({ ...previous, [key]: e.target.value }));
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (savingRef.current) return;
+    const name = form.name.trim();
+    if (!name) {
+      setFormError("Enter a name.");
+      return;
+    }
+    if (dialog === "create" && form.password.length < 12) {
+      setFormError("Use at least 12 characters for the password.");
+      return;
+    }
+    setFormError("");
+    savingRef.current = true;
     setSaving(true);
     try {
-      await updateUser(editUser.id, {
-        name: editUser.name,
-        role: editUser.role,
-        is_active: editUser.is_active,
-      });
-      toast.success("User updated");
-      setEditUser(null);
-      fetchUsers();
-    } catch {
-      toast.error("Failed to update user");
+      if (dialog === "create") {
+        await createAdminUser({
+          name,
+          email: form.email.trim(),
+          password: form.password,
+          role: form.role,
+        });
+      } else {
+        await updateUser(form.id, {
+          name,
+          role: form.role,
+          is_active:
+            dialog === "status"
+              ? form.is_active
+                ? 0
+                : 1
+              : Number(form.is_active),
+        });
+      }
+      toast.success(dialog === "create" ? "User created" : "User updated");
+      setDialog(null);
+      list.reload();
+    } catch (err) {
+      setFormError(
+        err.response?.data?.message ||
+          "Could not save your changes. Please try again.",
+      );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
-
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    if (!newName || !newEmail || !newPassword)
-      return toast.error("Please fill all fields");
-    if (newPassword.length < 12)
-      return toast.error("Password must be at least 12 characters");
-
-    setCreating(true);
-    try {
-      // Create user using the auth register endpoint
-      await register({
-        name: newName,
-        email: newEmail,
-        password: newPassword,
-        role: newRole,
-      });
-      toast.success("User created successfully");
-      setShowCreate(false);
-      setNewName("");
-      setNewEmail("");
-      setNewPassword("");
-      setNewRole("customer");
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create user");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-navy-700">Manage Users</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="btn-primary text-sm px-4 py-2"
+  const columns = [
+    { key: "name", label: "Name", render: (u) => u.name || "Unnamed user" },
+    {
+      key: "email",
+      label: "Email address",
+      wide: true,
+      render: (u) => u.email || "—",
+    },
+    {
+      key: "role",
+      label: "Role",
+      render: (u) => (
+        <AdminBadge className={ROLE_COLORS[u.role]}>{u.role}</AdminBadge>
+      ),
+    },
+    {
+      key: "status",
+      label: "Account status",
+      render: (u) => (
+        <AdminBadge
+          className={
+            u.is_active
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-red-50 text-red-700"
+          }
         >
-          + Add User
-        </button>
-      </div>
-
-      <PageControls {...list} />
-      <div className="card overflow-x-auto">
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            className="input flex-1"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <select
-            className="input w-full sm:w-40"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+          {u.is_active ? "Active" : "Suspended"}
+        </AdminBadge>
+      ),
+    },
+    { key: "phone", label: "Phone", render: (u) => u.phone || "Not provided" },
+    { key: "joined", label: "Joined", render: (u) => adminDate(u.created_at) },
+    {
+      key: "actions",
+      label: "Manage account",
+      wide: true,
+      render: (u) => (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => openDialog("edit", u)}
+            className={adminActionClass}
           >
-            <option value="">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="supplier">Supplier</option>
-            <option value="customer">Customer</option>
-          </select>
+            <Pencil size={14} className="mr-2" aria-hidden="true" />
+            Edit
+          </button>
+          <button
+            onClick={() => openDialog("status", u)}
+            className={adminActionClass}
+          >
+            {u.is_active ? "Suspend" : "Reactivate"}
+          </button>
         </div>
-
-        {loading ? (
-          <LoadingSpinner />
-        ) : users.length === 0 ? (
-          <p className="text-gray-400 text-center py-8">No users found.</p>
-        ) : (
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-gray-200 text-gray-500">
-                <th className="pb-3 font-medium">Name</th>
-                <th className="pb-3 font-medium">Email</th>
-                <th className="pb-3 font-medium">Role</th>
-                <th className="pb-3 font-medium">Phone</th>
-                <th className="pb-3 font-medium">Status</th>
-                <th className="pb-3 font-medium">Joined</th>
-                <th className="pb-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr
-                  key={u.id}
-                  className="border-b border-gray-100 hover:bg-cream-50 transition"
-                >
-                  <td className="py-3 font-medium text-navy-700">{u.name}</td>
-                  <td className="py-3 text-gray-600">{u.email}</td>
-                  <td className="py-3">
-                    <span
-                      className={`badge text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[u.role] || "bg-gray-100 text-gray-700"}`}
-                    >
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="py-3 text-gray-500">{u.phone || "—"}</td>
-                  <td className="py-3">
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${u.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
-                    >
-                      {u.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="py-3 text-gray-400 text-xs">
-                    {new Date(u.created_at).toLocaleDateString("en-PH", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </td>
-                  <td className="py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditUser({ ...u })}
-                        className="text-xs text-navy-600 hover:underline font-semibold"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleToggleActive(u)}
-                        className={`text-xs font-semibold hover:underline ${u.is_active ? "text-red-500" : "text-green-600"}`}
-                      >
-                        {u.is_active ? "Suspend" : "Unsuspend"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <div className="mt-4 text-xs text-gray-400">
-          {users.length} user(s) found
-        </div>
-      </div>
-
-      {/* Edit Modal */}
-      {editUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h2 className="font-bold text-lg text-navy-700 mb-4">Edit User</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="label">Name</label>
-                <input
-                  className="input"
-                  value={editUser.name}
-                  onChange={(e) =>
-                    setEditUser((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="label">Role</label>
-                <select
-                  className="input"
-                  value={editUser.role}
-                  onChange={(e) =>
-                    setEditUser((prev) => ({ ...prev, role: e.target.value }))
-                  }
-                >
-                  <option value="customer">Customer</option>
-                  <option value="supplier">Supplier</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">Status</label>
-                <select
-                  className="input"
-                  value={editUser.is_active}
-                  onChange={(e) =>
-                    setEditUser((prev) => ({
-                      ...prev,
-                      is_active: parseInt(e.target.value),
-                    }))
-                  }
-                >
-                  <option value={1}>Active</option>
-                  <option value={0}>Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={handleSaveEdit}
-                disabled={saving}
-                className="btn-primary flex-1"
+      ),
+    },
+  ];
+  return (
+    <AdminRecords
+      title="Manage users"
+      description="Manage accounts, roles, and access to Rent-A-Way."
+      noun="users"
+      icon={UsersIcon}
+      list={list}
+      columns={columns}
+      search={search}
+      setSearch={setSearch}
+      searchLabel="Search by name or email"
+      filtered={Boolean(search || roleFilter)}
+      onReset={() => {
+        setSearch("");
+        setRoleFilter("");
+      }}
+      action={
+        <button
+          onClick={() => openDialog("create")}
+          className="btn-primary min-h-11 text-sm"
+        >
+          <Plus size={16} aria-hidden="true" />
+          Add user
+        </button>
+      }
+      filters={
+        <AdminFilter
+          label="Account role"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+        >
+          <option value="">All roles</option>
+          <option value="admin">Admin</option>
+          <option value="supplier">Supplier</option>
+          <option value="customer">Customer</option>
+        </AdminFilter>
+      }
+    >
+      {dialog && (
+        <AdminDialog
+          title={
+            dialog === "create"
+              ? "Add a new user"
+              : dialog === "edit"
+                ? "Edit user"
+                : form.is_active
+                  ? "Suspend this account?"
+                  : "Reactivate this account?"
+          }
+          busy={saving}
+          onClose={closeDialog}
+        >
+          <form onSubmit={handleSave} className="space-y-4">
+            {formError && (
+              <p
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
               >
-                {saving ? "Saving..." : "Save"}
+                {formError}
+              </p>
+            )}
+            {dialog === "status" ? (
+              <p className="break-words text-sm leading-relaxed text-slate-600">
+                <strong>{form.name}</strong>
+                {form.is_active
+                  ? " will lose access to their account. You can reactivate it later."
+                  : " will be able to access their account again."}
+              </p>
+            ) : (
+              <>
+                <label className="block">
+                  <span className="label">Full name</span>
+                  <input
+                    autoComplete="off"
+                    className="input text-base"
+                    value={form.name}
+                    onChange={change("name")}
+                    required
+                    disabled={saving}
+                  />
+                </label>
+                {dialog === "create" && (
+                  <>
+                    <label className="block">
+                      <span className="label">Email address</span>
+                      <input
+                        type="email"
+                        inputMode="email"
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        className="input text-base"
+                        value={form.email}
+                        onChange={change("email")}
+                        required
+                        disabled={saving}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="label">Password</span>
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        className="input text-base"
+                        aria-describedby="admin-password-help"
+                        value={form.password}
+                        onChange={change("password")}
+                        required
+                        minLength={12}
+                        disabled={saving}
+                      />
+                    </label>
+                    <span
+                      id="admin-password-help"
+                      className="mt-1 block text-xs text-slate-500"
+                    >
+                      Use at least 12 characters.
+                    </span>
+                  </>
+                )}
+                <label className="block">
+                  <span id="admin-user-role-label" className="label">
+                    Account role
+                  </span>
+                  <select
+                    className="input text-base"
+                    aria-labelledby="admin-user-role-label"
+                    value={form.role}
+                    onChange={change("role")}
+                    disabled={saving}
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="supplier">Supplier</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+                {dialog === "edit" && (
+                  <label className="block">
+                    <span id="admin-user-status-label" className="label">
+                      Account status
+                    </span>
+                    <select
+                      className="input text-base"
+                      aria-labelledby="admin-user-status-label"
+                      value={Number(form.is_active)}
+                      onChange={change("is_active")}
+                      disabled={saving}
+                    >
+                      <option value={1}>Active</option>
+                      <option value={0}>Suspended</option>
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn-primary min-h-11 flex-1"
+              >
+                {saving
+                  ? "Saving…"
+                  : dialog === "create"
+                    ? "Create user"
+                    : dialog === "status"
+                      ? "Confirm"
+                      : "Save changes"}
               </button>
               <button
-                onClick={() => setEditUser(null)}
-                className="btn-outline flex-1"
+                type="button"
+                disabled={saving}
+                onClick={closeDialog}
+                className="btn-secondary min-h-11 flex-1"
               >
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
+          </form>
+        </AdminDialog>
       )}
-
-      {/* Create User Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="font-bold text-lg text-navy-700 mb-4">
-              Add New User
-            </h2>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="label">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="input"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  className="input"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  className="input"
-                  placeholder="Min 12 characters"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={12}
-                />
-              </div>
-              <div>
-                <label className="label">
-                  Role <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="input"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                >
-                  <option value="customer">Customer</option>
-                  <option value="supplier">Supplier</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="btn-primary flex-1"
-                >
-                  {creating ? "Creating..." : "Create User"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="btn-outline flex-1"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </AdminRecords>
   );
 }

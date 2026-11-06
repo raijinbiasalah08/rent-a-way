@@ -234,7 +234,7 @@ function App() {
           </Routes>
         </Suspense>
       </main>
-      <Footer />
+      {!pathname.startsWith("/admin/") && <Footer />}
       {showMobileNav && <MobileBottomNav />}
     </div>
   );
