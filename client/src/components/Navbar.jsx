@@ -26,6 +26,7 @@ import {
 import { getCategories } from "../api/products";
 import { useSocket } from "../context/SocketContext";
 import { apiAssetUrl } from "../config";
+import InstallAppDialog from "./InstallAppDialog";
 
 const CATEGORIES = [
   {
@@ -132,6 +133,13 @@ export default function Navbar() {
   };
 
   const [installPrompt, setInstallPrompt] = useState(null);
+  const [installHelpOpen, setInstallHelpOpen] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      (window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true),
+  );
 
   useEffect(() => {
     fetchNotifications();
@@ -156,20 +164,38 @@ export default function Navbar() {
       e.preventDefault();
       setInstallPrompt(e);
     };
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setInstallPrompt(null);
+      setInstallHelpOpen(false);
+      toast.success("Rent-A-Way was added to your device.");
+    };
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    return () =>
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt,
       );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === "accepted") {
+    if (!installPrompt) {
+      setInstallHelpOpen(true);
+      setIsOpen(false);
+      return;
+    }
+    try {
+      await installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
       setInstallPrompt(null);
+      if (outcome === "accepted") setIsAppInstalled(true);
+      else setInstallHelpOpen(true);
+    } catch {
+      setInstallPrompt(null);
+      setInstallHelpOpen(true);
     }
   };
 
@@ -293,12 +319,14 @@ export default function Navbar() {
               Community
             </Link>
 
-            {installPrompt && (
+            {!isAppInstalled && (
               <button
+                type="button"
                 onClick={handleInstallClick}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg hover:shadow-blue-500/25 transition-all transform hover:-translate-y-0.5"
+                className="flex min-h-10 items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:from-blue-500 hover:to-purple-500 hover:shadow-blue-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <Download className="w-3.5 h-3.5" /> Install App
+                <Download className="h-3.5 w-3.5" aria-hidden="true" /> Install
+                App
               </button>
             )}
           </div>
@@ -607,6 +635,19 @@ export default function Navbar() {
             Community
           </Link>
 
+          {!isAppInstalled && (
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 text-left text-sm font-semibold text-white transition hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-200">
+                <Download className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span>Install Rent-A-Way</span>
+            </button>
+          )}
+
           {!user ? (
             <div className="flex flex-col gap-2 pt-2 border-t border-gray-700 mt-2">
               <Link
@@ -686,6 +727,9 @@ export default function Navbar() {
             </div>
           )}
         </div>
+      )}
+      {installHelpOpen && (
+        <InstallAppDialog onClose={() => setInstallHelpOpen(false)} />
       )}
     </nav>
   );
