@@ -323,10 +323,13 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={handleInstallClick}
-                className="flex min-h-10 items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:from-blue-500 hover:to-purple-500 hover:shadow-blue-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="group flex min-h-9 items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <Download className="h-3.5 w-3.5" aria-hidden="true" /> Install
-                App
+                <Download
+                  className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-white"
+                  aria-hidden="true"
+                />
+                Install App
               </button>
             )}
           </div>
