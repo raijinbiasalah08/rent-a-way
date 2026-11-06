@@ -61,15 +61,21 @@ export default function GoogleSignInButton({
   configError,
   disabled,
   onCredential,
+  onRetryConfig,
 }) {
   const buttonRef = useRef(null);
   const onCredentialRef = useRef(onCredential);
   const [loadError, setLoadError] = useState("");
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [ready, setReady] = useState(false);
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
   onCredentialRef.current = onCredential;
 
   useEffect(() => {
-    const handleCredential = (credential) =>
-      onCredentialRef.current?.(credential);
+    const handleCredential = (credential) => {
+      if (!disabledRef.current) onCredentialRef.current?.(credential);
+    };
     credentialHandler = handleCredential;
     let cancelled = false;
     let resizeObserver;
@@ -78,6 +84,7 @@ export default function GoogleSignInButton({
     if (!clientId)
       return () => {
         cancelled = true;
+        if (credentialHandler === handleCredential) credentialHandler = null;
       };
 
     loadGoogleIdentityServices()
@@ -122,6 +129,7 @@ export default function GoogleSignInButton({
           });
         };
         renderButton();
+        setReady(true);
         resizeObserver = new ResizeObserver(renderButton);
         resizeObserver.observe(container);
       })
@@ -138,7 +146,7 @@ export default function GoogleSignInButton({
       if (credentialHandler === handleCredential) credentialHandler = null;
       container?.replaceChildren();
     };
-  }, [clientId]);
+  }, [clientId, retryAttempt]);
 
   if (!clientId) {
     return (
@@ -156,8 +164,18 @@ export default function GoogleSignInButton({
         {!configLoading && (
           <p className="mt-2 text-center text-xs text-amber-800">
             {configError ||
-              "Google sign-in is not configured. Add GOOGLE_CLIENT_ID to server/.env."}
+              "Google sign-in is currently unavailable. Please use your email and password."}
           </p>
+        )}
+        {!configLoading && onRetryConfig && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onRetryConfig}
+            className="mx-auto mt-1 block min-h-11 rounded-lg px-3 text-sm font-semibold text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+          >
+            Retry Google sign-in
+          </button>
         )}
       </div>
     );
@@ -165,13 +183,35 @@ export default function GoogleSignInButton({
 
   return (
     <div className="min-w-0 w-full">
+      {!ready && !loadError && (
+        <p role="status" className="py-3 text-center text-sm text-slate-500">
+          Loading Google sign-in…
+        </p>
+      )}
       <div
         ref={buttonRef}
         className={`w-full min-w-0 [contain:inline-size] flex justify-center ${disabled ? "pointer-events-none opacity-60" : ""}`}
         aria-disabled={disabled}
+        inert={disabled ? "" : undefined}
       />
       {loadError && (
-        <p className="mt-2 text-center text-xs text-red-600">{loadError}</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+          <p role="status" className="text-xs leading-relaxed text-slate-600">
+            {loadError}
+          </p>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              setLoadError("");
+              setReady(false);
+              setRetryAttempt((attempt) => attempt + 1);
+            }}
+            className="mt-1 min-h-11 rounded-lg px-3 text-sm font-semibold text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+          >
+            Retry Google sign-in
+          </button>
+        </div>
       )}
     </div>
   );
