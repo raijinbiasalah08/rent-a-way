@@ -41,7 +41,7 @@ import {
   X,
   Compass,
 } from "lucide-react";
-import { getProducts } from "../../api/products";
+import { getProduct, getProducts } from "../../api/products";
 import { useCustomerLocation } from "../../context/CustomerLocationContext";
 import { calculateDistance, formatDistance } from "../../utils/geo";
 import { API_ORIGIN } from "../../config";
@@ -179,6 +179,7 @@ export default function MapSearch() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get("category") || "";
   const barangayParam = searchParams.get("barangay") || "";
+  const focusedProductParam = searchParams.get("product") || "";
 
   const [selectedCategory, setSelectedCategory] = useState(categoryParam);
   const [selectedBarangay, setSelectedBarangay] = useState(barangayParam);
@@ -204,6 +205,10 @@ export default function MapSearch() {
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [selectedRadius, setSelectedRadius] = useState(null); // in km
   const [flyTarget, setFlyTarget] = useState(null);
+  const [focusedProduct, setFocusedProduct] = useState(null);
+  const [restoringFocusedProduct, setRestoringFocusedProduct] = useState(
+    Boolean(focusedProductParam),
+  );
 
   // Manual Location Selection Fallback state
   const [showManualBar, setShowManualBar] = useState(false);
@@ -258,6 +263,56 @@ export default function MapSearch() {
     setSelectedCategory(categoryParam);
     setSelectedBarangay(barangayParam);
   }, [categoryParam, barangayParam]);
+
+  // Keep a selected map listing in the URL so a refresh can restore it.
+  useEffect(() => {
+    if (!focusedProductParam) {
+      setFocusedProduct(null);
+      setRestoringFocusedProduct(false);
+      return undefined;
+    }
+
+    let current = true;
+    setRestoringFocusedProduct(true);
+    getProduct(focusedProductParam)
+      .then((res) => {
+        if (!current) return;
+        const product = res.data?.data;
+        if (!product) return;
+        const primaryImage =
+          product.primary_image ||
+          product.images?.find((image) => image.is_primary)?.url ||
+          product.images?.[0]?.url ||
+          null;
+        const restoredProduct = { ...product, primary_image: primaryImage };
+        setFocusedProduct(restoredProduct);
+        setSelectedId(restoredProduct.id);
+
+        const lat = Number(restoredProduct.latitude);
+        const lng = Number(restoredProduct.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
+          setFlyTarget({ coords: [lat, lng], zoom: 15 });
+        }
+      })
+      .catch(() => {
+        if (!current) return;
+        setFocusedProduct((product) =>
+          String(product?.id) === String(focusedProductParam) ? product : null,
+        );
+        setSearchParams((currentParams) => {
+          const nextParams = new URLSearchParams(currentParams);
+          nextParams.delete("product");
+          return nextParams;
+        });
+      })
+      .finally(() => {
+        if (current) setRestoringFocusedProduct(false);
+      });
+
+    return () => {
+      current = false;
+    };
+  }, [focusedProductParam, setSearchParams]);
 
   // Sync category param with URL
   const handleCategorySelect = (catId) => {
@@ -463,9 +518,32 @@ export default function MapSearch() {
     userLocation ||
     (bounds ? [bounds.centerLat, bounds.centerLng] : defaultCenter);
 
+  // The focused listing stays in the list and on the map even if a viewport
+  // refresh finishes before Leaflet has reported its new bounds.
+  const mapProducts = useMemo(() => {
+    if (
+      !focusedProduct ||
+      products.some((product) => String(product.id) === String(focusedProduct.id))
+    ) {
+      return products;
+    }
+    return [...products, focusedProduct];
+  }, [products, focusedProduct]);
+
+  const focusProduct = (product) => {
+    setFocusedProduct(product);
+    setSelectedId(product.id);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      nextParams.set("product", String(product.id));
+      return nextParams;
+    });
+  };
+
   // Scroll card into view when map marker is clicked
   const handleMarkerClick = (id) => {
-    setSelectedId(id);
+    const product = mapProducts.find((item) => String(item.id) === String(id));
+    if (product) focusProduct(product);
     const cardEl = cardRefs.current[id];
     if (cardEl) {
       cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -474,8 +552,8 @@ export default function MapSearch() {
 
   // Determine active item for Developer Inspector
   const activeProduct =
-    products.find((p) => p.id === (hoveredId || selectedId)) ||
-    products[0] ||
+    mapProducts.find((p) => p.id === (hoveredId || selectedId)) ||
+    mapProducts[0] ||
     null;
 
   // Real-time calculated Haversine distance for Developer Inspector
@@ -502,10 +580,11 @@ export default function MapSearch() {
     setSelectedBarangay("");
     setSearchParams({});
     setSelectedId(null);
+    setFocusedProduct(null);
     setFlyTarget({ coords: ROXAS_CENTER, zoom: 13 });
   }
   function showProductOnMap(product) {
-    setSelectedId(product.id);
+    focusProduct(product);
     if (product.latitude && product.longitude) {
       setFlyTarget({
         coords: [Number(product.latitude), Number(product.longitude)],
@@ -707,12 +786,12 @@ export default function MapSearch() {
               <div>
                 <h2>Nearby equipment</h2>
                 <p role="status">
-                  {loading
+                  {loading || restoringFocusedProduct
                     ? "Searching this area…"
                     : loadError
                       ? "Unable to load listings"
-                      : products.length +
-                        (products.length === 1
+                      : mapProducts.length +
+                        (mapProducts.length === 1
                           ? " listing in view"
                           : " listings in view")}
                   {selectedRadius ? " · Within " + selectedRadius + " km" : ""}
@@ -737,12 +816,12 @@ export default function MapSearch() {
                   <p>{loadError}</p>
                   <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
                 </div>
-              ) : loading && !products.length ? (
+              ) : (loading || restoringFocusedProduct) && !mapProducts.length ? (
                 <div className="map-empty" role="status">
                   <LoadingSpinner />
                   <p>Finding equipment nearby…</p>
                 </div>
-              ) : products.length === 0 ? (
+              ) : mapProducts.length === 0 ? (
                 <div className="map-empty">
                   <MapPin size={30} />
                   <h3>No equipment in this area</h3>
@@ -753,7 +832,7 @@ export default function MapSearch() {
                   <button onClick={resetFilters}>Reset filters</button>
                 </div>
               ) : (
-                products.map((product) => {
+                mapProducts.map((product) => {
                   const distance = userLocation
                     ? formatDistance(
                         calculateDistance(
@@ -959,7 +1038,7 @@ export default function MapSearch() {
               )}
 
               {/* Product Markers with Rich Popups */}
-              {products.map((product) => {
+              {mapProducts.map((product) => {
                 if (!product.latitude || !product.longitude) return null;
                 const isHovered = hoveredId === product.id;
                 const isSelected = selectedId === product.id;
@@ -1184,7 +1263,7 @@ export default function MapSearch() {
                         <span>
                           Listings:{" "}
                           <strong className="text-white">
-                            {products.length}
+                            {mapProducts.length}
                           </strong>
                         </span>
                       </div>
