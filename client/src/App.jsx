@@ -161,6 +161,7 @@ function App() {
                     <Route path="settings" element={<CustomerProfile />} />
                     <Route path="community" element={<CustomerCommunity />} />
                     <Route path="favorites" element={<CustomerFavorites />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ProtectedRoute>
               }
@@ -187,6 +188,7 @@ function App() {
                     <Route path="settings" element={<CustomerProfile />} />
                     <Route path="community" element={<CustomerCommunity />} />
                     <Route path="favorites" element={<CustomerFavorites />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ProtectedRoute>
               }
@@ -209,6 +211,7 @@ function App() {
                     <Route path="rentals" element={<RentalRequests />} />
                     <Route path="profile" element={<CustomerProfile />} />
                     <Route path="settings" element={<CustomerProfile />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ProtectedRoute>
               }
@@ -225,6 +228,7 @@ function App() {
                     <Route path="rentals" element={<AdminRentals />} />
                     <Route path="complaints" element={<AdminComplaints />} />
                     <Route path="reports" element={<AdminReports />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ProtectedRoute>
               }
