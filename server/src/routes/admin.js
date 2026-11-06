@@ -317,7 +317,8 @@ router.get("/products", async (req, res) => {
     res.json(
       await paginated(
         `
-      SELECT p.*, u.name as supplier_name 
+      SELECT p.*, u.name as supplier_name,
+        (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as primary_image
       FROM products p JOIN users u ON p.supplier_id = u.id
       WHERE LOWER(p.title) LIKE LOWER(?) OR LOWER(u.name) LIKE LOWER(?) ORDER BY p.created_at DESC,p.id
     `,

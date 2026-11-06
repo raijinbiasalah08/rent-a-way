@@ -367,6 +367,23 @@ test("socket connection rejects unverified identity and accepts JWT", async () =
   valid.disconnect();
 });
 test("admin safeguards, listing validation, image order, and pagination", async () => {
+  const primaryImage = await db
+    .prepare(
+      "SELECT url FROM product_images WHERE product_id = ? AND is_primary = 1 LIMIT 1",
+    )
+    .get(product);
+  assert.ok(primaryImage?.url);
+  const adminProducts = await api(
+    "/admin/products?search=Camera",
+    "GET",
+    undefined,
+    "admin",
+  );
+  assert.equal(adminProducts.status, 200);
+  assert.equal(
+    adminProducts.data.find((item) => item.id === product)?.primary_image,
+    primaryImage.url,
+  );
   assert.equal(
     (await api(`/admin/users/${ids.admin}`, "DELETE", undefined, "admin"))
       .status,
