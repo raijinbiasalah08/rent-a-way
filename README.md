@@ -10,6 +10,8 @@ Use Node 24. Run `npm ci` in `server` and `client`. Copy `.env.example` to `.env
 
 Run `npm run dev` in `server` for the API on port 5000 and in `client` for the frontend on port 5173. Local data is stored in `server/rentaway.db`; uploads are under `server/uploads`. No sample data is inserted automatically.
 
+The native Flutter client is in [`mobile`](mobile/README.md). With the API running, start an Android emulator using `cd mobile` and `flutter run --dart-define=RENT_AWAY_API_ORIGIN=http://10.0.2.2:5000`. The React/Vite PWA remains the browser client.
+
 Create the first admin by setting `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` (12–72 characters), then running `npm run bootstrap` in `server`. Remove the bootstrap password after creation. Admin bootstrap is idempotent and does not overwrite an existing account.
 
 ## Verify
