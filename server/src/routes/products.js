@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const { randomUUID: uuidv4 } = require("node:crypto");
 const db = require("../db/database");
+const { badgeSQL, checkListingSlot } = require("../utils/subscriptions");
 const { authenticate, authorize } = require("../middleware/auth");
 const {
   isWithinRoxas,
@@ -147,7 +148,8 @@ router.get("/", async (req, res) => {
     limit = Math.min(100, Math.max(1, parseInt(limit) || 12));
     const offset = (page - 1) * limit;
 
-    let query = `SELECT p.*, u.name as supplier_name, 
+    const now = new Date().toISOString();
+    let query = `SELECT p.*, u.name as supplier_name, ${badgeSQL},
       (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as primary_image, 
       (SELECT AVG(rating) FROM reviews WHERE product_id = p.id) as avg_rating,
       ((SELECT COUNT(*) FROM rentals r2 JOIN products p2 ON r2.product_id = p2.id WHERE p2.supplier_id = u.id AND r2.status IN ('completed', 'returned')) >= 5 
@@ -236,11 +238,14 @@ router.get("/", async (req, res) => {
       );
     }
 
-    query += " ORDER BY p.created_at DESC ";
+    query +=
+      " ORDER BY CASE WHEN u.subscription_expires_at > ? THEN 1 ELSE 0 END DESC, p.created_at DESC, p.id ";
 
     query += " LIMIT ? OFFSET ?";
 
-    const products = await db.prepare(query).all(...[...params, limit, offset]);
+    const products = await db
+      .prepare(query)
+      .all(now, ...params, now, limit, offset);
     const { total } = await db.prepare(countQuery).get(...params);
 
     res.json({
@@ -405,7 +410,7 @@ router.get("/:id", async (req, res) => {
     const product = await db
       .prepare(
         `
-      SELECT p.*, u.name as supplier_name, u.avatar as supplier_avatar, u.address as supplier_address, u.barangay as supplier_barangay,
+      SELECT p.*, u.name as supplier_name, u.avatar as supplier_avatar, u.address as supplier_address, u.barangay as supplier_barangay, ${badgeSQL},
       (SELECT AVG(rating) FROM reviews WHERE product_id = p.id) as avg_rating,
       (SELECT COUNT(*) FROM reviews WHERE product_id = p.id) as review_count,
       ((SELECT COUNT(*) FROM rentals r2 JOIN products p2 ON r2.product_id = p2.id WHERE p2.supplier_id = u.id AND r2.status IN ('completed', 'returned')) >= 5 
@@ -416,7 +421,7 @@ router.get("/:id", async (req, res) => {
       WHERE p.id = ? AND p.is_active = 1
     `,
       )
-      .get(req.params.id);
+      .get(new Date().toISOString(), req.params.id);
 
     if (!product) {
       return res
@@ -459,7 +464,7 @@ router.post(
   authenticate,
   authorize("supplier"),
   validate(productSchema),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const {
         title,
@@ -523,40 +528,35 @@ router.post(
             "Set a valid pickup location in your profile before listing equipment",
         });
 
-      await db
-        .prepare(
-          `
+      const product = await db.transaction(async () => {
+        await checkListingSlot(req.user.id);
+        return db
+          .prepare(
+            `
       INSERT INTO products (id, supplier_id, title, description, category, price_per_day, min_days, max_days, specs, location, barangay, latitude, longitude, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
     `,
-        )
-        .run(
-          id,
-          req.user.id,
-          title,
-          description,
-          category,
-          price_per_day,
-          min_days,
-          max_days,
-          specs,
-          finalLoc,
-          finalBarangay,
-          finalLat,
-          finalLng,
-          new Date().toISOString(),
-        );
-
-      const product = await db
-        .prepare("SELECT * FROM products WHERE id = ?")
-        .get(id);
+          )
+          .get(
+            id,
+            req.user.id,
+            title,
+            description,
+            category,
+            price_per_day,
+            min_days,
+            max_days,
+            specs,
+            finalLoc,
+            finalBarangay,
+            finalLat,
+            finalLng,
+            new Date().toISOString(),
+          );
+      });
       res.status(201).json({ success: true, data: product });
     } catch (error) {
-      console.error({ route: req.originalUrl, code: error.code || error.name });
-      res.status(500).json({
-        success: false,
-        message: "Unable to complete the request. Please try again.",
-      });
+      next(error);
     }
   },
 );

@@ -153,6 +153,17 @@ CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, appli
     ["messages", "delivered_at", "TEXT"],
     ["messages", "read_at", "TEXT"],
     ["users", "token_version", "INTEGER NOT NULL DEFAULT 0"],
+    [
+      "users",
+      "subscription_plan",
+      "TEXT NOT NULL DEFAULT 'free' CHECK (subscription_plan IN ('free','student','business'))",
+    ],
+    ["users", "subscription_expires_at", "TEXT"],
+    [
+      "users",
+      "requested_plan",
+      "TEXT CHECK (requested_plan IN ('student','business'))",
+    ],
     ["reviews", "rental_id", "TEXT REFERENCES rentals(id)"],
     ["complaints", "resolved_at", "TEXT"],
     ["complaints", "resolved_by", "TEXT REFERENCES users(id)"],

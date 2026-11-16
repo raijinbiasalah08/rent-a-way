@@ -764,6 +764,11 @@ export default function ProductDetail() {
                     <div className="flex items-center gap-1 text-sm font-bold text-gray-900">
                       {product.supplier_name}
                     </div>
+                    {product.supplier_badge && (
+                      <span className="inline-flex rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800">
+                        {product.supplier_badge}
+                      </span>
+                    )}
                     <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
                       <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
                       <span className="truncate max-w-[170px]">

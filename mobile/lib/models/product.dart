@@ -11,6 +11,7 @@ class Product {
     this.specs,
     this.image,
     this.supplierName = '',
+    this.supplierBadge,
     this.supplierId = '',
     this.barangay = '',
     this.location = '',
@@ -31,6 +32,7 @@ class Product {
   final String? specs;
   final String? image;
   final String supplierName;
+  final String? supplierBadge;
   final String supplierId;
   final String barangay;
   final String location;
@@ -63,6 +65,7 @@ class Product {
       specs: json['specs']?.toString(),
       image: image,
       supplierName: json['supplier_name']?.toString() ?? '',
+      supplierBadge: json['supplier_badge']?.toString(),
       supplierId: json['supplier_id']?.toString() ?? '',
       barangay:
           json['barangay']?.toString() ??

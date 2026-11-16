@@ -4,6 +4,8 @@ Rental equipment marketplace for Roxas, Oriental Mindoro, with customer, supplie
 
 Bookings use supplier approval, handover, return, and completion. There is no payment processing. Displayed rental prices are informational estimates.
 
+Suppliers can publish one active listing for free. Premium Student (₱80/month) and Premium Business (₱100/month) include unlimited uploads and priority in the catalog. Suppliers can request either plan from **My Listings**. In **Manage users**, an admin reviews the request, confirms payment offline, verifies the business for a business badge, and activates one month. After expiry, existing listings stay visible and new uploads follow the free limit.
+
 ## Run locally
 
 Use Node 24. Run `npm ci` in `server` and `client`. Copy `.env.example` to `.env` in each directory and set a random `JWT_SECRET` of at least 32 characters in the server environment.

@@ -621,3 +621,130 @@ test("rental summaries remain accurate beyond a page and CORS preflights are not
   );
   assert.equal(preflight.headers.get("ratelimit"), null);
 });
+
+test("free listing slots, premium requests, publication and expiry", async () => {
+  const supplierId = randomUUID();
+  await db
+    .prepare(
+      `INSERT INTO users (id,name,email,password_hash,role,barangay,created_at)
+    VALUES (?, 'Listing owner', 'owner@example.test', 'unused', 'supplier', 'San Aquilino', ?)`,
+    )
+    .run(supplierId, new Date().toISOString());
+  tokens.owner = jwt.sign(
+    { id: supplierId, role: "supplier", version: 0 },
+    process.env.JWT_SECRET,
+  );
+  const owner = (url, method, body) => api(url, method, body, "owner");
+  const status = async () => (await owner("/subscriptions/me")).data;
+  const body = {
+    title: "Listing quota test",
+    category: "Camping",
+    price_per_day: 50,
+  };
+  const publish = () => owner("/products", "POST", body);
+  const review = (plan, decision = "approve", role = "admin") =>
+    api(
+      `/admin/users/${supplierId}/subscription`,
+      "PUT",
+      { plan, decision },
+      role,
+    );
+  const request = (plan) => owner("/subscriptions/request", "PUT", { plan });
+  const initial = await status();
+  assert.equal(initial.currentPlan, "free");
+  assert.equal(initial.canPublish, true);
+  assert.deepEqual(
+    initial.packages.map((pkg) => pkg.monthlyPrice),
+    [0, 80, 100],
+  );
+  const posts = await Promise.all([publish(), publish()]);
+  assert.deepEqual(posts.map((p) => p.status).sort(), [201, 409]);
+  const firstId = posts.find((p) => p.status === 201).data.id;
+  assert.equal(
+    posts.find((p) => p.status === 409).code,
+    "LISTING_LIMIT_REACHED",
+  );
+  assert.equal(
+    (
+      await owner("/products/" + firstId, "PUT", {
+        ...body,
+        availability: "rented",
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await status()).canPublish, false);
+  assert.equal((await owner("/products/" + firstId, "DELETE")).status, 200);
+  assert.equal((await publish()).status, 201);
+  assert.equal(
+    (await api("/admin/products/" + firstId + "/toggle", "PUT", {}, "admin"))
+      .code,
+    "LISTING_LIMIT_REACHED",
+  );
+  assert.equal(
+    (
+      await api(
+        "/subscriptions/request",
+        "PUT",
+        { plan: "student" },
+        "stranger",
+      )
+    ).status,
+    403,
+  );
+  assert.equal((await request("unknown")).status, 400);
+  assert.equal((await request("student")).data.requestedPlan, "student");
+  assert.equal((await publish()).status, 409);
+  assert.equal((await review("student", "approve", "owner")).status, 403);
+  assert.equal((await review("business")).status, 409);
+  assert.equal((await review("student", "decline")).status, 200);
+  assert.equal((await status()).requestedPlan, null);
+  for (const [plan, badge] of [
+    ["student", "Premium Student"],
+    ["business", "Verified Business"],
+  ]) {
+    await request(plan);
+    assert.equal((await review(plan)).status, 200);
+    assert.equal((await review(plan)).status, 409);
+    const active = await status();
+    assert.equal(active.currentPlan, plan);
+    assert.ok(new Date(active.expiresAt) > new Date());
+    assert.equal(active.canPublish, true);
+    const listing = await publish();
+    assert.equal(listing.status, 201);
+    assert.equal((await owner("/auth/me")).data.supplier_badge, badge);
+    assert.equal(
+      (await owner("/products/" + listing.data.id)).data.supplier_badge,
+      badge,
+    );
+  }
+  const otherId = randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO products (id,supplier_id,title,category,price_per_day,created_at) VALUES (?,?,?,?,?,?)",
+    )
+    .run(
+      otherId,
+      ids.supplier,
+      body.title,
+      body.category,
+      body.price_per_day,
+      "2099-01-01T00:00:00.000Z",
+    );
+  const catalog = () =>
+    owner("/products?search=Listing%20quota%20test&limit=1");
+  assert.equal((await catalog()).data.products[0].supplier_id, supplierId);
+  await db
+    .prepare("UPDATE users SET subscription_expires_at = ? WHERE id = ?")
+    .run("2000-01-01T00:00:00.000Z", supplierId);
+  assert.equal((await catalog()).data.products[0].id, otherId);
+  const expiredCatalog = await owner("/products?search=Listing%20quota%20test");
+  assert.equal(
+    expiredCatalog.data.products.filter((row) => row.supplier_id === supplierId)
+      .length,
+    3,
+  );
+  assert.equal((await owner("/auth/me")).data.supplier_badge, null);
+  assert.equal((await status()).currentPlan, "free");
+  assert.equal((await publish()).status, 409);
+});

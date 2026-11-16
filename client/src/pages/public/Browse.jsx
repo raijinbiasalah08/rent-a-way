@@ -124,6 +124,9 @@ function ProductCard({ product, wide }) {
           {!!product.is_super_supplier && (
             <span className="browse-super">Super supplier</span>
           )}
+          {product.supplier_badge && (
+            <span className="browse-super">{product.supplier_badge}</span>
+          )}
         </div>
         <div className="browse-product-bottom">
           <p>

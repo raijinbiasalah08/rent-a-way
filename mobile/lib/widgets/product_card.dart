@@ -107,6 +107,15 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
+                  if (product.supplierBadge case final badge?)
+                    Text(
+                      badge,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1F4F91),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   Row(
                     children: [
                       const Icon(

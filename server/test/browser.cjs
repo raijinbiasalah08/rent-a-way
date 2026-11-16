@@ -53,7 +53,7 @@ async function main() {
       };
       await db
         .prepare(
-          "INSERT INTO users (id,name,email,password_hash,role,created_at) VALUES (?,?,?,?,?,?)",
+          "INSERT INTO users (id,name,email,password_hash,role,created_at,barangay) VALUES (?,?,?,?,?,?,'San Aquilino')",
         )
         .run(
           id,
@@ -116,9 +116,51 @@ async function main() {
                 "/admin/complaints",
               ];
       for (const route of routes) {
-        await page.goto("http://127.0.0.1:5179" + route);
+        if (route === "/supplier/products/new") {
+          await page.goto("http://127.0.0.1:5179/supplier/products");
+          await page
+            .getByRole("link", { name: "Add New Listing", exact: true })
+            .click();
+        } else {
+          await page.goto("http://127.0.0.1:5179" + route);
+        }
         await page.waitForLoadState("networkidle");
         await expect(page.locator("main").first()).toBeVisible();
+        if (route === "/supplier/products/new") {
+          const plans = page.getByRole("dialog", {
+            name: "Subscription Packages",
+          });
+          await expect(
+            plans.getByText("Free Account", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            plans.getByText("₱80/month", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            plans.getByText("₱100/month", { exact: true }),
+          ).toBeVisible();
+          await plans
+            .getByRole("button", { name: "Request Premium Student" })
+            .click();
+          await expect(
+            plans.getByRole("button", { name: "Request pending" }),
+          ).toBeDisabled();
+          await plans.getByRole("button", { name: "Close dialog" }).click();
+          await expect(page).toHaveURL(/supplier\/products$/);
+        }
+        if (route === "/admin/users") {
+          await page
+            .getByRole("button", { name: "Review subscription" })
+            .click();
+          const review = page.getByRole("dialog", {
+            name: "Review subscription",
+          });
+          await expect(review).toContainText("₱80/month");
+          await review
+            .getByRole("button", { name: "Activate for one month" })
+            .click();
+          await expect(review).toHaveCount(0);
+        }
         assert.equal(
           await page.getByText("404 Not Found", { exact: true }).count(),
           0,
@@ -200,7 +242,7 @@ async function main() {
       .nth(1)
       .fill(new Date(Date.parse(today) + 86400000).toISOString().slice(0, 10));
     await customerPage
-      .getByRole("button", { name: "Send Rental Request", exact: true })
+      .getByRole("button", { name: "Send rental request", exact: true })
       .click();
     await expect(customerPage).toHaveURL(/customer\/rentals/);
     await expect(
@@ -212,6 +254,25 @@ async function main() {
       credentials.supplier.token,
     );
     const supplierPage = await supplierContext.newPage();
+    await supplierPage.goto("http://127.0.0.1:5179/supplier/products/new");
+    await supplierPage
+      .getByPlaceholder("e.g. Canon EOS R6 Mirrorless Camera")
+      .fill("Premium browser tent");
+    await supplierPage
+      .locator("select")
+      .filter({
+        has: supplierPage.locator('option[value="Camping Equipment"]'),
+      })
+      .selectOption("Camping Equipment");
+    await supplierPage.getByPlaceholder("e.g. 1500").fill("200");
+    await supplierPage.getByRole("button", { name: "Publish Listing" }).click();
+    await expect(supplierPage).toHaveURL(/supplier\/products$/);
+    await expect(
+      supplierPage.getByRole("heading", { name: "Premium browser tent" }),
+    ).toBeVisible();
+    console.log(
+      "Subscription prompt, manual activation and second listing published",
+    );
     await supplierPage.goto("http://127.0.0.1:5179/supplier/rentals");
     await supplierPage
       .getByRole("button", { name: "Approve", exact: true })

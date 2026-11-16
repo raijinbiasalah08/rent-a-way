@@ -3,6 +3,8 @@ export const createAdminUser = (data) => api.post("/admin/users", data);
 export const getStats = () => api.get("/admin/stats");
 export const getUsers = (params) => api.get("/admin/users", { params });
 export const updateUser = (id, data) => api.put(`/admin/users/${id}`, data);
+export const reviewSubscription = (id, data) =>
+  api.put(`/admin/users/${id}/subscription`, data);
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 export const getAdminProducts = () => api.get("/admin/products");
 export const toggleProduct = (id) => api.put(`/admin/products/${id}/toggle`);

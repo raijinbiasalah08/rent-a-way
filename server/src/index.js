@@ -146,6 +146,7 @@ app.get("/ready", async (req, res, next) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productsRoutes);
+app.use("/api/subscriptions", require("./routes/subscriptions"));
 app.use("/api/rentals", rentalsRoutes);
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api/community", communityRoutes);
@@ -163,6 +164,7 @@ app.use((err, req, res, next) => {
   console.error({ requestId: req.id, status, code: err.code || err.name });
   res.status(status).json({
     success: false,
+    ...(err.code === "LISTING_LIMIT_REACHED" && { code: err.code, data: err.subscription }),
     message:
       status >= 500 ? "Something went wrong. Please try again." : err.message,
   });

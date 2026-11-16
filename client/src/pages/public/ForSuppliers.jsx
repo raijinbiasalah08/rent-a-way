@@ -65,7 +65,7 @@ const STEPS = [
     n: "02",
     icon: Package,
     title: "List Your Equipment",
-    desc: "Upload photos, set your daily rate, minimum rental days, and availability. No listing fee.",
+    desc: "Upload photos and set your daily rate, rental period, and availability. Your first active listing is free.",
   },
   {
     n: "03",
@@ -171,7 +171,7 @@ const TESTIMONIALS = [
 const FAQS = [
   {
     q: "How much does it cost to list equipment?",
-    a: "Listing is completely free. Rent-A-Way only earns a small service fee when a rental is successfully completed — so there's zero risk to you for listing.",
+    a: "A Free Account includes one active rental upload. Premium Student costs ₱80/month and Premium Business costs ₱100/month. Both premium plans include unlimited rental uploads.",
   },
   {
     q: "How do I manage rentals?",
@@ -618,8 +618,8 @@ export default function ForSuppliers() {
             You Already Own
           </h2>
           <p className="text-gray-300 text-lg mb-10">
-            Join the growing Rent-A-Way supplier community today. Listing is
-            free and takes less than 5 minutes.
+            Join the Rent-A-Way supplier community and publish your first
+            listing for free.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -636,7 +636,7 @@ export default function ForSuppliers() {
             </a>
           </div>
           <div className="mt-10 flex items-center justify-center gap-6 text-sm text-gray-400">
-            {["Free to list", "No monthly fees", "Cancel anytime"].map((t) => (
+            {["One free listing", "Optional premium plans"].map((t) => (
               <span key={t} className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-green-400" /> {t}
               </span>

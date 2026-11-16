@@ -1,6 +1,10 @@
 import { useRef, useState } from "react";
 import { Users as UsersIcon, Plus, Pencil } from "lucide-react";
-import { createAdminUser, updateUser } from "../../api/admin";
+import {
+  createAdminUser,
+  updateUser,
+  reviewSubscription,
+} from "../../api/admin";
 import toast from "react-hot-toast";
 import usePagedList from "../../hooks/usePagedList";
 import AdminRecords, {
@@ -42,6 +46,31 @@ export default function Users() {
   const closeDialog = () => {
     if (!savingRef.current) setDialog(null);
   };
+  async function decideSubscription(decision) {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setFormError("");
+    try {
+      await reviewSubscription(form.id, {
+        plan: form.requested_plan,
+        decision,
+      });
+      toast.success(
+        decision === "approve" ? "Subscription activated" : "Request declined",
+      );
+      setDialog(null);
+      list.reload();
+    } catch (err) {
+      setFormError(
+        err.response?.data?.message || "Could not update the subscription.",
+      );
+      list.reload();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
   const change = (key) => (e) =>
     setForm((previous) => ({ ...previous, [key]: e.target.value }));
   const handleSave = async (e) => {
@@ -130,6 +159,14 @@ export default function Users() {
       wide: true,
       render: (u) => (
         <div className="flex flex-wrap gap-2">
+          {u.role === "supplier" && !!u.is_active && u.requested_package && (
+            <button
+              onClick={() => openDialog("subscription", u)}
+              className={adminActionClass}
+            >
+              Review subscription
+            </button>
+          )}
           <button
             onClick={() => openDialog("edit", u)}
             className={adminActionClass}
@@ -185,7 +222,46 @@ export default function Users() {
         </AdminFilter>
       }
     >
-      {dialog && (
+      {dialog === "subscription" && (
+        <AdminDialog
+          title="Review subscription"
+          busy={saving}
+          onClose={closeDialog}
+        >
+          <p className="text-sm">
+            <strong>{form.name}</strong> requested {form.requested_package.name}{" "}
+            at ₱{form.requested_package.monthlyPrice}/month.
+          </p>
+          <p className="my-3 text-sm text-slate-600">
+            Confirm payment with {form.email} before activating one month of
+            access.
+            {form.requested_plan === "business" &&
+              " Verify the business before granting its badge."}
+          </p>
+          {formError && (
+            <p role="alert" className="mb-3 text-sm text-red-700">
+              {formError}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={saving}
+              onClick={() => decideSubscription("approve")}
+              className="btn-primary"
+            >
+              Activate for one month
+            </button>
+            <button
+              disabled={saving}
+              onClick={() => decideSubscription("decline")}
+              className="btn-secondary"
+            >
+              Decline request
+            </button>
+          </div>
+        </AdminDialog>
+      )}
+      {dialog && dialog !== "subscription" && (
         <AdminDialog
           title={
             dialog === "create"

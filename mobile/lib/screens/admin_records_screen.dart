@@ -151,6 +151,47 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
     }
   }
 
+  Future<void> _reviewSubscription(Map<String, dynamic> user, Map pkg) async {
+    final decision = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Review subscription'),
+        content: Text(
+          "${user['name']} requested ${pkg['name']} at ₱${pkg['monthlyPrice']}/month. Confirm payment with ${user['email']} before activation.${pkg['id'] == 'business' ? ' Verify the business before granting its badge.' : ''}",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'decline'),
+            child: const Text('Decline request'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, 'approve'),
+            child: const Text('Activate for one month'),
+          ),
+        ],
+      ),
+    );
+    if (decision == null || !mounted) return;
+    try {
+      await widget.session.api.put(
+        "admin/users/${user['id']}/subscription",
+        body: {'plan': pkg['id'], 'decision': decision},
+      );
+      if (mounted) {
+        _message(
+          decision == 'approve' ? 'Subscription activated' : 'Request declined',
+        );
+      }
+    } on ApiException catch (error) {
+      if (mounted) _message(error.message);
+    }
+    if (mounted) await _load();
+  }
+
   Future<void> _setComplaint(
     Map<String, dynamic> complaint,
     String status,
@@ -241,8 +282,19 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
             item['name']?.toString() ?? 'User',
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
-          subtitle: Text(
-            '${item['email'] ?? ''}\n${item['role'] ?? 'customer'} · ${active ? 'Active' : 'Disabled'}',
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${item['email'] ?? ''}\n${item['role'] ?? 'customer'} · ${active ? 'Active' : 'Disabled'}',
+              ),
+              if (item['requested_package'] case final Map pkg
+                  when active && item['role'] == 'supplier')
+                TextButton(
+                  onPressed: () => _reviewSubscription(item, pkg),
+                  child: const Text('Review subscription'),
+                ),
+            ],
           ),
           isThreeLine: true,
           trailing: IconButton(

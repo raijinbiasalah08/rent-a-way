@@ -316,6 +316,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ? 'Local supplier'
                             : _product.supplierName,
                       ),
+                      if (_product.supplierBadge case final badge?)
+                        _InfoRow(label: 'Account badge', value: badge),
                       _InfoRow(
                         label: 'Pickup area',
                         value: _product.location.isEmpty

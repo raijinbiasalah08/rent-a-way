@@ -100,6 +100,12 @@ export default function MyProducts() {
               {products.length} listing{products.length === 1 ? "" : "s"}
             </span>
           )}
+          <Link
+            to="/supplier/products/new?plans"
+            className="ml-3 inline-flex min-h-11 items-center text-sm font-semibold text-blue-800 underline"
+          >
+            Subscription packages
+          </Link>
         </div>
         <Link
           to="/supplier/products/new"

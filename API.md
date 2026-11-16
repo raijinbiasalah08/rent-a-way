@@ -7,14 +7,16 @@ All routes are under `/api`. Successful responses have `{success:true,data:...}`
 | `/auth/register`, `/auth/login` | POST | Public, rate limited; registration accepts customer/supplier only |
 | `/auth/google/config` | GET | Public OAuth client ID |
 | `/auth/google` | POST credential, optional role | Verified Google ID token; new accounts select customer/supplier |
-| `/auth/me`, `/auth/user/:id` | GET | Signed in; user lookup returns ID, name, avatar, role only |
+| `/auth/me`, `/auth/user/:id` | GET | Signed in. Public user lookup returns ID, name, avatar, role and current supplier badge |
 | `/auth/profile`, `/auth/password` | PUT | Own account; password change requires current password |
 | `/auth/profile/avatar` | POST multipart avatar | Own account |
 | `/auth/forgot-password`, `/auth/reset-password` | POST | Rate limited; hashed expiring single-use tokens |
 | `/products`, `/products/:id`, `/products/categories`, `/products/locations/barangays` | GET | Public |
 | `/products/geocode/search`, `/products/geocode/reverse` | GET | Public, Roxas location constraints |
 | `/products/mine` | GET | Supplier/admin own listings |
-| `/products` | POST | Supplier |
+| `/products` | POST | Supplier. Returns 409 with `LISTING_LIMIT_REACHED` when the free slot is occupied |
+| `/subscriptions/me` | GET | Supplier's current plan, expiry, active count, upload eligibility, pending request and package catalog |
+| `/subscriptions/request` | PUT `{plan}` | Supplier requests Premium Student (`student`) or Premium Business (`business`) |
 | `/products/:id` | PUT, DELETE (deactivate) | Listing supplier or admin |
 | `/products/:id/images` | POST multipart image | Listing supplier or admin |
 | `/products/:id/images/:imageId` | DELETE | Listing supplier or admin |
@@ -36,6 +38,7 @@ All routes are under `/api`. Successful responses have `{success:true,data:...}`
 | `/admin/complaints` | POST | Signed-in reporter |
 | `/admin/stats`, `/admin/reports`, `/admin/users`, `/admin/products`, `/admin/rentals`, `/admin/complaints` | GET | Admin |
 | `/admin/users` | POST | Admin creates account |
+| `/admin/users/:id/subscription` | PUT `{plan, decision}` | Admin reviews the pending plan. Use `approve` after payment confirmation to activate one month, or `decline` |
 | `/admin/users/:id` | PUT, DELETE (deactivate) | Admin; own admin access and last active admin protected |
 | `/admin/products/:id/toggle`, `/admin/complaints/:id` | PUT | Admin |
 

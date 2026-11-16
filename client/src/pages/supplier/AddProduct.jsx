@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Upload, X, Plus, AlertTriangle, Check } from "lucide-react";
 import { createProduct, uploadProductImage } from "../../api/products";
 import { useAuth } from "../../context/AuthContext";
 import LocationPicker from "../../components/LocationPicker";
+import api from "../../api/axios";
+import SubscriptionDialog from "../../components/SubscriptionDialog";
+import MyProducts from "./MyProducts";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const CATEGORIES = [
   "Cameras & Drones",
@@ -26,6 +31,25 @@ const CATEGORY_MAP = {
 export default function AddProduct() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [subscription, setSubscription] = useState(null);
+  const [statusError, setStatusError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let current = true;
+    setStatusError(false);
+    api
+      .get("/subscriptions/me")
+      .then(({ data }) => {
+        if (current) setSubscription(data.data);
+      })
+      .catch(() => {
+        if (current) setStatusError(true);
+      });
+    return () => {
+      current = false;
+    };
+  }, [attempt, user.id]);
 
   const [form, setForm] = useState({
     title: "",
@@ -110,12 +134,24 @@ export default function AddProduct() {
       for (const file of images) {
         const fd = new FormData();
         fd.append("image", file);
-        await uploadProductImage(productId, fd);
+        try {
+          await uploadProductImage(productId, fd);
+        } catch {
+          navigate(`/supplier/products/${productId}/edit`, { replace: true });
+          toast.error(
+            "Listing saved. Add the remaining photos from Edit Listing.",
+          );
+          return;
+        }
       }
 
       setSuccess(true);
       setTimeout(() => navigate("/supplier/products"), 1200);
     } catch (err) {
+      if (err.response?.data?.code === "LISTING_LIMIT_REACHED") {
+        setSubscription(err.response.data.data);
+        return;
+      }
       setError(
         err.response?.data?.message ||
           "Failed to create listing. Please try again.",
@@ -125,6 +161,30 @@ export default function AddProduct() {
     }
   };
 
+  if (statusError)
+    return (
+      <div className="mx-auto max-w-2xl p-6">
+        <p role="alert">Could not check your listing limit.</p>
+        <button
+          className="btn-secondary mt-3"
+          onClick={() => setAttempt(attempt + 1)}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  if (!subscription) return <LoadingSpinner />;
+  if (!subscription.canPublish || searchParams.has("plans"))
+    return (
+      <>
+        <MyProducts />
+        <SubscriptionDialog
+          status={subscription}
+          onUpdate={setSubscription}
+          onClose={() => navigate("/supplier/products", { replace: true })}
+        />
+      </>
+    );
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
       {/* Header */}

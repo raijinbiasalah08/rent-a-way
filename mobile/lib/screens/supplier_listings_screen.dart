@@ -4,6 +4,7 @@ import 'package:rentaway_mobile/core/api_client.dart';
 import 'package:rentaway_mobile/core/session_controller.dart';
 import 'package:rentaway_mobile/models/product.dart';
 import 'package:rentaway_mobile/widgets/product_card.dart';
+import 'package:rentaway_mobile/widgets/subscription_packages.dart';
 
 const _productCategories = [
   'Cameras',
@@ -26,6 +27,7 @@ class SupplierListingsScreen extends StatefulWidget {
 class _SupplierListingsScreenState extends State<SupplierListingsScreen> {
   List<Product> _products = [];
   bool _loading = true;
+  bool _checkingPlan = false;
   String? _error;
 
   @override
@@ -62,7 +64,39 @@ class _SupplierListingsScreenState extends State<SupplierListingsScreen> {
     }
   }
 
-  Future<void> _newListing() => _editListing(null);
+  Future<void> _newListing({bool plansOnly = false}) async {
+    if (_checkingPlan) return;
+    setState(() => _checkingPlan = true);
+    try {
+      final response = await widget.session.api.get('subscriptions/me');
+      if (!mounted) return;
+      final status = response['data'] as Map<String, dynamic>;
+      if (plansOnly || status['canPublish'] == false) {
+        await _showPlans(status);
+      } else {
+        await _editListing(null);
+      }
+    } on ApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _checkingPlan = false);
+    }
+  }
+
+  Future<void> _showPlans(Map<String, dynamic> status) =>
+      showModalBottomSheet<void>(
+        context: context,
+        useSafeArea: true,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (_) => SafeArea(
+          child: SubscriptionPackages(api: widget.session.api, status: status),
+        ),
+      );
 
   Future<void> _editListing(Product? product) async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -72,6 +106,12 @@ class _SupplierListingsScreenState extends State<SupplierListingsScreen> {
       builder: (_) =>
           _NewListingSheet(api: widget.session.api, product: product),
     );
+    if (!mounted) return;
+    if (result?['limitReached'] == true) {
+      final response = await widget.session.api.get('subscriptions/me');
+      if (mounted) await _showPlans(response['data'] as Map<String, dynamic>);
+      return;
+    }
     if (result?['created'] == true) {
       _load();
       final imageError = result?['imageError']?.toString();
@@ -152,11 +192,25 @@ class _SupplierListingsScreenState extends State<SupplierListingsScreen> {
                 ),
                 const SizedBox(width: 10),
                 FilledButton.icon(
-                  onPressed: _newListing,
+                  onPressed: _checkingPlan ? null : () => _newListing(),
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('Add'),
                 ),
               ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextButton(
+                onPressed: _checkingPlan
+                    ? null
+                    : () => _newListing(plansOnly: true),
+                child: const Text('Subscription packages'),
+              ),
             ),
           ),
         ),
@@ -316,7 +370,9 @@ class _NewListingSheetState extends State<_NewListingSheet> {
         Navigator.pop(context, {'created': true, 'imageError': imageError});
       }
     } on ApiException catch (error) {
-      if (mounted) {
+      if (mounted && error.code == 'LISTING_LIMIT_REACHED') {
+        Navigator.pop(context, {'limitReached': true});
+      } else if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(error.message)));

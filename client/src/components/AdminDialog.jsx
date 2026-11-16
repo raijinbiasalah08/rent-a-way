@@ -1,7 +1,7 @@
 import { useEffect, useRef, useId } from "react";
 import { X } from "lucide-react";
 
-export default function AdminDialog({ title, onClose, busy, children }) {
+export default function AdminDialog({ title, onClose, busy, wide, children }) {
   const ref = useRef(null);
   const titleId = useId();
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function AdminDialog({ title, onClose, busy, children }) {
         e.preventDefault();
         if (!busy) onClose();
       }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl border-0 bg-white p-5 text-slate-800 shadow-xl backdrop:bg-slate-950/50 sm:p-6"
+      className={`m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] ${wide ? "max-w-4xl" : "max-w-md"} overflow-y-auto rounded-2xl border-0 bg-white p-5 text-slate-800 shadow-xl backdrop:bg-slate-950/50 sm:p-6`}
     >
       <header className="mb-5 flex items-center justify-between gap-3">
         <h2 id={titleId} className="text-xl font-bold text-slate-900">

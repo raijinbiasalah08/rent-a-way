@@ -5,10 +5,11 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.message, {this.statusCode, this.code});
 
   final String message;
   final int? statusCode;
+  final String? code;
 
   @override
   String toString() => message;
@@ -127,6 +128,7 @@ class ApiClient {
         throw ApiException(
           decoded['message']?.toString() ?? 'Unable to complete the request.',
           statusCode: response.statusCode,
+          code: decoded['code']?.toString(),
         );
       }
       if (decoded['success'] == false) {

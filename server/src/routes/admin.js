@@ -6,6 +6,12 @@ const { authenticate, authorize } = require("../middleware/auth");
 const router = express.Router();
 const { paginated } = require("../utils/pagination");
 const { z, validate } = require("../middleware/validation");
+const {
+  paidPlans,
+  packages,
+  nextMonth,
+  checkListingSlot,
+} = require("../utils/subscriptions");
 async function audit(req, action, id) {
   await db
     .prepare(
@@ -258,7 +264,7 @@ router.get("/users", async (req, res) => {
   try {
     const { search, role } = req.query;
     let query =
-      "SELECT id, name, email, role, phone, address, is_active, created_at FROM users WHERE 1=1";
+      "SELECT id, name, email, role, phone, address, is_active, created_at, requested_plan, subscription_plan, subscription_expires_at FROM users WHERE 1=1";
     const params = [];
 
     if (search) {
@@ -270,9 +276,19 @@ router.get("/users", async (req, res) => {
       params.push(role);
     }
 
-    res.json(
-      await paginated(query + " ORDER BY created_at DESC,id", params, req),
+    const result = await paginated(
+      query +
+        " ORDER BY CASE WHEN role = 'supplier' AND requested_plan IS NOT NULL THEN 0 ELSE 1 END, created_at DESC,id",
+      params,
+      req,
     );
+    for (const user of result.data) {
+      if (user.requested_plan)
+        user.requested_package = packages.find(
+          (pkg) => pkg.id === user.requested_plan,
+        );
+    }
+    res.json(result);
   } catch (error) {
     console.error({ route: req.originalUrl, code: error.code || error.name });
     res.status(500).json({
@@ -281,6 +297,71 @@ router.get("/users", async (req, res) => {
     });
   }
 });
+
+router.put(
+  "/users/:id/subscription",
+  validate(
+    z.object({
+      plan: z.enum(paidPlans),
+      decision: z.enum(["approve", "decline"]),
+    }),
+  ),
+  async (req, res) => {
+    const { plan, decision } = req.body;
+    const supplierId = req.params.id;
+    const confirmed = await db.transaction(async () => {
+      const current = await db
+        .prepare(
+          `UPDATE users SET requested_plan = NULL
+        WHERE id = ? AND role = 'supplier' AND is_active = 1 AND requested_plan = ?
+        RETURNING subscription_plan, subscription_expires_at`,
+        )
+        .get(supplierId, plan);
+      if (!current) return false;
+      const pkg = packages.find((item) => item.id === plan);
+      let message = `Your ${pkg.name} request was declined. Contact the supplier team for details.`;
+      if (decision === "approve") {
+        const now = new Date().toISOString();
+        const start =
+          current.subscription_plan === plan &&
+          current.subscription_expires_at > now
+            ? current.subscription_expires_at
+            : now;
+        const expiresAt = nextMonth(start);
+        await db
+          .prepare(
+            "UPDATE users SET subscription_plan = ?, subscription_expires_at = ? WHERE id = ?",
+          )
+          .run(plan, expiresAt, supplierId);
+        message = `Your ${pkg.name} subscription is active until ${expiresAt.slice(0, 10)}.`;
+      }
+      await audit(req, `subscription_${decision}_${plan}`, supplierId);
+      await db
+        .prepare(
+          `INSERT INTO notifications (id, user_id, title, message, link, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          uuidv4(),
+          supplierId,
+          "Subscription update",
+          message,
+          "/supplier/products",
+          new Date().toISOString(),
+        );
+      return true;
+    });
+    if (!confirmed)
+      return res
+        .status(409)
+        .json({
+          success: false,
+          message:
+            "This subscription request is no longer pending for an active supplier.",
+        });
+    res.json({ success: true });
+  },
+);
 
 router.put(
   "/users/:id",
@@ -338,9 +419,16 @@ router.get("/products", async (req, res) => {
   }
 });
 
-router.put("/products/:id/toggle", async (req, res) => {
+router.put("/products/:id/toggle", async (req, res, next) => {
   try {
     const result = await db.transaction(async () => {
+      const product = await db
+        .prepare(
+          `SELECT supplier_id, is_active FROM products WHERE id = ?${db.dialect === "postgres" ? " FOR UPDATE" : ""}`,
+        )
+        .get(req.params.id);
+      if (!product) return { changes: 0 };
+      if (!product.is_active) await checkListingSlot(product.supplier_id);
       const changed = await db
         .prepare(
           "UPDATE products SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END WHERE id = ?",
@@ -355,11 +443,7 @@ router.put("/products/:id/toggle", async (req, res) => {
         .json({ success: false, message: "Product not found" });
     res.json({ success: true, message: "Product status toggled" });
   } catch (error) {
-    console.error({ route: req.originalUrl, code: error.code || error.name });
-    res.status(500).json({
-      success: false,
-      message: "Unable to complete the request. Please try again.",
-    });
+    next(error);
   }
 });
 

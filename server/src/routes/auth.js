@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { randomUUID: uuidv4 } = require("node:crypto");
 const multer = require("multer");
 const db = require("../db/database");
+const { badgeSQL } = require("../utils/subscriptions");
 const { authenticate } = require("../middleware/auth");
 const {
   isWithinRoxas,
@@ -35,6 +36,15 @@ router.use(
 
 function runInTransaction(callback) {
   return db.transaction(callback);
+}
+
+function getProfile(id) {
+  return db
+    .prepare(
+      `SELECT id, name, email, role, phone, address, barangay, latitude, longitude, avatar,
+    is_active, created_at, ${badgeSQL} FROM users u WHERE id = ?`,
+    )
+    .get(new Date().toISOString(), id);
 }
 
 function validateAndNormalizeCoordinates(latitude, longitude) {
@@ -173,8 +183,8 @@ router.post(
       }
 
       const user = await db
-        .prepare("SELECT * FROM users WHERE LOWER(email) = ?")
-        .get(email);
+        .prepare(`SELECT u.*, ${badgeSQL} FROM users u WHERE LOWER(email) = ?`)
+        .get(new Date().toISOString(), email);
       if (!user || !(await bcrypt.compare(password, user.password_hash))) {
         return res
           .status(401)
@@ -239,11 +249,13 @@ router.post("/google", async (req, res) => {
         .get(profile.sub);
       let user = linkedIdentity
         ? await db
-            .prepare("SELECT * FROM users WHERE id = ?")
-            .get(linkedIdentity.user_id)
+            .prepare(`SELECT u.*, ${badgeSQL} FROM users u WHERE id = ?`)
+            .get(createdAt, linkedIdentity.user_id)
         : await db
-            .prepare("SELECT * FROM users WHERE LOWER(email) = ?")
-            .get(profile.email);
+            .prepare(
+              `SELECT u.*, ${badgeSQL} FROM users u WHERE LOWER(email) = ?`,
+            )
+            .get(createdAt, profile.email);
 
       if (user) {
         if (!user.is_active) return { inactive: true };
@@ -369,11 +381,7 @@ router.post("/google", async (req, res) => {
 
 router.get("/me", authenticate, async (req, res) => {
   try {
-    const user = await db
-      .prepare(
-        "SELECT id, name, email, role, phone, address, barangay, latitude, longitude, avatar, is_active, created_at FROM users WHERE id = ?",
-      )
-      .get(req.user.id);
+    const user = await getProfile(req.user.id);
     if (!user) {
       return res
         .status(404)
@@ -476,11 +484,7 @@ router.put(
           );
       }
 
-      const user = await db
-        .prepare(
-          "SELECT id, name, email, role, phone, address, barangay, latitude, longitude, avatar, is_active, created_at FROM users WHERE id = ?",
-        )
-        .get(req.user.id);
+      const user = await getProfile(req.user.id);
       res.json({ success: true, data: user });
     } catch (error) {
       console.error({ route: req.originalUrl, code: error.code || error.name });
@@ -511,11 +515,7 @@ router.post(
         .prepare("UPDATE users SET avatar = ? WHERE id = ?")
         .run(avatarUrl, req.user.id);
       await require("../utils/assets").removeAsset(previous?.avatar);
-      const user = await db
-        .prepare(
-          "SELECT id, name, email, role, phone, address, avatar, is_active, created_at FROM users WHERE id = ?",
-        )
-        .get(req.user.id);
+      const user = await getProfile(req.user.id);
       res.json({ success: true, data: user });
     } catch (error) {
       console.error({ route: req.originalUrl, code: error.code || error.name });
@@ -659,9 +659,9 @@ router.post(
 router.get("/user/:id", authenticate, async (req, res) => {
   const user = await db
     .prepare(
-      "SELECT id, name, avatar, role FROM users WHERE id = ? AND is_active = 1",
+      `SELECT id, name, avatar, role, ${badgeSQL} FROM users u WHERE id = ? AND is_active = 1`,
     )
-    .get(req.params.id);
+    .get(new Date().toISOString(), req.params.id);
   if (!user)
     return res.status(404).json({ success: false, message: "User not found" });
   res.json({ success: true, data: user });

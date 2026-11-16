@@ -121,6 +121,11 @@ class AccountScreen extends StatelessWidget {
                         email,
                         style: const TextStyle(color: Colors.black54),
                       ),
+                      if (user['supplier_badge'] case final String badge)
+                        Chip(
+                          label: Text(badge),
+                          avatar: const Icon(Icons.verified_outlined, size: 16),
+                        ),
                       const SizedBox(height: 7),
                       DecoratedBox(
                         decoration: BoxDecoration(

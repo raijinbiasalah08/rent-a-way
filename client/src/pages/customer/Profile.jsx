@@ -222,6 +222,11 @@ export default function Profile() {
             </div>
           </div>
 
+          {user.supplier_badge && (
+            <span className="mb-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800">
+              {user.supplier_badge}
+            </span>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
