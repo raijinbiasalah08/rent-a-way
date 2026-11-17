@@ -279,7 +279,7 @@ export default function Navbar() {
               </button>
 
               {catOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[480px] bg-white rounded-2xl shadow-2xl border border-gray-100 py-4 px-4 z-50">
+                <div className="menu-enter [--enter-offset:-4px] absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[480px] bg-white rounded-2xl shadow-2xl border border-gray-100 py-4 px-4 z-50">
                   {/* Arrow pointer */}
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-100 rotate-45" />
 
@@ -418,7 +418,7 @@ export default function Navbar() {
                     )}
                   </button>
                   {notifOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                    <div className="menu-enter [--enter-offset:-4px] absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
                       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                         <span className="font-bold text-gray-900">
                           Notifications
@@ -511,7 +511,7 @@ export default function Navbar() {
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                    <div className="menu-enter [--enter-offset:-4px] absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="font-bold text-gray-900 text-sm truncate">
                           {user.name}
@@ -584,7 +584,7 @@ export default function Navbar() {
       {isOpen && (
         <div
           id="mobile-navigation"
-          className="lg:hidden max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
+          className="menu-enter [--enter-offset:-4px] lg:hidden max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"
         >
           <Link
             to="/"

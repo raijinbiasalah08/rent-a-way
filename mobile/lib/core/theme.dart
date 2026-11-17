@@ -5,6 +5,25 @@ const brandBlue = Color(0xFF1F4F91);
 const brandAmber = Color(0xFFF5A623);
 const canvasCream = Color(0xFFF6F5F1);
 
+Widget _buttonContent(
+  BuildContext context,
+  Set<WidgetState> states,
+  Widget? child,
+) {
+  if (MediaQuery.disableAnimationsOf(context)) {
+    return child ?? const SizedBox.shrink();
+  }
+  final pressed =
+      states.contains(WidgetState.pressed) &&
+      !states.contains(WidgetState.disabled);
+  return AnimatedScale(
+    scale: pressed ? 0.96 : 1,
+    duration: Duration(milliseconds: pressed ? 80 : 140),
+    curve: Curves.easeOut,
+    child: child,
+  );
+}
+
 ThemeData buildRentAwayTheme() {
   final colors = ColorScheme.fromSeed(
     seedColor: brandBlue,
@@ -55,6 +74,7 @@ ThemeData buildRentAwayTheme() {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        foregroundBuilder: _buttonContent,
         minimumSize: const Size(48, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -62,9 +82,16 @@ ThemeData buildRentAwayTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        foregroundBuilder: _buttonContent,
         minimumSize: const Size(48, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
+    ),
+    textButtonTheme: const TextButtonThemeData(
+      style: ButtonStyle(foregroundBuilder: _buttonContent),
+    ),
+    iconButtonTheme: const IconButtonThemeData(
+      style: ButtonStyle(foregroundBuilder: _buttonContent),
     ),
   );
 }

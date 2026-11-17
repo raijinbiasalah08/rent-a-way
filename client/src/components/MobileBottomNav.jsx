@@ -120,7 +120,7 @@ export default function MobileBottomNav() {
           <div
             id="mobile-more-navigation"
             aria-label="More navigation links"
-            className="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[45] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl md:hidden"
+            className="menu-enter fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[45] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl md:hidden"
           >
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
               More

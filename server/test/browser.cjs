@@ -126,6 +126,29 @@ async function main() {
         }
         await page.waitForLoadState("networkidle");
         await expect(page.locator("main").first()).toBeVisible();
+        if (route === "/browse") {
+          const categories = page
+            .getByRole("button", { name: "Categories", exact: true })
+            .first();
+          for (const reducedMotion of ["no-preference", "reduce"]) {
+            await page.emulateMedia({ reducedMotion });
+            await categories.hover();
+            await page.mouse.down();
+            if (reducedMotion === "reduce") {
+              await expect(categories).toHaveCSS("scale", "none");
+            } else {
+              await expect(categories).toHaveCSS("scale", "0.975");
+            }
+            await page.mouse.up();
+            await expect(categories).toHaveAttribute("aria-expanded", "true");
+            await expect(page.locator(".menu-enter:visible").first()).toHaveCSS(
+              "animation-name",
+              reducedMotion === "reduce" ? "none" : "surface-enter",
+            );
+            await categories.press("Escape");
+          }
+          await page.emulateMedia({ reducedMotion: "no-preference" });
+        }
         if (route === "/supplier/products/new") {
           const plans = page.getByRole("dialog", {
             name: "Subscription Packages",
