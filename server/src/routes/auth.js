@@ -15,7 +15,7 @@ const { verifyGoogleIdToken } = require("../utils/googleIdentity");
 const uploadsDir = require("../utils/uploads");
 
 const TERMS_VERSION = "2026-11-17";
-const TERMS_REQUIRED = "Agree to the current Terms and Conditions to create an account.";
+const TERMS_REQUIRED = "Agree to the Terms and Conditions above the registration button. If the checkbox is missing or you already checked it, refresh this page or update the app and try again.";
 
 const router = express.Router();
 const { z, password, email, validate } = require("../middleware/validation");

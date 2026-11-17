@@ -7,6 +7,17 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      workbox: {
+        // Signup requires a live API. Load its matching app shell on navigation.
+        navigateFallbackDenylist: [/^\/(?:register(?:-renter|-supplier)?|choose-role|login)\/?(?:\?|$)/],
+        runtimeCaching: [{
+          urlPattern: ({ request, url }) =>
+            request.mode === "navigate" &&
+            /^\/(?:register(?:-renter|-supplier)?|choose-role|login)\/?$/.test(url.pathname),
+          handler: "NetworkOnly",
+          options: { fetchOptions: { cache: "reload" } },
+        }],
+      },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
         name: "Rent-A-Way",
