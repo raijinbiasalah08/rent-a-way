@@ -1,3 +1,4 @@
+import RegistrationTerms, { TERMS_VERSION } from "../../components/RegistrationTerms";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { signInDestination } from "../../utils/session";
@@ -14,6 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function ChooseRole() {
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
   const { state } = useLocation();
   const {
@@ -48,10 +50,14 @@ export default function ChooseRole() {
 
   const handleSelectRole = async (role) => {
     setError("");
+    if (!acceptedTerms) {
+      setError("Agree to the Terms and Conditions to create your account.");
+      return;
+    }
     setSubmitting(true);
     setSubmittingRole(role);
     try {
-      const result = await assignRoleAndFinalize(role);
+      const result = await assignRoleAndFinalize(role, TERMS_VERSION);
       toast.success(
         `Account created as ${role === "supplier" ? "Supplier" : "Renter"}!`,
       );
@@ -132,6 +138,7 @@ export default function ChooseRole() {
           </p>
         </div>
 
+        <div className="mb-5"><RegistrationTerms accepted={acceptedTerms} onChange={setAcceptedTerms} /></div>
         {error && (
           <div className="mb-6 max-w-lg mx-auto bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm px-4 py-3 rounded-xl flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />

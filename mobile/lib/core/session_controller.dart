@@ -42,6 +42,7 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> registerCustomer({
+    required String acceptedTermsVersion,
     required String name,
     required String email,
     required String password,
@@ -54,6 +55,7 @@ class SessionController extends ChangeNotifier {
         'email': email.trim(),
         'password': password,
         'role': 'customer',
+        'acceptedTermsVersion': acceptedTermsVersion,
         if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
       },
     );
@@ -61,6 +63,7 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> registerSupplier({
+    required String acceptedTermsVersion,
     required String name,
     required String email,
     required String password,
@@ -77,6 +80,7 @@ class SessionController extends ChangeNotifier {
         'email': email.trim(),
         'password': password,
         'role': 'supplier',
+        'acceptedTermsVersion': acceptedTermsVersion,
         'phone': phone.trim(),
         'address': address.trim(),
         'barangay': barangay,

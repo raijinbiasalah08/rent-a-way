@@ -139,6 +139,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, appli
     ["products", "barangay", "TEXT"],
     ["users", "latitude", "REAL"],
     ["users", "longitude", "REAL"],
+    ["users", "terms_version", "TEXT"],
+    ["users", "terms_accepted_at", "TEXT"],
     ["users", "barangay", "TEXT"],
     ["reviews", "image_url", "TEXT"],
     ["messages", "type", "TEXT NOT NULL DEFAULT 'text'"],

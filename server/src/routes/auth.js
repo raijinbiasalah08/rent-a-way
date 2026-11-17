@@ -14,6 +14,9 @@ const {
 const { verifyGoogleIdToken } = require("../utils/googleIdentity");
 const uploadsDir = require("../utils/uploads");
 
+const TERMS_VERSION = "2026-11-17";
+const TERMS_REQUIRED = "Agree to the current Terms and Conditions to create an account.";
+
 const router = express.Router();
 const { z, password, email, validate } = require("../middleware/validation");
 const { randomBytes, createHash } = require("node:crypto");
@@ -84,6 +87,7 @@ router.post(
   "/register",
   validate(
     z.object({
+      acceptedTermsVersion: z.literal(TERMS_VERSION, { error: TERMS_REQUIRED }),
       name: z.string().trim().min(2).max(100),
       email,
       password,
@@ -128,7 +132,7 @@ router.post(
         created_at = new Date().toISOString();
       await db
         .prepare(
-          "INSERT INTO users (id,name,email,password_hash,role,phone,address,barangay,latitude,longitude,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          "INSERT INTO users (id,name,email,password_hash,role,phone,address,barangay,latitude,longitude,created_at,terms_version,terms_accepted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         )
         .run(
           id,
@@ -141,6 +145,8 @@ router.post(
           barangay || null,
           latitude ?? null,
           longitude ?? null,
+          created_at,
+          TERMS_VERSION,
           created_at,
         );
       const token = jwt.sign({ id, role, version: 0 }, process.env.JWT_SECRET, {
@@ -286,6 +292,8 @@ router.post("/google", async (req, res) => {
       if (!["customer", "renter", "supplier"].includes(requestedRole))
         return { invalidRole: true };
 
+      if (req.body.acceptedTermsVersion !== TERMS_VERSION) return { needsTerms: true };
+
       const role = requestedRole === "supplier" ? "supplier" : "customer";
       const id = uuidv4();
       const name = profile.name || profile.email.split("@")[0];
@@ -296,8 +304,8 @@ router.post("/google", async (req, res) => {
       await db
         .prepare(
           `
-        INSERT INTO users (id, name, email, password_hash, role, avatar, address, barangay, latitude, longitude, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, name, email, password_hash, role, avatar, address, barangay, latitude, longitude, created_at, terms_version, terms_accepted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
         )
         .run(
@@ -312,6 +320,8 @@ router.post("/google", async (req, res) => {
           null,
           null,
           createdAt,
+          TERMS_VERSION,
+          createdAt,
         );
 
       await db
@@ -324,6 +334,7 @@ router.post("/google", async (req, res) => {
       };
     });
 
+    if (result.needsTerms) return res.status(400).json({ success: false, message: TERMS_REQUIRED });
     if (result.needsRoleSelection) {
       return res.json({
         success: true,

@@ -1,3 +1,4 @@
+import RegistrationTerms, { TERMS_VERSION } from "../../components/RegistrationTerms";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -17,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function RegisterRenter() {
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuth();
 
@@ -45,6 +47,7 @@ export default function RegisterRenter() {
     setLoading(true);
     try {
       await register({
+        acceptedTermsVersion: acceptedTerms ? TERMS_VERSION : null,
         name: fullName,
         email,
         phone: mobile,
@@ -285,6 +288,8 @@ export default function RegisterRenter() {
                   </div>
                 </div>
               </div>
+
+              <RegistrationTerms accepted={acceptedTerms} onChange={setAcceptedTerms} />
 
               <button
                 type="submit"

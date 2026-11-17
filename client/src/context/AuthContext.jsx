@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     return { needRoleSelection: false, role: data.user.role, user: data.user };
   };
 
-  const assignRoleAndFinalize = async (selectedRole) => {
+  const assignRoleAndFinalize = async (selectedRole, acceptedTermsVersion) => {
     if (!pendingGoogleUser?.credential) {
       throw new Error("Your Google sign-in expired. Please sign in again.");
     }
@@ -101,6 +101,7 @@ export const AuthProvider = ({ children }) => {
     const role = selectedRole === "renter" ? "customer" : selectedRole;
     const res = await apiGoogleLogin({
       credential: pendingGoogleUser.credential,
+      acceptedTermsVersion,
       role,
     });
     const data = res.data.data;

@@ -64,12 +64,19 @@ after(async () => {
   await db.close();
 });
 test("registration rejects privilege escalation and weak passwords; normal registration works", async () => {
+  for (const acceptedTermsVersion of [undefined, false, "outdated"]) {
+    const response = await api("/auth/register", "POST", {
+      name: "Test Customer", email: "new@example.test",
+      password: "valid-password-123", acceptedTermsVersion,
+    }, null);
+    assert.equal(response.status, 400);
+  }
   assert.equal(
     (
       await api(
         "/auth/register",
         "POST",
-        { name: "Test Customer", email: "new@example.test", password: "short" },
+        { acceptedTermsVersion: "2026-11-17", name: "Test Customer", email: "new@example.test", password: "short" },
         null,
       )
     ).status,
@@ -81,6 +88,7 @@ test("registration rejects privilege escalation and weak passwords; normal regis
         "/auth/register",
         "POST",
         {
+          acceptedTermsVersion: "2026-11-17",
           name: "Test Customer",
           email: "new@example.test",
           password: "valid-password-123",
@@ -97,6 +105,7 @@ test("registration rejects privilege escalation and weak passwords; normal regis
         "/auth/register",
         "POST",
         {
+          acceptedTermsVersion: "2026-11-17",
           name: "Test Customer",
           email: "new@example.test",
           password: "valid-password-123",
@@ -106,6 +115,11 @@ test("registration rejects privilege escalation and weak passwords; normal regis
     ).status,
     201,
   );
+  const consent = await db.prepare(
+    "SELECT terms_version, terms_accepted_at, created_at FROM users WHERE email = ?",
+  ).get("new@example.test");
+  assert.equal(consent.terms_version, "2026-11-17");
+  assert.equal(consent.terms_accepted_at, consent.created_at);
 });
 test("supplier creates listing and public search handles punctuation", async () => {
   const result = await api(
@@ -747,4 +761,31 @@ test("free listing slots, premium requests, publication and expiry", async () =>
   assert.equal((await owner("/auth/me")).data.supplier_badge, null);
   assert.equal((await status()).currentPlan, "free");
   assert.equal((await publish()).status, 409);
+});
+test("Google signup records consent at role selection and returning users can sign in", async (t) => {
+  process.env.GOOGLE_CLIENT_ID = "registration-test";
+  const { privateKey, publicKey } = require("node:crypto").generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const key = { ...publicKey.export({ format: "jwk" }), kid: "registration" };
+  const realFetch = global.fetch;
+  t.mock.method(global, "fetch", (url, options) => {
+    if (url === "https://www.googleapis.com/oauth2/v3/certs") return Response.json({ keys: [key] });
+    return realFetch(url, options);
+  });
+  for (const role of ["customer", "supplier"]) {
+    const email = `google-${role}@example.test`;
+    const credential = jwt.sign({ sub: role, email, email_verified: true }, privateKey, {
+      algorithm: "RS256", keyid: key.kid, audience: process.env.GOOGLE_CLIENT_ID,
+      issuer: "https://accounts.google.com", expiresIn: "5m",
+    });
+    const submit = (extra) => api("/auth/google", "POST", { credential, ...extra }, null);
+    assert.equal((await submit({})).data.needsRoleSelection, true);
+    assert.equal((await submit({ role })).status, 400);
+    assert.equal((await submit({ role, acceptedTermsVersion: "outdated" })).status, 400);
+    const created = await submit({ role, acceptedTermsVersion: "2026-11-17" });
+    assert.equal(created.data.user.role, role);
+    const row = await db.prepare("SELECT terms_version, terms_accepted_at, created_at FROM users WHERE email = ?").get(email);
+    assert.equal(row.terms_version, "2026-11-17");
+    assert.equal(row.terms_accepted_at, row.created_at);
+    assert.equal((await submit({})).data.user.id, created.data.user.id);
+  }
 });

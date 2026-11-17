@@ -19,6 +19,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _password = TextEditingController();
+  bool _acceptedTerms = false;
   bool _registering = false;
   String _role = 'customer';
   String _barangay = roxasBarangays.first.name;
@@ -37,6 +38,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_registering && !_acceptedTerms) {
+      _message('Agree to the Terms and Conditions to create your account.');
+      return;
+    }
     setState(() => _busy = true);
     try {
       if (_registering) {
@@ -45,6 +50,7 @@ class _AuthScreenState extends State<AuthScreen> {
             (item) => item.name == _barangay,
           );
           await widget.session.registerSupplier(
+            acceptedTermsVersion: '2026-11-17',
             name: _name.text,
             email: _email.text,
             password: _password.text,
@@ -56,6 +62,7 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         } else {
           await widget.session.registerCustomer(
+            acceptedTermsVersion: '2026-11-17',
             name: _name.text,
             email: _email.text,
             password: _password.text,
@@ -283,6 +290,48 @@ class _AuthScreenState extends State<AuthScreen> {
                         style: TextStyle(color: Colors.black54, fontSize: 12),
                       ),
                     ],
+                    if (_registering) ...[
+                      const ExpansionTile(
+                        title: Text('Read the Terms and Conditions'),
+                        children: [
+                          ListTile(
+                            title: Text('Your account'),
+                            subtitle: Text(
+                              "Provide accurate contact details, keep your login private, and use Rent-A-Way to arrange lawful rentals.",
+                            ),
+                          ),
+                          ListTile(
+                            title: Text('Listing equipment'),
+                            subtitle: Text(
+                              "List only equipment you own or have permission to rent out. Describe its condition, availability, price, and pickup location accurately.",
+                            ),
+                          ),
+                          ListTile(
+                            title: Text('Renting equipment'),
+                            subtitle: Text(
+                              "Before confirming a booking, check the price, rental dates, pickup and return arrangements, and any conditions shown for the item. Use the equipment as agreed and report damage or a missed handover to the other party.",
+                            ),
+                          ),
+                          ListTile(
+                            title: Text('Community conduct'),
+                            subtitle: Text(
+                              "Communicate respectfully. Do not post misleading listings, impersonate others, or share another person's private information without permission.",
+                            ),
+                          ),
+                        ],
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        value: _acceptedTerms,
+                        onChanged: _busy
+                            ? null
+                            : (v) => setState(() => _acceptedTerms = v == true),
+                        title: const Text(
+                          'I agree to the Rent-A-Way Terms and Conditions.',
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     FilledButton(
                       onPressed: _busy ? null : _submit,
@@ -304,7 +353,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     TextButton(
                       onPressed: _busy
                           ? null
-                          : () => setState(() => _registering = !_registering),
+                          : () => setState(() {
+                              _registering = !_registering;
+                              _acceptedTerms = false;
+                            }),
                       child: Text(
                         _registering
                             ? 'Already have an account? Sign in'
