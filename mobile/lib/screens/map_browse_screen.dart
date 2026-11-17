@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rentaway_mobile/core/api_client.dart';
 import 'package:rentaway_mobile/core/session_controller.dart';
+import 'package:rentaway_mobile/core/roxas_boundary.dart';
 import 'package:rentaway_mobile/models/product.dart';
 import 'package:rentaway_mobile/screens/product_detail_screen.dart';
 import 'package:rentaway_mobile/widgets/product_card.dart';
@@ -60,7 +61,7 @@ class _MapBrowseScreenState extends State<MapBrowseScreen> {
                     )
                     .where(
                       (product) =>
-                          product.latitude != null && product.longitude != null,
+                          insideRoxas(product.latitude, product.longitude),
                     )
                     .toList()
               : [];
@@ -154,10 +155,13 @@ class _MapBrowseScreenState extends State<MapBrowseScreen> {
       body: Stack(
         children: [
           FlutterMap(
-            options: const MapOptions(
+            options: MapOptions(
+              cameraConstraint: CameraConstraint.containCenter(
+                bounds: LatLngBounds.fromPoints(roxasOutline),
+              ),
               initialCenter: _roxasCenter,
               initialZoom: 13.2,
-              minZoom: 11,
+              minZoom: 12,
               maxZoom: 19,
             ),
             children: [
@@ -166,9 +170,23 @@ class _MapBrowseScreenState extends State<MapBrowseScreen> {
                 userAgentPackageName: 'com.rentaway.rentaway_mobile',
                 maxNativeZoom: 19,
               ),
+              PolygonLayer(
+                simplificationTolerance: 0,
+                polygons: [
+                  Polygon(
+                    points: const [
+                      LatLng(5, 115), LatLng(20, 115),
+                      LatLng(20, 130), LatLng(5, 130),
+                    ],
+                    holePointsList: const [roxasOutline],
+                    color: const Color(0xFFF1F5F9),
+                  ),
+                ],
+              ),
               MarkerLayer(markers: markers),
               RichAttributionWidget(
                 attributions: [
+                  const TextSourceAttribution('Boundary: NAMRIA/PSA'),
                   TextSourceAttribution(
                     'OpenStreetMap contributors',
                     onTap: () => unawaited(

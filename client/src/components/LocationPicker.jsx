@@ -1,7 +1,7 @@
+import RoxasBasemap from "./RoxasBasemap";
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
   MapContainer,
-  TileLayer,
   Marker,
   Popup,
   useMap,
@@ -376,11 +376,7 @@ export default function LocationPicker({
           className="h-full w-full"
           style={{ height: "100%", width: "100%", zIndex: 1 }}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maxZoom={19}
-          />
+          <RoxasBasemap />
 
           <MapCenterController center={coords} />
           <MapClickSetter onClick={handleUpdatePosition} />

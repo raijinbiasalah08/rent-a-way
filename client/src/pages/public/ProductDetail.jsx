@@ -1,3 +1,4 @@
+import RoxasBasemap from "../../components/RoxasBasemap";
 import { apiAssetUrl } from "../../config";
 import { useState, useEffect } from "react";
 import {
@@ -35,10 +36,10 @@ import toast from "react-hot-toast";
 import DatePicker from "react-datepicker";
 import { format, isMatch } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { ROXAS_BOUNDS, formatRoxasAddress } from "../../utils/roxasLocation";
+import { ROXAS_BOUNDS, isWithinRoxas, formatRoxasAddress } from "../../utils/roxasLocation";
 import { API_ORIGIN } from "../../config";
 
 // Fix Leaflet default icon paths
@@ -496,7 +497,7 @@ export default function ProductDetail() {
                   <MapPin className="w-5 h-5 text-red-500" /> Pickup &amp;
                   Lister Location
                 </h2>
-                {product.latitude && product.longitude && (
+                {isWithinRoxas(product.latitude, product.longitude) && (
                   <span className="text-xs bg-green-50 border border-green-200 text-green-700 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
                     <Check className="w-3 h-3" /> Exact GPS Pinpoint
                   </span>
@@ -542,7 +543,7 @@ export default function ProductDetail() {
                 </div>
               )}
 
-              {product.latitude && product.longitude ? (
+              {isWithinRoxas(product.latitude, product.longitude) ? (
                 <div className="rounded-xl overflow-hidden border border-gray-200 shadow-xs relative">
                   <div className="h-56 w-full">
                     <MapContainer
@@ -555,10 +556,7 @@ export default function ProductDetail() {
                       scrollWheelZoom={false}
                       style={{ height: "100%", width: "100%", zIndex: 1 }}
                     >
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
+                      <RoxasBasemap />
 
                       <Marker position={[product.latitude, product.longitude]}>
                         <Popup>

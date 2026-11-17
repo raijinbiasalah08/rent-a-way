@@ -1,3 +1,4 @@
+import RoxasBasemap from "../../components/RoxasBasemap";
 import "./MapSearch.css";
 import {
   LayoutGrid,
@@ -14,7 +15,6 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   MapContainer,
-  TileLayer,
   Marker,
   Popup,
   Circle,
@@ -278,7 +278,10 @@ export default function MapSearch() {
       .then((res) => {
         if (!current) return;
         const product = res.data?.data;
-        if (!product) return;
+        if (!product || !isWithinRoxas(product.latitude, product.longitude)) {
+          setFocusedProduct(null);
+          return;
+        }
         const primaryImage =
           product.primary_image ||
           product.images?.find((image) => image.is_primary)?.url ||
@@ -492,7 +495,9 @@ export default function MapSearch() {
 
     getProducts(query)
       .then((res) => {
-        if (current) setProducts(res.data?.data?.products || []);
+        if (current) setProducts((res.data?.data?.products || []).filter(
+          (product) => isWithinRoxas(product.latitude, product.longitude),
+        ));
       })
       .catch(() => {
         if (current)
@@ -984,10 +989,7 @@ export default function MapSearch() {
                 });
               }}
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <RoxasBasemap />
 
               <MapController flyTarget={flyTarget} onBoundsChange={setBounds} />
               <MapClickHandler
