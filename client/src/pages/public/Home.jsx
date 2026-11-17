@@ -6,11 +6,8 @@ import {
   Shield,
   Check,
   Camera,
-  Mountain,
-  Bike,
   Calendar,
   Wrench,
-  BookOpen,
   Star,
   MapPin,
   Clock,
@@ -33,9 +30,7 @@ const CATEGORIES = [
     name: "Cameras & Drones",
     subtitle: "Capture every moment",
     to: "/browse?category=Cameras",
-    icon: Camera,
-    bg: "bg-teal-50",
-    iconColor: "text-teal-600",
+    icon: "/category-icons/camera.png",
     image:
       "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=700&q=85&fit=crop",
   },
@@ -44,9 +39,7 @@ const CATEGORIES = [
     name: "Camping Equipment",
     subtitle: "Gear for the great outdoors",
     to: "/browse?category=Camping",
-    icon: Mountain,
-    bg: "bg-green-50",
-    iconColor: "text-green-600",
+    icon: "/category-icons/mountain.png",
     image:
       "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=700&q=85&fit=crop",
   },
@@ -55,9 +48,7 @@ const CATEGORIES = [
     name: "Sports Equipment",
     subtitle: "Play harder, spend less",
     to: "/browse?category=Sports",
-    icon: Bike,
-    bg: "bg-orange-50",
-    iconColor: "text-orange-600",
+    icon: "/category-icons/bicycle.png",
     image:
       "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=700&q=85&fit=crop",
   },
@@ -66,9 +57,7 @@ const CATEGORIES = [
     name: "Event Equipment",
     subtitle: "Everything for the big day",
     to: "/browse?category=Event",
-    icon: Calendar,
-    bg: "bg-purple-50",
-    iconColor: "text-purple-600",
+    icon: "/category-icons/calendar.png",
     image:
       "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=700&q=85&fit=crop",
   },
@@ -77,9 +66,7 @@ const CATEGORIES = [
     name: "Household Equipment",
     subtitle: "Tools for every project",
     to: "/browse?category=Household",
-    icon: Wrench,
-    bg: "bg-blue-50",
-    iconColor: "text-blue-600",
+    icon: "/category-icons/wrench.png",
     image:
       "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=700&q=85&fit=crop",
   },
@@ -88,9 +75,7 @@ const CATEGORIES = [
     name: "School Project Equipment",
     subtitle: "Ace every project",
     to: "/browse?category=School",
-    icon: BookOpen,
-    bg: "bg-amber-50",
-    iconColor: "text-amber-600",
+    icon: "/category-icons/book.png",
     image:
       "https://images.unsplash.com/photo-1532094349884-543290200b6b?w=700&q=85&fit=crop",
   },
@@ -631,7 +616,6 @@ export default function Home() {
           {/* 3-column grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
               return (
                 <Link
                   key={cat.name}
@@ -666,11 +650,7 @@ export default function Home() {
                   {/* Card footer */}
                   <div className="flex items-center justify-between px-4 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`w-9 h-9 rounded-lg ${cat.bg} flex items-center justify-center flex-shrink-0`}
-                      >
-                        <Icon className={`w-4.5 h-4.5 ${cat.iconColor}`} />
-                      </div>
+                      <img src={cat.icon} alt="" width="36" height="36" className="h-9 w-9 shrink-0 object-contain" />
                       <div>
                         <div className="font-bold text-gray-900 text-sm">
                           {cat.name}
