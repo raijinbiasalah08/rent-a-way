@@ -35,13 +35,11 @@ void main() {
       await tester.enterText(fields.at(0), 'New Renter');
       await tester.enterText(fields.at(1), 'new@example.test');
       await tester.enterText(fields.last, 'valid-password-123');
-      await tap(find.text('Read the Terms and Conditions'));
+      await tap(find.text('Terms & Conditions'));
       expect(find.text('Community conduct'), findsOneWidget);
-      expect(
-        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
-        false,
-      );
-      await tap(find.text('Read the Terms and Conditions'));
+      await tap(find.text('Close'));
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, false);
       final submit = find.text('Create customer account');
       await tap(submit);
       expect(session.acceptedVersion, isNull);
@@ -49,7 +47,7 @@ void main() {
         find.text('Agree to the Terms and Conditions to create your account.'),
         findsOneWidget,
       );
-      await tap(find.byType(CheckboxListTile));
+      await tap(find.byType(Checkbox));
       await tap(submit);
       expect(session.acceptedVersion, '2026-11-17');
     },

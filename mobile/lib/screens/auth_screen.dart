@@ -82,6 +82,51 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  void _showTerms() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Terms & Conditions'),
+        scrollable: true,
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text('Your account'),
+              subtitle: Text(
+                "Provide accurate contact details, keep your login private, and use Rent-A-Way to arrange lawful rentals.",
+              ),
+            ),
+            ListTile(
+              title: Text('Listing equipment'),
+              subtitle: Text(
+                "List only equipment you own or have permission to rent out. Describe its condition, availability, price, and pickup location accurately.",
+              ),
+            ),
+            ListTile(
+              title: Text('Renting equipment'),
+              subtitle: Text(
+                "Before confirming a booking, check the price, rental dates, pickup and return arrangements, and any conditions shown for the item. Use the equipment as agreed and report damage or a missed handover to the other party.",
+              ),
+            ),
+            ListTile(
+              title: Text('Community conduct'),
+              subtitle: Text(
+                "Communicate respectfully. Do not post misleading listings, impersonate others, or share another person's private information without permission.",
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _message(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
@@ -290,48 +335,41 @@ class _AuthScreenState extends State<AuthScreen> {
                         style: TextStyle(color: Colors.black54, fontSize: 12),
                       ),
                     ],
-                    if (_registering) ...[
-                      const ExpansionTile(
-                        title: Text('Read the Terms and Conditions'),
+                    if (_registering)
+                      Row(
                         children: [
-                          ListTile(
-                            title: Text('Your account'),
-                            subtitle: Text(
-                              "Provide accurate contact details, keep your login private, and use Rent-A-Way to arrange lawful rentals.",
-                            ),
+                          Checkbox(
+                            semanticLabel:
+                                'I agree to the Rent-A-Way Terms & Conditions',
+                            value: _acceptedTerms,
+                            onChanged: _busy
+                                ? null
+                                : (v) => setState(
+                                    () => _acceptedTerms = v == true,
+                                  ),
                           ),
-                          ListTile(
-                            title: Text('Listing equipment'),
-                            subtitle: Text(
-                              "List only equipment you own or have permission to rent out. Describe its condition, availability, price, and pickup location accurately.",
-                            ),
-                          ),
-                          ListTile(
-                            title: Text('Renting equipment'),
-                            subtitle: Text(
-                              "Before confirming a booking, check the price, rental dates, pickup and return arrangements, and any conditions shown for the item. Use the equipment as agreed and report damage or a missed handover to the other party.",
-                            ),
-                          ),
-                          ListTile(
-                            title: Text('Community conduct'),
-                            subtitle: Text(
-                              "Communicate respectfully. Do not post misleading listings, impersonate others, or share another person's private information without permission.",
+                          Expanded(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                const Text('I agree to the Rent-A-Way '),
+                                TextButton(
+                                  onPressed: _showTerms,
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  child: const Text(
+                                    'Terms & Conditions',
+                                    style: TextStyle(
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        value: _acceptedTerms,
-                        onChanged: _busy
-                            ? null
-                            : (v) => setState(() => _acceptedTerms = v == true),
-                        title: const Text(
-                          'I agree to the Rent-A-Way Terms and Conditions.',
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 20),
                     FilledButton(
                       onPressed: _busy ? null : _submit,
