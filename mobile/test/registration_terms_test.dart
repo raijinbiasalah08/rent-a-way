@@ -41,12 +41,13 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
       expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, false);
       final submit = find.text('Create customer account');
-      await tap(submit);
+      final button = find.byType(FilledButton);
+      expect(tester.widget<FilledButton>(button).onPressed, isNull);
       expect(session.acceptedVersion, isNull);
-      expect(
-        find.text('Agree to the Terms and Conditions to create your account.'),
-        findsOneWidget,
-      );
+      await tap(find.byType(Checkbox));
+      expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
+      await tap(find.byType(Checkbox));
+      expect(tester.widget<FilledButton>(button).onPressed, isNull);
       await tap(find.byType(Checkbox));
       await tap(submit);
       expect(session.acceptedVersion, '2026-11-17');

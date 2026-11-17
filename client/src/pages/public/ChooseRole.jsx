@@ -150,13 +150,13 @@ export default function ChooseRole() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto w-full">
           {/* Card 1: RENTER */}
           <div
-            onClick={() => !submitting && handleSelectRole("renter")}
+            onClick={() => acceptedTerms && !submitting && handleSelectRole("renter")}
             className={`relative group bg-white border-2 rounded-2xl p-6 sm:p-7 transition-all duration-200 flex flex-col justify-between cursor-pointer ${
               submittingRole === "renter"
                 ? "border-[#1e3a8a] ring-4 ring-[#1e3a8a]/10 shadow-lg"
                 : "border-gray-200 hover:border-[#1e3a8a] hover:shadow-xl hover:-translate-y-1"
             } ${
-              submitting && submittingRole !== "renter"
+              !acceptedTerms || submitting && submittingRole !== "renter"
                 ? "opacity-50 pointer-events-none"
                 : ""
             }`}
@@ -213,8 +213,8 @@ export default function ChooseRole() {
 
             <button
               type="button"
-              disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] group-hover:bg-[#1d4ed8] text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
+              disabled={submitting || !acceptedTerms}
+              className="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center justify-center gap-2 bg-[#1e3a8a] group-hover:bg-[#1d4ed8] text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
             >
               {submittingRole === "renter" ? (
                 <span className="flex items-center gap-2">
@@ -232,13 +232,13 @@ export default function ChooseRole() {
 
           {/* Card 2: SUPPLIER */}
           <div
-            onClick={() => !submitting && handleSelectRole("supplier")}
+            onClick={() => acceptedTerms && !submitting && handleSelectRole("supplier")}
             className={`relative group bg-white border-2 rounded-2xl p-6 sm:p-7 transition-all duration-200 flex flex-col justify-between cursor-pointer ${
               submittingRole === "supplier"
                 ? "border-amber-500 ring-4 ring-amber-500/10 shadow-lg"
                 : "border-gray-200 hover:border-amber-500 hover:shadow-xl hover:-translate-y-1"
             } ${
-              submitting && submittingRole !== "supplier"
+              !acceptedTerms || submitting && submittingRole !== "supplier"
                 ? "opacity-50 pointer-events-none"
                 : ""
             }`}
@@ -294,8 +294,8 @@ export default function ChooseRole() {
 
             <button
               type="button"
-              disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 bg-amber-600 group-hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
+              disabled={submitting || !acceptedTerms}
+              className="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center justify-center gap-2 bg-amber-600 group-hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
             >
               {submittingRole === "supplier" ? (
                 <span className="flex items-center gap-2">

@@ -372,7 +372,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     const SizedBox(height: 20),
                     FilledButton(
-                      onPressed: _busy ? null : _submit,
+                      onPressed: _busy || (_registering && !_acceptedTerms)
+                          ? null
+                          : _submit,
                       child: _busy
                           ? const SizedBox.square(
                               dimension: 21,

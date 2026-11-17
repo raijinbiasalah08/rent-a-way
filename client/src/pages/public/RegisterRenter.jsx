@@ -293,8 +293,8 @@ export default function RegisterRenter() {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full mt-2 flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:opacity-60 text-white font-semibold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition cursor-pointer"
+                disabled={loading || !acceptedTerms}
+                className="w-full mt-2 flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60 text-white font-semibold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition cursor-pointer"
               >
                 {loading ? (
                   "Creating account…"
