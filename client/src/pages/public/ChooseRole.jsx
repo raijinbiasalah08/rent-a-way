@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { signInDestination } from "../../utils/session";
 import {
   ShoppingBag,
   Tag,
@@ -14,6 +15,7 @@ import toast from "react-hot-toast";
 
 export default function ChooseRole() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const {
     user,
     loading,
@@ -30,7 +32,9 @@ export default function ChooseRole() {
   useEffect(() => {
     if (loading) return;
     if (user?.role) {
-      navigate(roleDashboard(user.role), { replace: true });
+      navigate(signInDestination(state, roleDashboard(user.role)), {
+        replace: true,
+      });
       return;
     }
     if (!pendingGoogleUser?.credential) {
@@ -38,7 +42,7 @@ export default function ChooseRole() {
       return;
     }
     setChecking(false);
-  }, [loading, user, pendingGoogleUser, navigate, roleDashboard]);
+  }, [loading, user, pendingGoogleUser, navigate, roleDashboard, state]);
 
   const activeAuthUser = pendingGoogleUser;
 
@@ -51,7 +55,9 @@ export default function ChooseRole() {
       toast.success(
         `Account created as ${role === "supplier" ? "Supplier" : "Renter"}!`,
       );
-      navigate(roleDashboard(result.role), { replace: true });
+      navigate(signInDestination(state, roleDashboard(result.role)), {
+        replace: true,
+      });
     } catch (err) {
       setError(err.message || "Could not save your role. Please try again.");
       setSubmitting(false);

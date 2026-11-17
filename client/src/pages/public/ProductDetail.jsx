@@ -1,6 +1,11 @@
 import { apiAssetUrl } from "../../config";
 import { useState, useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useParams,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import {
   ChevronRight,
   ChevronLeft,
@@ -28,7 +33,7 @@ import { useCustomerLocation } from "../../context/CustomerLocationContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import toast from "react-hot-toast";
 import DatePicker from "react-datepicker";
-import { format } from "date-fns";
+import { format, isMatch } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -65,6 +70,12 @@ function Stars({ rating, size = "sm" }) {
 }
 
 function StatusBadge({ status }) {
+  if (!["available", "limited", "rented"].includes(status))
+    return (
+      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+        {status === "maintenance" ? "Under maintenance" : "Unavailable"}
+      </span>
+    );
   if (status === "limited")
     return (
       <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">
@@ -96,6 +107,7 @@ import { Helmet } from "react-helmet-async";
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function ProductDetail() {
   const { id } = useParams();
+  const [query] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
@@ -109,6 +121,8 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
 
   const [imgIdx, setImgIdx] = useState(0);
   const [startDate, setStartDate] = useState("");
@@ -125,25 +139,54 @@ export default function ProductDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
+    let current = true;
     setLoading(true);
+    setProduct(null);
+    setRelated([]);
+    setLoadError("");
     getProduct(id)
       .then((res) => {
+        if (!current) return;
         setProduct(res.data.data);
-        return getProducts({ category: res.data.data.category, limit: 3 });
+        setLoading(false);
+        getProducts({ category: res.data.data.category, limit: 3 })
+          .then(({ data }) => {
+            if (current)
+              setRelated(
+                (data.data?.products || []).filter((p) => p.id !== id),
+              );
+          })
+          .catch(() => {});
       })
-      .then((res) => {
-        // filter out current product
-        setRelated((res.data?.data?.products || []).filter((p) => p.id !== id));
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!current) return;
+        setLoadError(
+          err.response?.status === 404
+            ? "This listing is no longer available."
+            : "Could not load this listing.",
+        );
+        setLoading(false);
+      });
 
     setImgIdx(0);
-    setStartDate("");
-    setReturnDate("");
     setHelpfulVotes({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [id]);
+    window.scrollTo(0, 0);
+    return () => {
+      current = false;
+    };
+  }, [id, attempt]);
+
+  useEffect(() => {
+    const start = query.get("start_date") || "";
+    const end = query.get("end_date") || "";
+    const valid =
+      [start, end].every(
+        (date) =>
+          /^\d{4}-\d{2}-\d{2}$/.test(date) && isMatch(date, "yyyy-MM-dd"),
+      ) && end > start;
+    setStartDate(valid ? start : "");
+    setReturnDate(valid ? end : "");
+  }, [id, query]);
 
   if (loading) {
     return (
@@ -155,8 +198,21 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-[#f5f0e8] flex items-center justify-center">
-        Product not found
+      <div className="mx-auto max-w-xl px-4 py-20 text-center">
+        <h1 role="alert" className="mb-5 text-2xl font-bold">
+          {loadError}
+        </h1>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Link className="btn-primary" to="/browse">
+            Browse equipment
+          </Link>
+          <button
+            className="btn-secondary"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            Try again
+          </button>
+        </div>
       </div>
     );
   }
@@ -201,7 +257,7 @@ export default function ProductDetail() {
   const handleSendMessage = async () => {
     if (!user) {
       toast.error("Please log in to send a message.");
-      navigate("/login");
+      navigate("/login", { state: { returnTo: `/product/${id}` } });
       return;
     }
     if (!messageContent.trim()) return;
@@ -676,11 +732,15 @@ export default function ProductDetail() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">
+                <label
+                  htmlFor="reservation-dates"
+                  className="block text-xs font-semibold text-slate-600 mb-1"
+                >
                   Select Dates
                 </label>
                 <div className="border border-gray-200 rounded-lg overflow-hidden flex">
                   <DatePicker
+                    id="reservation-dates"
                     selected={
                       startDate ? new Date(startDate + "T00:00:00") : null
                     }
@@ -736,8 +796,21 @@ export default function ProductDetail() {
               >
                 <Calendar className="w-4 h-4" /> Reserve this item
               </button>
-              <p className="text-center text-[10px] text-gray-400 leading-relaxed mb-5">
-                You will review the details before confirming.
+              <p
+                aria-live="polite"
+                className="text-center text-xs text-slate-600 leading-relaxed mb-5"
+              >
+                {product.availability !== "available"
+                  ? "Reservations are closed for this item."
+                  : !startDate
+                    ? "Choose pickup and return dates to continue."
+                    : !returnDate
+                      ? "Choose a return date to continue."
+                      : returnDate <= startDate
+                        ? "Choose a return date after pickup."
+                        : days > product.max_days
+                          ? `Choose a rental of ${product.max_days} days or fewer.`
+                          : "You will review the details before confirming."}
               </p>
 
               <div className="border-t border-gray-100 pt-4">

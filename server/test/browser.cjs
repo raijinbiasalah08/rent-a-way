@@ -162,7 +162,7 @@ async function main() {
           await expect(review).toHaveCount(0);
         }
         assert.equal(
-          await page.getByText("404 Not Found", { exact: true }).count(),
+          await page.getByRole("heading", { name: "Page not found" }).count(),
           0,
           route,
         );
@@ -256,15 +256,14 @@ async function main() {
     const supplierPage = await supplierContext.newPage();
     await supplierPage.goto("http://127.0.0.1:5179/supplier/products/new");
     await supplierPage
-      .getByPlaceholder("e.g. Canon EOS R6 Mirrorless Camera")
+      .getByLabel("Listing Title", { exact: false })
       .fill("Premium browser tent");
     await supplierPage
-      .locator("select")
-      .filter({
-        has: supplierPage.locator('option[value="Camping Equipment"]'),
-      })
+      .getByLabel("Category", { exact: false })
       .selectOption("Camping Equipment");
-    await supplierPage.getByPlaceholder("e.g. 1500").fill("200");
+    await supplierPage
+      .getByLabel("Price per Day", { exact: false })
+      .fill("200");
     await supplierPage.getByRole("button", { name: "Publish Listing" }).click();
     await expect(supplierPage).toHaveURL(/supplier\/products$/);
     await expect(
@@ -316,7 +315,7 @@ async function main() {
       await page.goto("http://127.0.0.1:5179" + route);
       await page.waitForLoadState("networkidle");
       assert.equal(
-        await page.getByText("404 Not Found", { exact: true }).count(),
+        await page.getByRole("heading", { name: "Page not found" }).count(),
         0,
       );
     }
@@ -357,6 +356,26 @@ async function main() {
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page).toHaveURL(/customer\/dashboard/);
     console.log("Browser reset email → password reset → login passed");
+    const guest = await browser.newPage();
+    const returnDate = new Date(Date.parse(today) + 2 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const destination = `http://127.0.0.1:5179/customer/booking/${product}?start_date=${today}&end_date=${returnDate}`;
+    await guest.goto(
+      `http://127.0.0.1:5179/browse?startDate=${today}&endDate=${returnDate}`,
+    );
+    await guest
+      .getByRole("link", { name: "Browser Camera", exact: true })
+      .click();
+    await guest.getByRole("button", { name: "Reserve this item" }).click();
+    await expect(guest).toHaveURL(/login$/);
+    await guest.locator("input[type=email]").fill("customer@test.example");
+    await guest.locator("input[type=password]").fill("browser-replacement-123");
+    await guest.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(guest).toHaveURL(destination);
+    await expect(guest.getByLabel("Start date")).toHaveValue(today);
+    await expect(guest.getByLabel("End date")).toHaveValue(returnDate);
+    await guest.close();
   } finally {
     await browser?.close();
     await vite.close();

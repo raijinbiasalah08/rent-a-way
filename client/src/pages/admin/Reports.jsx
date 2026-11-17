@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { getReports, getStats } from "../../api/admin";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import toast from "react-hot-toast";
 import {
   LineChart,
   Line,
@@ -31,16 +30,29 @@ export default function Reports() {
   const [reports, setReports] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    let current = true;
+    setLoading(true);
+    setFailed(false);
     Promise.all([getReports(), getStats()])
       .then(([reportsRes, statsRes]) => {
+        if (!current) return;
         setReports(reportsRes.data?.data || {});
         setStats(statsRes.data?.data || {});
       })
-      .catch(() => toast.error("Failed to load reports"))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        if (current) setFailed(true);
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [attempt]);
 
   if (loading)
     return (
@@ -50,6 +62,21 @@ export default function Reports() {
     );
 
   const topProducts = reports?.topProducts || [];
+  if (failed)
+    return (
+      <section className="card mx-auto my-8 max-w-lg">
+        <h1 className="text-xl font-bold">Reports</h1>
+        <p role="alert" className="my-3">
+          Could not load the latest figures.
+        </p>
+        <button
+          className="btn-primary"
+          onClick={() => setAttempt((value) => value + 1)}
+        >
+          Try again
+        </button>
+      </section>
+    );
   const rentalsByCategory = reports?.rentalsByCategory || [];
 
   const SUMMARY_CARDS = [

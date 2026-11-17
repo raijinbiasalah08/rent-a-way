@@ -237,11 +237,18 @@ export default function EditProduct() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+          <label
+            htmlFor="listing-title"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Listing Title <span className="text-red-500">*</span>
           </label>
           <input
+            id="listing-title"
+            required
             type="text"
+            minLength={2}
+            maxLength={150}
             value={form.title}
             onChange={set("title")}
             placeholder="e.g. Canon EOS R6 Mirrorless Camera"
@@ -252,10 +259,15 @@ export default function EditProduct() {
         {/* Category + Price */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label
+              htmlFor="listing-category"
+              className="block text-sm font-semibold text-gray-700 mb-1.5"
+            >
               Category <span className="text-red-500">*</span>
             </label>
             <select
+              id="listing-category"
+              required
               value={form.category}
               onChange={set("category")}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/10 transition bg-white"
@@ -269,10 +281,15 @@ export default function EditProduct() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label
+              htmlFor="listing-price_per_day"
+              className="block text-sm font-semibold text-gray-700 mb-1.5"
+            >
               Price per Day (₱) <span className="text-red-500">*</span>
             </label>
             <input
+              id="listing-price_per_day"
+              required
               type="number"
               value={form.price_per_day}
               onChange={set("price_per_day")}
@@ -286,10 +303,14 @@ export default function EditProduct() {
         {/* Min/Max days + Availability */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label
+              htmlFor="listing-min_days"
+              className="block text-sm font-semibold text-gray-700 mb-1.5"
+            >
               Min Days
             </label>
             <input
+              id="listing-min_days"
               type="number"
               value={form.min_days}
               onChange={set("min_days")}
@@ -298,28 +319,43 @@ export default function EditProduct() {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label
+              htmlFor="listing-max_days"
+              className="block text-sm font-semibold text-gray-700 mb-1.5"
+            >
               Max Days
             </label>
             <input
+              id="listing-max_days"
               type="number"
               value={form.max_days}
               onChange={set("max_days")}
-              min="1"
+              min={Number(form.min_days) || 1}
+              max="365"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/10 transition bg-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label
+              htmlFor="listing-availability"
+              className="block text-sm font-semibold text-gray-700 mb-1.5"
+            >
               Availability
             </label>
             <select
+              id="listing-availability"
               value={form.availability}
               onChange={set("availability")}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/10 transition bg-white"
             >
               <option value="available">Available</option>
-              <option value="limited">Limited</option>
+              {form.availability === "limited" && (
+                <option value="limited" disabled>
+                  Limited (choose a new status)
+                </option>
+              )}
+              <option value="unavailable">Unavailable</option>
+              <option value="maintenance">Under maintenance</option>
               <option value="rented">Rented out</option>
             </select>
           </div>
@@ -327,10 +363,14 @@ export default function EditProduct() {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+          <label
+            htmlFor="listing-description"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Description
           </label>
           <textarea
+            id="listing-description"
             value={form.description}
             onChange={set("description")}
             rows={4}
@@ -341,11 +381,15 @@ export default function EditProduct() {
 
         {/* Specs */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+          <label
+            htmlFor="listing-specs"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
+          >
             Specs / What's Included{" "}
             <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <textarea
+            id="listing-specs"
             value={form.specs}
             onChange={set("specs")}
             rows={2}

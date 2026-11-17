@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rentaway_mobile/core/api_client.dart';
 import 'package:rentaway_mobile/core/session_controller.dart';
+import 'package:rentaway_mobile/core/theme.dart';
 import 'package:rentaway_mobile/screens/supplier_listings_screen.dart';
 
 class _ListingApi extends ApiClient {
@@ -66,6 +67,7 @@ void main() {
       final session = _ListingSession();
       await tester.pumpWidget(
         MaterialApp(
+          theme: buildRentAwayTheme(),
           home: Scaffold(body: SupplierListingsScreen(session: session)),
         ),
       );

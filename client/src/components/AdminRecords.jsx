@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useId } from "react";
 import {
   ArrowLeft,
@@ -82,26 +82,6 @@ export default function AdminRecords({
           </div>
         )}
       </header>
-      <nav
-        aria-label="Admin sections"
-        className="mb-5 hidden flex-wrap gap-2 md:flex"
-      >
-        {[
-          ["users", "Users"],
-          ["products", "Products"],
-          ["rentals", "Rentals"],
-        ].map(([path, label]) => (
-          <NavLink
-            key={path}
-            to={`/admin/${path}`}
-            className={({ isActive }) =>
-              `rounded-xl px-4 py-3 text-sm font-semibold ${isActive ? "bg-[#1e3a8a] text-white" : "bg-white text-slate-600 hover:bg-blue-50"}`
-            }
-          >
-            {label}
-          </NavLink>
-        ))}
-      </nav>
       <section
         aria-label={`${title} records`}
         className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm"

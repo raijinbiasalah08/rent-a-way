@@ -47,7 +47,8 @@ const STATUS = {
   maintenance: ["Maintenance", "unavailable"],
   unavailable: ["Unavailable", "unavailable"],
 };
-function ProductCard({ product, wide }) {
+function ProductCard({ product, wide, dateQuery }) {
+  const detailUrl = `/product/${product.id}${dateQuery}`;
   const { favoriteIds, toggleFavorite } = useFavorites();
   const { getItemDistance } = useCustomerLocation();
   const favorite = favoriteIds.has(product.id);
@@ -56,7 +57,7 @@ function ProductCard({ product, wide }) {
   return (
     <article className={`browse-product ${wide ? "browse-product-wide" : ""}`}>
       <Link
-        to={`/product/${product.id}`}
+        to={detailUrl}
         className="browse-product-image"
         aria-label={`View ${product.title}`}
       >
@@ -87,7 +88,7 @@ function ProductCard({ product, wide }) {
           </button>
         </div>
         <h3>
-          <Link to={`/product/${product.id}`}>{product.title}</Link>
+          <Link to={detailUrl}>{product.title}</Link>
         </h3>
         <p className="browse-description">
           {product.description ||
@@ -135,7 +136,7 @@ function ProductCard({ product, wide }) {
             </strong>
             <span> / day</span>
           </p>
-          <Link className="browse-primary" to={`/product/${product.id}`}>
+          <Link className="browse-primary" to={detailUrl}>
             View equipment <ArrowRight size={17} />
           </Link>
         </div>
@@ -147,6 +148,12 @@ function ProductCard({ product, wide }) {
 export default function Browse() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryKey = searchParams.toString();
+  const start = searchParams.get("startDate");
+  const end = searchParams.get("endDate");
+  const dateQuery =
+    start && end
+      ? "?" + new URLSearchParams({ start_date: start, end_date: end })
+      : "";
   const category = searchParams.get("category") || "";
   const availableOnly = searchParams.get("availability") === "available";
   const page = Math.max(1, Number.parseInt(searchParams.get("page"), 10) || 1);
@@ -641,6 +648,7 @@ export default function Browse() {
               >
                 {products.map((product) => (
                   <ProductCard
+                    dateQuery={dateQuery}
                     key={product.id}
                     product={product}
                     wide={products.length === 1}

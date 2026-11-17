@@ -39,6 +39,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   String _category = 'All';
   List<Product> _products = [];
   int _page = 1;
+  int _request = 0;
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = false;
@@ -58,11 +59,16 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Future<void> _fetch({bool reset = false}) async {
+    if (!reset && (_loading || _loadingMore)) return;
+    final request = ++_request;
     if (reset) {
       setState(() {
         _loading = true;
         _error = null;
         _page = 1;
+        _products = [];
+        _hasMore = false;
+        _loadingMore = false;
       });
     } else {
       setState(() => _loadingMore = true);
@@ -87,7 +93,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 )
                 .toList()
           : <Product>[];
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _products = reset ? items : [..._products, ...items];
         _page = reset ? 1 : _page + 1;
@@ -98,9 +104,11 @@ class _BrowseScreenState extends State<BrowseScreen> {
         _error = null;
       });
     } on ApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted && request == _request) {
+        setState(() => _error = error.message);
+      }
     } finally {
-      if (mounted) {
+      if (mounted && request == _request) {
         setState(() {
           _loading = false;
           _loadingMore = false;
@@ -111,11 +119,25 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
   void _searchChanged(String value) {
     _debounce?.cancel();
+    setState(() {
+      _request++;
+      _query = value;
+      _loading = true;
+    });
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      setState(() => _query = value);
       _fetch(reset: true);
     });
+  }
+
+  void _clearFilters() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _category = 'All';
+    });
+    _fetch(reset: true);
   }
 
   Future<void> _open(Product product) async {
@@ -229,6 +251,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                           label: Text(category),
                           selected: selected,
                           onSelected: (_) {
+                            _debounce?.cancel();
                             setState(() => _category = category);
                             _fetch(reset: true);
                           },
@@ -254,10 +277,16 @@ class _BrowseScreenState extends State<BrowseScreen> {
               ),
             )
           else if (_products.isEmpty)
-            const SliverFillRemaining(
+            SliverFillRemaining(
               hasScrollBody: false,
               child: _MessageState(
-                message: 'No equipment found. Try another search or category.',
+                message: _query.isEmpty && _category == 'All'
+                    ? 'No equipment has been listed yet.'
+                    : 'No equipment matches this search.',
+                actionLabel: 'Clear filters',
+                onRetry: _query.isEmpty && _category == 'All'
+                    ? null
+                    : _clearFilters,
               ),
             )
           else ...[
@@ -285,7 +314,11 @@ class _BrowseScreenState extends State<BrowseScreen> {
                             dimension: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Load more equipment'),
+                        : Text(
+                            _error == null
+                                ? 'Load more equipment'
+                                : 'Could not load more. Retry',
+                          ),
                   ),
                 ),
               )
@@ -299,7 +332,12 @@ class _BrowseScreenState extends State<BrowseScreen> {
 }
 
 class _MessageState extends StatelessWidget {
-  const _MessageState({required this.message, this.onRetry});
+  const _MessageState({
+    required this.message,
+    this.onRetry,
+    this.actionLabel = 'Try again',
+  });
+  final String actionLabel;
 
   final String message;
   final VoidCallback? onRetry;
@@ -324,7 +362,7 @@ class _MessageState extends StatelessWidget {
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 16),
-            OutlinedButton(onPressed: onRetry, child: const Text('Try again')),
+            OutlinedButton(onPressed: onRetry, child: Text(actionLabel)),
           ],
         ],
       ),

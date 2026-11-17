@@ -18,11 +18,17 @@ class RentAwayHome extends StatefulWidget {
 
 class _RentAwayHomeState extends State<RentAwayHome> {
   int _index = 0;
+  int _bookingRevision = 0;
+  final _visited = <int>{0};
 
   bool get _isSupplier => widget.session.role == 'supplier';
   bool get _isAdmin => widget.session.role == 'admin';
 
-  void _showBookings() => setState(() => _index = 2);
+  void _showBookings() => setState(() {
+    _bookingRevision++;
+    _index = 2;
+    _visited.add(2);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -79,19 +85,27 @@ class _RentAwayHomeState extends State<RentAwayHome> {
           session: widget.session,
           onBookingComplete: _showBookings,
         ),
-      RentalsScreen(session: widget.session),
+      RentalsScreen(key: ValueKey(_bookingRevision), session: widget.session),
       AccountScreen(session: widget.session),
     ];
 
     if (_index >= bodies.length) _index = 0;
     return Scaffold(
       body: SafeArea(
-        top: false,
-        child: IndexedStack(index: _index, children: bodies),
+        child: IndexedStack(
+          index: _index,
+          children: [
+            for (int i = 0; i < bodies.length; i++)
+              if (_visited.contains(i)) bodies[i] else const SizedBox.shrink(),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) => setState(() {
+          _index = value;
+          _visited.add(value);
+        }),
         destinations: destinations,
       ),
     );

@@ -62,6 +62,13 @@ export default function Complaints() {
       <div className="card overflow-x-auto">
         {loading ? (
           <LoadingSpinner />
+        ) : list.error ? (
+          <div className="py-8 text-center">
+            <p role="alert">Could not load complaints.</p>
+            <button className="btn-secondary mt-3" onClick={fetchComplaints}>
+              Try again
+            </button>
+          </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 py-8">No complaints found.</p>
         ) : (

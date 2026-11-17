@@ -1,6 +1,14 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { lazy, Suspense, useLayoutEffect, useRef } from "react";
+import {
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+  useNavigationType,
+} from "react-router-dom";
 import Navbar from "./components/Navbar";
+import WorkspaceNavigation from "./components/WorkspaceNavigation";
 import Footer from "./components/Footer";
 import MobileBottomNav, {
   shouldShowMobileBottomNav,
@@ -46,11 +54,20 @@ const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const ResetPassword = lazy(() => import("./pages/public/ResetPassword"));
 const Help = lazy(() => import("./pages/public/Help"));
 const NotFound = () => (
-  <div className="text-center p-20">
-    <h1>404 Not Found</h1>
-    <a href="/" className="btn-primary mt-4 inline-block">
-      Back Home
-    </a>
+  <div className="mx-auto max-w-lg px-5 py-20 text-center">
+    <h1 className="text-3xl font-bold text-slate-900">Page not found</h1>
+    <p className="my-4 text-slate-600">
+      This link may have changed. You can still browse available equipment or
+      return home.
+    </p>
+    <div className="flex flex-wrap justify-center gap-3">
+      <Link to="/browse" className="btn-primary">
+        Browse equipment
+      </Link>
+      <Link to="/" className="btn-secondary">
+        Back home
+      </Link>
+    </div>
   </div>
 );
 
@@ -71,16 +88,39 @@ const SettingsRedirect = () => {
 };
 
 function App() {
-  const { pathname } = useLocation();
-  const { loading } = useAuth();
+  const { pathname, hash } = useLocation();
+  const navigation = useNavigationType();
+  const previousPath = useRef(pathname);
+  const content = useRef(null);
+  useLayoutEffect(() => {
+    if (previousPath.current === pathname) return;
+    previousPath.current = pathname;
+    if (navigation === "POP" || hash) return;
+    window.scrollTo(0, 0);
+    content.current?.focus({ preventScroll: true });
+  }, [pathname, hash, navigation]);
+  const { loading, user } = useAuth();
+  const workspace = pathname.split("/")[1];
+  const showWorkspaceLinks =
+    user &&
+    (workspace === user.role ||
+      (workspace === "renter" && user.role === "customer")) &&
+    /^\/(admin|supplier|customer|renter)\/(?!dashboard\/?$).+/.test(pathname);
   const showMobileNav = !loading && shouldShowMobileBottomNav(pathname);
 
   return (
     <div
       className={`flex min-h-screen flex-col ${showMobileNav ? "pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-blue-900"
+      >
+        Skip to content
+      </a>
       <Navbar />
-      <main className="flex-grow">
+      {showWorkspaceLinks && <WorkspaceNavigation role={user.role} fullWidth />}
+      <main ref={content} id="main-content" tabIndex={-1} className="flex-grow">
         <Suspense
           fallback={
             <div className="min-h-screen flex items-center justify-center">

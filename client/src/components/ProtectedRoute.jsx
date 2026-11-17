@@ -1,9 +1,10 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "./LoadingSpinner";
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading, sessionError, retrySession } = useAuth();
+  const { pathname, search, hash } = useLocation();
   if (loading) return <LoadingSpinner />;
   if (sessionError)
     return (
@@ -18,7 +19,14 @@ export default function ProtectedRoute({ children, allowedRoles }) {
         </button>
       </div>
     );
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user)
+    return (
+      <Navigate
+        to="/login"
+        state={{ returnTo: pathname + search + hash }}
+        replace
+      />
+    );
   if (allowedRoles && !allowedRoles.includes(user.role))
     return <Navigate to={`/${user.role}/dashboard`} replace />;
   return children;

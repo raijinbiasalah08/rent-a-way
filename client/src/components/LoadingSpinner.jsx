@@ -1,7 +1,14 @@
 export default function LoadingSpinner() {
   return (
-    <div className="flex justify-center items-center p-8">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy-700"></div>
+    <div
+      role="status"
+      className="flex justify-center items-center gap-3 p-8 text-sm font-medium text-slate-600"
+    >
+      <span
+        aria-hidden="true"
+        className="animate-spin rounded-full h-5 w-5 border-2 border-slate-200 border-t-navy-700"
+      />
+      Loading…
     </div>
   );
 }

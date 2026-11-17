@@ -18,20 +18,36 @@ export default function Booking() {
   const [query] = useSearchParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [startDate, setStartDate] = useState(query.get("start_date") || "");
   const [endDate, setEndDate] = useState(query.get("end_date") || "");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let current = true;
+    setLoading(true);
+    setLoadError("");
     getProduct(productId)
-      .then((res) => setProduct(res.data?.data))
-      .catch(() => {
-        toast.error("Product not found");
-        navigate("/browse");
+      .then((res) => {
+        if (current) setProduct(res.data?.data);
       })
-      .finally(() => setLoading(false));
-  }, [productId]);
+      .catch((err) => {
+        if (current)
+          setLoadError(
+            err.response?.status === 404
+              ? "This listing is no longer available."
+              : "Could not load the booking details.",
+          );
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [productId, attempt]);
 
   const days =
     startDate && endDate
@@ -81,7 +97,26 @@ export default function Booking() {
         <LoadingSpinner />
       </div>
     );
-  if (!product) return null;
+  if (loadError || !product)
+    return (
+      <div className="card mx-auto my-8 max-w-lg">
+        <h1 className="text-xl font-bold">Rental request</h1>
+        <p role="alert" className="my-4">
+          {loadError || "This listing is no longer available."}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="btn-primary"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            Try again
+          </button>
+          <Link className="btn-secondary" to="/browse">
+            Browse equipment
+          </Link>
+        </div>
+      </div>
+    );
 
   const primaryImage =
     product.images?.find((i) => i.is_primary)?.url || product.images?.[0]?.url;

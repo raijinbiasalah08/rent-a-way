@@ -93,6 +93,26 @@ export default function Navbar() {
   const [categoryCounts, setCategoryCounts] = useState({});
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  useEffect(() => {
+    setIsOpen(false);
+    setCatOpen(false);
+    setNotifOpen(false);
+    setProfileOpen(false);
+  }, [pathname]);
+
+  function disclosure(setOpen) {
+    return {
+      onBlur: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      },
+      onKeyDown: (event) => {
+        if (event.key === "Escape") {
+          setOpen(false);
+          event.currentTarget.querySelector("button")?.focus();
+        }
+      },
+    };
+  }
 
   const { socket } = useSocket();
 
@@ -246,12 +266,10 @@ export default function Navbar() {
             </Link>
 
             {/* ── Categories Mega-Dropdown ── */}
-            <div
-              className="relative"
-              onMouseEnter={() => setCatOpen(true)}
-              onMouseLeave={() => setCatOpen(false)}
-            >
+            <div className="relative" {...disclosure(setCatOpen)}>
               <button
+                aria-expanded={catOpen}
+                onClick={() => setCatOpen(!catOpen)}
                 className={`flex items-center gap-1 transition ${catOpen ? "text-white" : "text-gray-300 hover:text-white"}`}
               >
                 Categories
@@ -377,13 +395,20 @@ export default function Navbar() {
               <>
                 <Link
                   to="/messages"
+                  aria-label="Messages"
                   className="text-gray-300 hover:text-white transition p-2 relative"
                 >
                   <MessageCircle className="w-5 h-5" />
                 </Link>
 
-                <div className="relative">
+                <div className="relative" {...disclosure(setNotifOpen)}>
                   <button
+                    aria-label={
+                      unreadCount
+                        ? `Notifications, ${unreadCount} unread`
+                        : "Notifications"
+                    }
+                    aria-expanded={notifOpen}
                     onClick={() => setNotifOpen(!notifOpen)}
                     className="text-gray-300 hover:text-white transition p-2 relative"
                   >
@@ -460,12 +485,10 @@ export default function Navbar() {
                   )}
                 </div>
 
-                <div
-                  className="relative"
-                  onMouseLeave={() => setProfileOpen(false)}
-                >
+                <div className="relative" {...disclosure(setProfileOpen)}>
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
+                    aria-expanded={profileOpen}
                     className="flex items-center gap-2 bg-[#1a2744] hover:bg-[#1e2f50] border border-[#2a3a5c] px-3 py-1.5 rounded-full transition"
                   >
                     {user.avatar ? (

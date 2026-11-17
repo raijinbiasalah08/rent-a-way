@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { signInDestination } from "../../utils/session";
 import {
   Mail,
   Lock,
@@ -17,6 +18,7 @@ import GoogleSignInButton from "../../components/GoogleSignInButton";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { login, loginWithGoogle, roleDashboard } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -79,9 +81,11 @@ export default function Login() {
     try {
       const result = await loginWithGoogle(credential);
       if (result.needRoleSelection) {
-        navigate("/choose-role");
+        navigate("/choose-role", { state, replace: true });
       } else {
-        navigate(roleDashboard(result.role));
+        navigate(signInDestination(state, roleDashboard(result.role)), {
+          replace: true,
+        });
       }
     } catch (err) {
       setError(
@@ -115,7 +119,9 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(cleanEmail, password, keepSignedIn);
-      navigate(roleDashboard(user.role));
+      navigate(signInDestination(state, roleDashboard(user.role)), {
+        replace: true,
+      });
     } catch (err) {
       setError(
         !err.response
