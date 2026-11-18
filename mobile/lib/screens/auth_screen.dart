@@ -52,7 +52,7 @@ class _AuthScreenState extends State<AuthScreen> {
             (item) => item.name == _barangay,
           );
           await widget.session.registerSupplier(
-            acceptedTermsVersion: '2026-11-17',
+            acceptedTermsVersion: '2026-11-19',
             identityPath: _identityPath!,
             name: _name.text,
             email: _email.text,
@@ -65,7 +65,7 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         } else {
           await widget.session.registerCustomer(
-            acceptedTermsVersion: '2026-11-17',
+            acceptedTermsVersion: '2026-11-19',
             identityPath: _identityPath!,
             name: _name.text,
             email: _email.text,
@@ -90,35 +90,78 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Terms & Conditions'),
+        title: const Text(
+          'TERMS & CONDITIONS',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontFamily: 'serif', fontWeight: FontWeight.bold),
+        ),
         scrollable: true,
         content: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              title: Text('Your account'),
-              subtitle: Text(
-                "Provide accurate contact details, keep your login private, and use Rent-A-Way to arrange lawful rentals.",
+            Divider(thickness: 3),
+            Text(
+              'Last updated: November 19, 2026',
+              style: TextStyle(fontFamily: 'serif', fontSize: 12),
+            ),
+            SizedBox(height: 18),
+            Text(
+              "Introduction",
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
-            ListTile(
-              title: Text('Listing equipment'),
-              subtitle: Text(
-                "List only equipment you own or have permission to rent out. Describe its condition, availability, price, and pickup location accurately.",
+            SizedBox(height: 8),
+            Text(
+              "Welcome to Rent-A-Way. These Terms and Conditions apply to your use of our website, mobile app, and rental marketplace services. Please read them before creating an account or using the services. By selecting the agreement checkbox during registration, you confirm that you have read and agree to these Terms and Conditions. If you do not agree, you may not create an account. You may save or print a copy for future reference.",
+              style: TextStyle(fontFamily: 'serif', height: 1.5),
+            ),
+            SizedBox(height: 18),
+            Text(
+              "Agreement to Terms and Conditions",
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
-            ListTile(
-              title: Text('Renting equipment'),
-              subtitle: Text(
-                "Before confirming a booking, check the price, rental dates, pickup and return arrangements, and any conditions shown for the item. Use the equipment as agreed and report damage or a missed handover to the other party.",
+            SizedBox(height: 8),
+            Text(
+              "These Terms and Conditions (the \"Terms\") govern your use of Rent-A-Way and its content and services. They apply to renters and suppliers who browse listings, publish listings, communicate with other users, or arrange rentals through the platform. Provide accurate account and listing information, keep your login details private, and use the platform lawfully and respectfully. Before confirming a rental, review the price, rental dates, pickup and return arrangements, and conditions shown for the listing. Suppliers must own or have permission to rent out the listed property. Renters must use it as agreed and report damage or a missed handover to the supplier.",
+              style: TextStyle(fontFamily: 'serif', height: 1.5),
+            ),
+            SizedBox(height: 18),
+            Text(
+              "Definitions/Terminology",
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
-            ListTile(
-              title: Text('Community conduct'),
-              subtitle: Text(
-                "Communicate respectfully. Do not post misleading listings, impersonate others, or share another person's private information without permission.",
+            SizedBox(height: 8),
+            Text(
+              "In these Terms, \"User\", \"Visitor\", \"Client\", \"Customer\", \"You\", and \"Your\" refer to a person accessing or using Rent-A-Way. \"Renter\" refers to a user seeking or booking a rental. \"Supplier\" refers to a user offering an item, vehicle, or apartment for rent. \"Rent-A-Way\", \"We\", \"Our\", and \"Us\" refer to the Rent-A-Way platform. \"Website\" includes our website and mobile app. \"Services\" refers to the listing, search, communication, and booking features provided through the platform. \"Rental\" refers to an arrangement between a renter and a supplier. These Terms apply to the platform serving Roxas, Oriental Mindoro, Philippines, subject to applicable Philippine law.",
+              style: TextStyle(fontFamily: 'serif', height: 1.5),
+            ),
+            SizedBox(height: 18),
+            Text(
+              "Intellectual Property Rights",
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
+            SizedBox(height: 8),
+            Text(
+              "You retain ownership of the content you upload, including listing descriptions and photographs. By publishing a listing, you authorize Rent-A-Way to display that content as needed to provide the marketplace services. Rent-A-Way and its licensors retain their rights in the platform design, branding, software, and other content they provide. You may access and use the platform content for the intended rental services. Upload only content you own or have permission to use, and respect the intellectual property rights of others.",
+              style: TextStyle(fontFamily: 'serif', height: 1.5),
+            ),
+            SizedBox(height: 18),
           ],
         ),
         actions: [

@@ -37,7 +37,7 @@ void main() {
       await tester.enterText(fields.at(1), 'new@example.test');
       await tester.enterText(fields.last, 'valid-password-123');
       await tap(find.text('Terms & Conditions'));
-      expect(find.text('Community conduct'), findsOneWidget);
+      expect(find.text('Intellectual Property Rights'), findsOneWidget);
       await tap(find.text('Close'));
       expect(find.byType(AlertDialog), findsNothing);
       expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, false);

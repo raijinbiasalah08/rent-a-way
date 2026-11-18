@@ -26,7 +26,7 @@ const ids = {
 const tokens = {};
 let product, rental;
 async function api(url, method = "GET", body, role = "customer") {
-  if ((url === "/auth/register" || url === "/auth/google") && body?.acceptedTermsVersion === "2026-11-17") {
+  if ((url === "/auth/register" || url === "/auth/google") && body?.acceptedTermsVersion === "2026-11-19") {
     const form = new FormData();
     Object.entries(body).forEach(([key, value]) => form.append(key, value));
     form.append("identityDocument", new Blob([Buffer.from("89504e470d0a1a0a", "hex")], { type: "image/png" }), "id.png");
@@ -82,7 +82,7 @@ test("registration rejects privilege escalation and weak passwords; normal regis
       await api(
         "/auth/register",
         "POST",
-        { acceptedTermsVersion: "2026-11-17", name: "Test Customer", email: "new@example.test", password: "short" },
+        { acceptedTermsVersion: "2026-11-19", name: "Test Customer", email: "new@example.test", password: "short" },
         null,
       )
     ).status,
@@ -94,7 +94,7 @@ test("registration rejects privilege escalation and weak passwords; normal regis
         "/auth/register",
         "POST",
         {
-          acceptedTermsVersion: "2026-11-17",
+          acceptedTermsVersion: "2026-11-19",
           name: "Test Customer",
           email: "new@example.test",
           password: "valid-password-123",
@@ -111,7 +111,7 @@ test("registration rejects privilege escalation and weak passwords; normal regis
         "/auth/register",
         "POST",
         {
-          acceptedTermsVersion: "2026-11-17",
+          acceptedTermsVersion: "2026-11-19",
           name: "Test Customer",
           email: "new@example.test",
           password: "valid-password-123",
@@ -124,7 +124,7 @@ test("registration rejects privilege escalation and weak passwords; normal regis
   const consent = await db.prepare(
     "SELECT terms_version, terms_accepted_at, created_at FROM users WHERE email = ?",
   ).get("new@example.test");
-  assert.equal(consent.terms_version, "2026-11-17");
+  assert.equal(consent.terms_version, "2026-11-19");
   assert.equal(consent.terms_accepted_at, consent.created_at);
 });
 test("supplier creates listing and public search handles punctuation", async () => {
@@ -787,10 +787,10 @@ test("Google signup records consent at role selection and returning users can si
     assert.equal((await submit({})).data.needsRoleSelection, true);
     assert.equal((await submit({ role })).status, 400);
     assert.equal((await submit({ role, acceptedTermsVersion: "outdated" })).status, 400);
-    const created = await submit({ role, acceptedTermsVersion: "2026-11-17" });
+    const created = await submit({ role, acceptedTermsVersion: "2026-11-19" });
     assert.equal(created.data.user.role, role);
     const row = await db.prepare("SELECT terms_version, terms_accepted_at, created_at FROM users WHERE email = ?").get(email);
-    assert.equal(row.terms_version, "2026-11-17");
+    assert.equal(row.terms_version, "2026-11-19");
     assert.equal(row.terms_accepted_at, row.created_at);
     assert.equal((await submit({})).data.user.id, created.data.user.id);
   }
@@ -799,7 +799,7 @@ test("Google signup records consent at role selection and returning users can si
 test("registration requires a private ID and only admins can view it", async () => {
   const result = await fetch(base + "/api/auth/register", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "No ID", email: "missing-id@example.test", password: "valid-password-123", acceptedTermsVersion: "2026-11-17" }),
+    body: JSON.stringify({ name: "No ID", email: "missing-id@example.test", password: "valid-password-123", acceptedTermsVersion: "2026-11-19" }),
   });
   assert.equal(result.status, 400);
   const user = await db.prepare("SELECT id FROM users WHERE email = ?").get("new@example.test");
