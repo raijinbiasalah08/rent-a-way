@@ -165,6 +165,17 @@ router.get("/public-stats", async (req, res) => {
 
 // All routes below are admin only
 router.use(authenticate, authorize("admin"));
+router.get("/users/:id/identity", async (req, res, next) => {
+  try {
+    const document = await db.prepare("SELECT content_type, image_data FROM registration_ids WHERE user_id = ?").get(req.params.id);
+    if (!document) return res.status(404).json({ success: false, message: "No registration ID is available for this account." });
+    await audit(req, "registration_id_viewed", req.params.id);
+    res.set("Cache-Control", "private, no-store");
+    res.set("X-Content-Type-Options", "nosniff");
+    res.type(document.content_type).send(Buffer.from(document.image_data, "base64"));
+  } catch (error) { next(error); }
+});
+
 router.post(
   "/users",
   validate(

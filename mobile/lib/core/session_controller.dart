@@ -43,27 +43,26 @@ class SessionController extends ChangeNotifier {
 
   Future<void> registerCustomer({
     required String acceptedTermsVersion,
+    required String identityPath,
     required String name,
     required String email,
     required String password,
     String? phone,
   }) async {
-    final response = await api.post(
-      'auth/register',
-      body: {
-        'name': name.trim(),
-        'email': email.trim(),
-        'password': password,
-        'role': 'customer',
-        'acceptedTermsVersion': acceptedTermsVersion,
-        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
-      },
-    );
+    final response = await api.registerWithIdentity({
+      'name': name.trim(),
+      'email': email.trim(),
+      'password': password,
+      'role': 'customer',
+      'acceptedTermsVersion': acceptedTermsVersion,
+      if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+    }, identityPath);
     await _saveSession(_asMap(response['data']));
   }
 
   Future<void> registerSupplier({
     required String acceptedTermsVersion,
+    required String identityPath,
     required String name,
     required String email,
     required String password,
@@ -73,21 +72,18 @@ class SessionController extends ChangeNotifier {
     required double latitude,
     required double longitude,
   }) async {
-    final response = await api.post(
-      'auth/register',
-      body: {
-        'name': name.trim(),
-        'email': email.trim(),
-        'password': password,
-        'role': 'supplier',
-        'acceptedTermsVersion': acceptedTermsVersion,
-        'phone': phone.trim(),
-        'address': address.trim(),
-        'barangay': barangay,
-        'latitude': latitude,
-        'longitude': longitude,
-      },
-    );
+    final response = await api.registerWithIdentity({
+      'name': name.trim(),
+      'email': email.trim(),
+      'password': password,
+      'role': 'supplier',
+      'acceptedTermsVersion': acceptedTermsVersion,
+      'phone': phone.trim(),
+      'address': address.trim(),
+      'barangay': barangay,
+      'latitude': latitude,
+      'longitude': longitude,
+    }, identityPath);
     await _saveSession(_asMap(response['data']));
   }
 

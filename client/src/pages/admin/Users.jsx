@@ -1,3 +1,4 @@
+import api from "../../api/axios";
 import { useRef, useState } from "react";
 import { Users as UsersIcon, Plus, Pencil } from "lucide-react";
 import {
@@ -29,6 +30,13 @@ const blankUser = () => ({
 });
 
 export default function Users() {
+  const [identity, setIdentity] = useState(null);
+  async function viewIdentity(user) {
+    try {
+      const response = await api.get(`/admin/users/${user.id}/identity`, { responseType: "blob" });
+      setIdentity({ name: user.name, url: URL.createObjectURL(response.data) });
+    } catch { toast.error("No registration ID is available, or it could not be loaded."); }
+  }
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [dialog, setDialog] = useState(null);
@@ -159,6 +167,7 @@ export default function Users() {
       wide: true,
       render: (u) => (
         <div className="flex flex-wrap gap-2">
+          <button className={adminActionClass} onClick={() => viewIdentity(u)}>View ID</button>
           {u.role === "supplier" && !!u.is_active && u.requested_package && (
             <button
               onClick={() => openDialog("subscription", u)}
@@ -185,6 +194,8 @@ export default function Users() {
     },
   ];
   return (
+    <>
+    {identity && <AdminDialog title={`Registration ID — ${identity.name}`} onClose={() => { URL.revokeObjectURL(identity.url); setIdentity(null); }}><img src={identity.url} alt="Registration ID" className="w-full object-contain" /></AdminDialog>}
     <AdminRecords
       title="Manage users"
       description="Manage accounts, roles, and access to Rent-A-Way."
@@ -404,5 +415,6 @@ export default function Users() {
         </AdminDialog>
       )}
     </AdminRecords>
+    </>
   );
 }

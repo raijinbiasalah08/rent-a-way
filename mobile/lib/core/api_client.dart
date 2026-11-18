@@ -1,3 +1,4 @@
+import 'package:http_parser/http_parser.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -60,6 +61,44 @@ class ApiClient {
       _send('PUT', path, body: body);
 
   Future<Map<String, dynamic>> delete(String path) => _send('DELETE', path);
+
+  Future<Map<String, dynamic>> registerWithIdentity(
+    Map<String, dynamic> fields,
+    String filePath,
+  ) async {
+    final request = http.MultipartRequest('POST', _uri('auth/register'));
+    fields.forEach((key, value) {
+      if (value != null) request.fields[key] = value.toString();
+    });
+    final bytes = await File(filePath).readAsBytes();
+    if (bytes.length > 5 * 1024 * 1024) {
+      throw const ApiException('ID image must be at most 5 MB.');
+    }
+    final type = bytes.length >= 3 && bytes[0] == 255 && bytes[1] == 216
+        ? 'image/jpeg'
+        : bytes.length >= 8 && bytes[0] == 137 && bytes[1] == 80
+        ? 'image/png'
+        : 'image/webp';
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'identityDocument',
+        bytes,
+        filename: 'identity',
+        contentType: MediaType.parse(type),
+      ),
+    );
+    final response = await http.Response.fromStream(
+      await _client.send(request).timeout(const Duration(seconds: 45)),
+    );
+    final decoded = (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    if (response.statusCode >= 400 || decoded['success'] == false) {
+      throw ApiException(
+        decoded['message']?.toString() ?? 'Registration failed.',
+        statusCode: response.statusCode,
+      );
+    }
+    return decoded;
+  }
 
   Future<Map<String, dynamic>> uploadProductImage(
     String productId,

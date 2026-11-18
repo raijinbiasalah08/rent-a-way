@@ -1,3 +1,4 @@
+const identity = require("../utils/registrationIdentity");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -85,6 +86,7 @@ const upload = require("../utils/imageStorage");
 
 router.post(
   "/register",
+  identity.upload,
   validate(
     z.object({
       acceptedTermsVersion: z.literal(TERMS_VERSION, { error: TERMS_REQUIRED }),
@@ -111,6 +113,7 @@ router.post(
         latitude,
         longitude,
       } = req.body;
+      const document = identity.requireIdentity(req);
       const role = req.body.role === "supplier" ? "supplier" : "customer";
       if (
         role === "supplier" &&
@@ -130,6 +133,8 @@ router.post(
           .json({ success: false, message: "Email already registered" });
       const id = uuidv4(),
         created_at = new Date().toISOString();
+      const passwordHash = await bcrypt.hash(password, 12);
+      await runInTransaction(async () => {
       await db
         .prepare(
           "INSERT INTO users (id,name,email,password_hash,role,phone,address,barangay,latitude,longitude,created_at,terms_version,terms_accepted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -138,7 +143,7 @@ router.post(
           id,
           name,
           email,
-          await bcrypt.hash(password, 12),
+          passwordHash,
           role,
           phone || null,
           address || null,
@@ -149,6 +154,8 @@ router.post(
           TERMS_VERSION,
           created_at,
         );
+        await identity.saveIdentity(id, document, created_at);
+      });
       const token = jwt.sign({ id, role, version: 0 }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN || "7d",
       });
@@ -233,7 +240,7 @@ router.get("/google/config", (req, res) => {
   res.json({ success: true, data: { clientId } });
 });
 
-router.post("/google", async (req, res) => {
+router.post("/google", identity.upload, async (req, res) => {
   let profile;
   try {
     profile = await verifyGoogleIdToken(req.body?.credential);
@@ -294,6 +301,7 @@ router.post("/google", async (req, res) => {
 
       if (req.body.acceptedTermsVersion !== TERMS_VERSION) return { needsTerms: true };
 
+      const document = identity.requireIdentity(req);
       const role = requestedRole === "supplier" ? "supplier" : "customer";
       const id = uuidv4();
       const name = profile.name || profile.email.split("@")[0];
@@ -324,6 +332,7 @@ router.post("/google", async (req, res) => {
           createdAt,
         );
 
+      await identity.saveIdentity(id, document, createdAt);
       await db
         .prepare(
           "INSERT INTO google_identities (google_sub, user_id, created_at) VALUES (?, ?, ?)",
@@ -379,6 +388,7 @@ router.post("/google", async (req, res) => {
     );
     res.json({ success: true, data: { user: userWithoutPassword, token } });
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ success: false, message: error.message });
     console.error({
       event: "google_sign_in_failed",
       code: error.code || error.name,

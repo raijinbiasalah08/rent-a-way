@@ -1,3 +1,4 @@
+import RegistrationIdentity from "../../components/RegistrationIdentity";
 import RegistrationTerms, { TERMS_VERSION } from "../../components/RegistrationTerms";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -15,6 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function ChooseRole() {
+  const [identityDocument, setIdentityDocument] = useState(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -50,14 +52,14 @@ export default function ChooseRole() {
 
   const handleSelectRole = async (role) => {
     setError("");
-    if (!acceptedTerms) {
+    if (!acceptedTerms || !identityDocument) {
       setError("Agree to the Terms and Conditions to create your account.");
       return;
     }
     setSubmitting(true);
     setSubmittingRole(role);
     try {
-      const result = await assignRoleAndFinalize(role, TERMS_VERSION);
+      const result = await assignRoleAndFinalize(role, TERMS_VERSION, identityDocument);
       toast.success(
         `Account created as ${role === "supplier" ? "Supplier" : "Renter"}!`,
       );
@@ -138,7 +140,8 @@ export default function ChooseRole() {
           </p>
         </div>
 
-        <div className="mb-5"><RegistrationTerms accepted={acceptedTerms} onChange={setAcceptedTerms} /></div>
+        <div className="mb-5"><RegistrationIdentity onChange={setIdentityDocument} />
+              <RegistrationTerms accepted={acceptedTerms} onChange={setAcceptedTerms} /></div>
         {error && (
           <div className="mb-6 max-w-lg mx-auto bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm px-4 py-3 rounded-xl flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
@@ -150,7 +153,7 @@ export default function ChooseRole() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto w-full">
           {/* Card 1: RENTER */}
           <div
-            onClick={() => acceptedTerms && !submitting && handleSelectRole("renter")}
+            onClick={() => identityDocument && acceptedTerms && !submitting && handleSelectRole("renter")}
             className={`relative group bg-white border-2 rounded-2xl p-6 sm:p-7 transition-all duration-200 flex flex-col justify-between cursor-pointer ${
               submittingRole === "renter"
                 ? "border-[#1e3a8a] ring-4 ring-[#1e3a8a]/10 shadow-lg"
@@ -213,7 +216,7 @@ export default function ChooseRole() {
 
             <button
               type="button"
-              disabled={submitting || !acceptedTerms}
+              disabled={submitting || !acceptedTerms || !identityDocument}
               className="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center justify-center gap-2 bg-[#1e3a8a] group-hover:bg-[#1d4ed8] text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
             >
               {submittingRole === "renter" ? (
@@ -232,7 +235,7 @@ export default function ChooseRole() {
 
           {/* Card 2: SUPPLIER */}
           <div
-            onClick={() => acceptedTerms && !submitting && handleSelectRole("supplier")}
+            onClick={() => identityDocument && acceptedTerms && !submitting && handleSelectRole("supplier")}
             className={`relative group bg-white border-2 rounded-2xl p-6 sm:p-7 transition-all duration-200 flex flex-col justify-between cursor-pointer ${
               submittingRole === "supplier"
                 ? "border-amber-500 ring-4 ring-amber-500/10 shadow-lg"
@@ -294,7 +297,7 @@ export default function ChooseRole() {
 
             <button
               type="button"
-              disabled={submitting || !acceptedTerms}
+              disabled={submitting || !acceptedTerms || !identityDocument}
               className="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center justify-center gap-2 bg-amber-600 group-hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm py-3 rounded-xl transition shadow-xs cursor-pointer"
             >
               {submittingRole === "supplier" ? (

@@ -9,6 +9,7 @@ class _Session extends SessionController {
   @override
   Future<void> registerCustomer({
     required String acceptedTermsVersion,
+    required String identityPath,
     required String name,
     required String email,
     required String password,
@@ -45,12 +46,12 @@ void main() {
       expect(tester.widget<FilledButton>(button).onPressed, isNull);
       expect(session.acceptedVersion, isNull);
       await tap(find.byType(Checkbox));
-      expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
+      expect(tester.widget<FilledButton>(button).onPressed, isNull);
       await tap(find.byType(Checkbox));
       expect(tester.widget<FilledButton>(button).onPressed, isNull);
       await tap(find.byType(Checkbox));
       await tap(submit);
-      expect(session.acceptedVersion, '2026-11-17');
+      expect(session.acceptedVersion, isNull);
     },
   );
 }

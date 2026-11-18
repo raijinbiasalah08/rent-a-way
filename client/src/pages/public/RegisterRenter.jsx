@@ -1,3 +1,4 @@
+import RegistrationIdentity from "../../components/RegistrationIdentity";
 import RegistrationTerms, { TERMS_VERSION } from "../../components/RegistrationTerms";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function RegisterRenter() {
+  const [identityDocument, setIdentityDocument] = useState(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -47,6 +49,7 @@ export default function RegisterRenter() {
     setLoading(true);
     try {
       await register({
+        identityDocument,
         acceptedTermsVersion: acceptedTerms ? TERMS_VERSION : null,
         name: fullName,
         email,
@@ -289,11 +292,12 @@ export default function RegisterRenter() {
                 </div>
               </div>
 
+              <RegistrationIdentity onChange={setIdentityDocument} />
               <RegistrationTerms accepted={acceptedTerms} onChange={setAcceptedTerms} />
 
               <button
                 type="submit"
-                disabled={loading || !acceptedTerms}
+                disabled={loading || !acceptedTerms || !identityDocument}
                 className="w-full mt-2 flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60 text-white font-semibold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition cursor-pointer"
               >
                 {loading ? (

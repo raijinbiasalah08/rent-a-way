@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:rentaway_mobile/core/api_client.dart';
 import 'package:rentaway_mobile/core/roxas_locations.dart';
@@ -19,6 +20,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _password = TextEditingController();
+  String? _identityPath;
   bool _acceptedTerms = false;
   bool _registering = false;
   String _role = 'customer';
@@ -38,7 +40,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_registering && !_acceptedTerms) {
+    if (_registering && (!_acceptedTerms || _identityPath == null)) {
       _message('Agree to the Terms and Conditions to create your account.');
       return;
     }
@@ -51,6 +53,7 @@ class _AuthScreenState extends State<AuthScreen> {
           );
           await widget.session.registerSupplier(
             acceptedTermsVersion: '2026-11-17',
+            identityPath: _identityPath!,
             name: _name.text,
             email: _email.text,
             password: _password.text,
@@ -63,6 +66,7 @@ class _AuthScreenState extends State<AuthScreen> {
         } else {
           await widget.session.registerCustomer(
             acceptedTermsVersion: '2026-11-17',
+            identityPath: _identityPath!,
             name: _name.text,
             email: _email.text,
             password: _password.text,
@@ -335,6 +339,40 @@ class _AuthScreenState extends State<AuthScreen> {
                         style: TextStyle(color: Colors.black54, fontSize: 12),
                       ),
                     ],
+                    if (_registering) ...[
+                      const Text(
+                        'Government-issued or school ID (required)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Text(
+                        'Clear JPG, PNG, or WebP image, up to 5 MB. Only authorized admins can view your ID for account security.',
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.badge_outlined),
+                        label: Text(
+                          _identityPath == null
+                              ? 'Upload ID'
+                              : 'Replace selected ID',
+                        ),
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                final image = await ImagePicker().pickImage(
+                                  source: ImageSource.gallery,
+                                );
+                                if (image == null || !mounted) return;
+                                if (await image.length() > 5 * 1024 * 1024) {
+                                  if (mounted) {
+                                    _message('ID image must be at most 5 MB.');
+                                  }
+                                  return;
+                                }
+                                if (mounted) {
+                                  setState(() => _identityPath = image.path);
+                                }
+                              },
+                      ),
+                    ],
                     if (_registering)
                       Row(
                         children: [
@@ -372,7 +410,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     const SizedBox(height: 20),
                     FilledButton(
-                      onPressed: _busy || (_registering && !_acceptedTerms)
+                      onPressed:
+                          _busy ||
+                              (_registering &&
+                                  (!_acceptedTerms || _identityPath == null))
                           ? null
                           : _submit,
                       child: _busy

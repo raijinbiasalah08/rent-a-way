@@ -26,13 +26,19 @@ const ids = {
 const tokens = {};
 let product, rental;
 async function api(url, method = "GET", body, role = "customer") {
+  if ((url === "/auth/register" || url === "/auth/google") && body?.acceptedTermsVersion === "2026-11-17") {
+    const form = new FormData();
+    Object.entries(body).forEach(([key, value]) => form.append(key, value));
+    form.append("identityDocument", new Blob([Buffer.from("89504e470d0a1a0a", "hex")], { type: "image/png" }), "id.png");
+    body = form;
+  }
   const result = await fetch(base + "/api" + url, {
     method,
     headers: {
-      "Content-Type": "application/json",
+      ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(role ? { Authorization: "Bearer " + tokens[role] } : {}),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body),
   });
   return { status: result.status, ...(await result.json()) };
 }
@@ -788,4 +794,18 @@ test("Google signup records consent at role selection and returning users can si
     assert.equal(row.terms_accepted_at, row.created_at);
     assert.equal((await submit({})).data.user.id, created.data.user.id);
   }
+});
+
+test("registration requires a private ID and only admins can view it", async () => {
+  const result = await fetch(base + "/api/auth/register", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "No ID", email: "missing-id@example.test", password: "valid-password-123", acceptedTermsVersion: "2026-11-17" }),
+  });
+  assert.equal(result.status, 400);
+  const user = await db.prepare("SELECT id FROM users WHERE email = ?").get("new@example.test");
+  assert.equal((await api("/admin/users/" + user.id + "/identity")).status, 403);
+  const response = await fetch(base + "/api/admin/users/" + user.id + "/identity", { headers: { Authorization: "Bearer " + tokens.admin } });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.equal(response.headers.get("content-type"), "image/png");
 });
