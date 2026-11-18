@@ -17,6 +17,8 @@ const CATEGORIES = [
   "Event Equipment",
   "Household Equipment",
   "School Project Equipment",
+  "Vehicles",
+  "Apartments",
 ];
 
 const CATEGORY_MAP = {
@@ -26,6 +28,8 @@ const CATEGORY_MAP = {
   "Event Equipment": "Event",
   "Household Equipment": "Household",
   "School Project Equipment": "School",
+  Vehicles: "Vehicles",
+  Apartments: "Apartments",
 };
 
 export default function AddProduct() {

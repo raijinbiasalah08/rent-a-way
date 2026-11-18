@@ -1,3 +1,4 @@
+import { Car, Building2 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -29,6 +30,8 @@ import { apiAssetUrl } from "../config";
 import InstallAppDialog from "./InstallAppDialog";
 
 const CATEGORIES = [
+  {id: "Vehicles", label: "Vehicles", to: "/browse?category=Vehicles", icon: Car, bg: "bg-slate-50", iconColor: "text-slate-600"},
+  {id: "Apartments", label: "Apartments", to: "/browse?category=Apartments", icon: Building2, bg: "bg-rose-50", iconColor: "text-rose-600"},
   {
     id: "Cameras",
     label: "Cameras & Drones",

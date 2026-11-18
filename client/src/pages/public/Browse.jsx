@@ -1,3 +1,4 @@
+import { Car, Building2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -39,6 +40,8 @@ const CATEGORIES = [
   ["Event", "Events", Calendar],
   ["Household", "Household", Home],
   ["School", "School", GraduationCap],
+  ["Vehicles", "Vehicles", Car],
+  ["Apartments", "Apartments", Building2],
 ];
 const STATUS = {
   available: ["Available", "available"],

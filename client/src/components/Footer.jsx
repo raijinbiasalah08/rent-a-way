@@ -7,6 +7,8 @@ const RENTALS = [
   { label: "Sports Equipment", to: "/browse?category=Sports" },
   { label: "Event Equipment", to: "/browse?category=Event" },
   { label: "Household Equipment", to: "/browse?category=Household" },
+  { label: "Vehicles", to: "/browse?category=Vehicles" },
+  { label: "Apartments", to: "/browse?category=Apartments" },
   { label: "School Project Equipment", to: "/browse?category=School" },
 ];
 

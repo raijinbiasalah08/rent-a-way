@@ -1,3 +1,4 @@
+import { Car, Building2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -82,6 +83,8 @@ const STEPS = [
 ];
 
 const CATEGORIES = [
+  {icon: Car, label: "Vehicles", desc: "Cars, vans, and motorcycles", earn: "Set your rental rate"},
+  {icon: Building2, label: "Apartments", desc: "Apartments and furnished stays", earn: "Set your rental rate"},
   {
     icon: Camera,
     label: "Cameras & Drones",

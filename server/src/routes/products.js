@@ -70,6 +70,8 @@ const productSchema = z
       "Event",
       "Household",
       "School",
+      "Vehicles",
+      "Apartments",
     ]),
     price_per_day: z.coerce.number().nonnegative().max(1000000),
     min_days: z.coerce.number().int().min(1).default(1),
@@ -275,6 +277,8 @@ router.get("/categories", async (req, res) => {
       "Event",
       "Household",
       "School",
+      "Vehicles",
+      "Apartments",
     ];
     const counts = await db
       .prepare(

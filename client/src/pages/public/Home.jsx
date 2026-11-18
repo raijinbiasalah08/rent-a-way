@@ -79,6 +79,16 @@ const CATEGORIES = [
     image:
       "https://images.unsplash.com/photo-1532094349884-543290200b6b?w=700&q=85&fit=crop",
   },
+  {
+    id: "Vehicles", name: "Vehicles", subtitle: "Find a ride for your plans",
+    to: "/browse?category=Vehicles", icon: "/category-icons/car.png",
+    image: "/category-icons/car.png",
+  },
+  {
+    id: "Apartments", name: "Apartments", subtitle: "Find your next place to stay",
+    to: "/browse?category=Apartments", icon: "/category-icons/apartment.png",
+    image: "/category-icons/apartment.png",
+  },
 ];
 
 /* ─── Ticker items ───────────────────────────────────────────── */
@@ -627,7 +637,7 @@ export default function Home() {
                     <img
                       src={cat.image}
                       alt=""
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className={`w-full h-full ${cat.image.startsWith("/category-icons/") ? "object-contain p-4" : "object-cover"} group-hover:scale-105 transition-transform duration-300`}
                       loading="lazy"
                       decoding="async"
                       onError={(event) => {

@@ -1,3 +1,4 @@
+import { Car, Building2 } from "lucide-react";
 import RoxasBasemap from "../../components/RoxasBasemap";
 import "./MapSearch.css";
 import {
@@ -65,6 +66,8 @@ const CATEGORIES = [
   { id: "Event", label: "Events", icon: CalendarDays },
   { id: "Household", label: "Household", icon: Home },
   { id: "School", label: "School", icon: GraduationCap },
+  { id: "Vehicles", label: "Vehicles", icon: Car },
+  { id: "Apartments", label: "Apartments", icon: Building2 },
 ];
 function priceIcon(price, active) {
   const amount = Number(price);

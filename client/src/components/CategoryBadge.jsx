@@ -5,6 +5,8 @@ export default function CategoryBadge({ category }) {
     Sports: "bg-orange-100 text-orange-800",
     Event: "bg-pink-100 text-pink-800",
     Household: "bg-blue-100 text-blue-800",
+    Vehicles: "bg-slate-100 text-slate-800",
+    Apartments: "bg-rose-100 text-rose-800",
     School: "bg-yellow-100 text-yellow-800",
   };
   return (

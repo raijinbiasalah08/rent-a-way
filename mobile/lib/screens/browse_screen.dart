@@ -16,6 +16,8 @@ const _categories = [
   'Event',
   'Household',
   'School',
+      'Vehicles',
+      'Apartments',
 ];
 
 class BrowseScreen extends StatefulWidget {

@@ -13,6 +13,8 @@ const _productCategories = [
   'Event',
   'Household',
   'School',
+      'Vehicles',
+      'Apartments',
 ];
 
 class SupplierListingsScreen extends StatefulWidget {
