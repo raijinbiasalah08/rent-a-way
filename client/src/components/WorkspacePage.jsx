@@ -1,4 +1,4 @@
-export default function AdminPage({ title, description, action, children }) {
+export default function WorkspacePage({ title, description, action, children }) {
   return (
     <div className="ledger-content">
       <header className="flex flex-wrap items-center justify-between gap-4">
@@ -17,7 +17,7 @@ export default function AdminPage({ title, description, action, children }) {
   );
 }
 
-export function AdminEmpty({ icon: Icon, title, children }) {
+export function WorkspaceEmpty({ icon: Icon, title, children }) {
   return (
     <div className="grid justify-items-center gap-2 px-4 py-10 text-center sm:py-12">
       <span className="mb-1 grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-600">

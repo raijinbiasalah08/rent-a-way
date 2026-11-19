@@ -149,7 +149,8 @@ export default function MobileBottomNav({ workspaceRole }) {
                   key={to}
                   to={rolePath(to)}
                   onClick={() => setMoreOpen(false)}
-                  className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold transition hover:bg-blue-50 hover:text-[#1e3a8a] ${pathname === to || pathname.startsWith(`${to}/`) ? "bg-blue-50 text-[#1e3a8a]" : "text-slate-700"}`}
+                  aria-current={pathname === rolePath(to) ? "page" : undefined}
+                  className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition hover:bg-blue-50 hover:text-[#1e3a8a] ${pathname === rolePath(to) ? "bg-blue-50 text-[#1e3a8a]" : "bg-slate-50 text-slate-700"}`}
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="truncate">{label}</span>

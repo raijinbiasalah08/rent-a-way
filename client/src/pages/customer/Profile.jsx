@@ -1,3 +1,4 @@
+import WorkspacePage from "../../components/WorkspacePage";
 import { apiAssetUrl } from "../../config";
 import { clearToken } from "../../utils/session";
 import { useState, useRef, useEffect } from "react";
@@ -150,69 +151,50 @@ export default function Profile() {
     : null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">
-          Account Settings
-        </h1>
-        <p className="text-gray-500 text-sm">
-          Manage your profile details and preferences
-        </p>
-      </div>
+    <WorkspacePage
+      title="Account settings"
+      description="Manage your profile, location, and password."
+    >
+      <section className="workspace-surface workspace-form">
+        <div className="flex min-w-0 items-center gap-4 border-b border-slate-200 pb-5">
+          <div className="relative group">
+            <button
+              type="button"
+              aria-label="Change profile photo"
+              disabled={avatarLoading}
+              onClick={handleAvatarClick}
+              className="w-16 h-16 rounded-full border-4 border-white bg-gray-100 overflow-hidden cursor-pointer flex items-center justify-center relative shadow-md"
+            >
+              {avatarLoading ? (
+                <div className="w-6 h-6 border-2 border-[#1e3a8a] border-t-transparent rounded-full animate-spin" />
+              ) : avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-3xl font-bold text-gray-400">
+                  {user.name?.charAt(0) || "U"}
+                </span>
+              )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-        {/* Header/Cover Area */}
-        <div className="h-32 bg-gradient-to-r from-[#1e3a8a] to-blue-400 relative">
-          <div className="absolute -bottom-12 left-8 flex items-end gap-4">
-            <div className="relative group">
-              <div
-                onClick={handleAvatarClick}
-                className="w-24 h-24 rounded-full border-4 border-white bg-gray-100 overflow-hidden cursor-pointer flex items-center justify-center relative shadow-md"
-              >
-                {avatarLoading ? (
-                  <div className="w-6 h-6 border-2 border-[#1e3a8a] border-t-transparent rounded-full animate-spin" />
-                ) : avatarSrc ? (
-                  <img
-                    src={avatarSrc}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-bold text-gray-400">
-                    {user.name?.charAt(0) || "U"}
-                  </span>
-                )}
-
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
-                  <Camera className="w-6 h-6 mb-1" />
-                  <span className="text-[10px] font-semibold">Change</span>
-                </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                <Camera className="w-6 h-6 mb-1" />
+                <span className="text-[10px] font-semibold">Change</span>
               </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleAvatarChange}
-                accept="image/*"
-                className="hidden"
-              />
-            </div>
-
-            <div className="mb-2 hidden sm:block">
-              <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
-              <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md mt-1 w-fit">
-                <Shield className="w-3 h-3" />
-                {user.role
-                  ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-                  : "Customer"}
-              </div>
-            </div>
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleAvatarChange}
+              accept="image/*"
+              className="hidden"
+            />
           </div>
-        </div>
 
-        {/* Form Area */}
-        <div className="px-8 pt-16 pb-8">
-          <div className="sm:hidden mb-6">
+          <div className="min-w-0 break-words">
             <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
             <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md mt-1 w-fit">
               <Shield className="w-3 h-3" />
@@ -221,7 +203,10 @@ export default function Profile() {
                 : "Customer"}
             </div>
           </div>
+        </div>
 
+        {/* Form Area */}
+        <div className="pt-5">
           {user.supplier_badge && (
             <span className="mb-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800">
               {user.supplier_badge}
@@ -230,7 +215,10 @@ export default function Profile() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label
+                  htmlFor="profile-name"
+                  className="block text-sm font-semibold text-gray-700 mb-1.5"
+                >
                   Full Name
                 </label>
                 <div className="relative">
@@ -238,6 +226,7 @@ export default function Profile() {
                     <User className="w-4 h-4 text-gray-400" />
                   </div>
                   <input
+                    id="profile-name"
                     type="text"
                     name="name"
                     value={formData.name}
@@ -249,7 +238,10 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label
+                  htmlFor="profile-email"
+                  className="block text-sm font-semibold text-gray-700 mb-1.5"
+                >
                   Email Address
                 </label>
                 <div className="relative">
@@ -257,6 +249,7 @@ export default function Profile() {
                     <Mail className="w-4 h-4 text-gray-400" />
                   </div>
                   <input
+                    id="profile-email"
                     type="email"
                     value={user.email}
                     disabled
@@ -269,7 +262,10 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label
+                  htmlFor="profile-phone"
+                  className="block text-sm font-semibold text-gray-700 mb-1.5"
+                >
                   Phone Number
                 </label>
                 <div className="relative">
@@ -277,6 +273,7 @@ export default function Profile() {
                     <Phone className="w-4 h-4 text-gray-400" />
                   </div>
                   <input
+                    id="profile-phone"
                     type="tel"
                     name="phone"
                     value={formData.phone}
@@ -342,10 +339,10 @@ export default function Profile() {
             </div>
           </form>
         </div>
-      </div>
+      </section>
 
       {/* Change Password Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <section className="workspace-surface workspace-form">
         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
           <div className="p-2.5 bg-blue-50 text-[#1e3a8a] rounded-xl">
             <KeyRound className="w-5 h-5" />
@@ -362,7 +359,10 @@ export default function Profile() {
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+            <label
+              htmlFor="profile-current"
+              className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5"
+            >
               Current Password
             </label>
             <div className="relative">
@@ -370,6 +370,7 @@ export default function Profile() {
                 <Lock className="w-4 h-4 text-gray-400" />
               </div>
               <input
+                id="profile-current"
                 type="password"
                 value={passwords.currentPassword}
                 onChange={(e) =>
@@ -386,7 +387,10 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+            <label
+              htmlFor="profile-new"
+              className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5"
+            >
               New Password
             </label>
             <div className="relative">
@@ -394,6 +398,7 @@ export default function Profile() {
                 <Lock className="w-4 h-4 text-gray-400" />
               </div>
               <input
+                id="profile-new"
                 type="password"
                 value={passwords.newPassword}
                 onChange={(e) =>
@@ -407,7 +412,10 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+            <label
+              htmlFor="profile-confirm"
+              className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5"
+            >
               Confirm New Password
             </label>
             <div className="relative">
@@ -415,6 +423,7 @@ export default function Profile() {
                 <Lock className="w-4 h-4 text-gray-400" />
               </div>
               <input
+                id="profile-confirm"
                 type="password"
                 value={passwords.confirmPassword}
                 onChange={(e) =>
@@ -440,7 +449,7 @@ export default function Profile() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </section>
+    </WorkspacePage>
   );
 }

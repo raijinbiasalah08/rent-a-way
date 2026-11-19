@@ -1,3 +1,5 @@
+import WorkspacePage, { WorkspaceEmpty } from "../../components/WorkspacePage";
+import ListingSearch, { matchesListing } from "../../components/ListingSearch";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -81,40 +83,34 @@ export default function MyProducts() {
     }
   };
 
+  const [query, setQuery] = useState("");
+  const matches = products.filter((item) => matchesListing(item, query));
   return (
-    <main className="mx-auto w-full max-w-6xl px-3 py-6 font-sans sm:px-5 sm:py-10">
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Supplier workspace
-          </p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            My Listings
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage availability, pricing, and equipment details.
-          </p>
-          {!loading && !error && (
-            <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
-              {products.length} listing{products.length === 1 ? "" : "s"}
-            </span>
-          )}
+    <WorkspacePage
+      title="Inventory"
+      description="Manage your listings, availability, and daily rates."
+      action={
+        <div className="flex flex-wrap items-center gap-2">
           <Link
+            className="workspace-secondary"
             to="/supplier/products/new?plans"
-            className="ml-3 inline-flex min-h-11 items-center text-sm font-semibold text-blue-800 underline"
           >
             Subscription packages
           </Link>
+          <Link className="workspace-primary" to="/supplier/products/new">
+            <Plus size={16} /> Add listing
+          </Link>
         </div>
-        <Link
-          to="/supplier/products/new"
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] sm:w-auto"
-        >
-          <Plus className="w-4 h-4" /> Add New Listing
-        </Link>
-      </div>
-
+      }
+    >
+      {!loading && products.length > 0 && (
+        <ListingSearch
+          label="Search inventory"
+          query={query}
+          onChange={setQuery}
+          count={matches.length}
+        />
+      )}
       {error && products.length > 0 && (
         <div className="mb-5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {error}
@@ -149,32 +145,31 @@ export default function MyProducts() {
           </button>
         </div>
       ) : products.length === 0 ? (
-        <div className="text-center py-24 bg-white rounded-2xl border border-gray-100">
-          <div className="w-16 h-16 bg-[#1e3a8a]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Package className="w-8 h-8 text-[#1e3a8a]" />
-          </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">
-            No listings yet
-          </h2>
-          <p className="text-sm text-gray-500 mb-6">
-            Create your first listing and start earning from your equipment.
-          </p>
-          <Link
-            to="/supplier/products/new"
-            className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold text-sm px-6 py-3 rounded-xl transition"
-          >
-            <Plus className="w-4 h-4" /> Create First Listing
-          </Link>
-        </div>
+        <section className="workspace-surface">
+          <WorkspaceEmpty icon={Package} title="No listings yet">
+            Choose Add listing to publish your first rental.
+          </WorkspaceEmpty>
+        </section>
+      ) : matches.length === 0 ? (
+        <section className="workspace-surface">
+          <WorkspaceEmpty icon={Package} title="No matching listings">
+            <button
+              className="workspace-secondary mt-2"
+              onClick={() => setQuery("")}
+            >
+              Clear search
+            </button>
+          </WorkspaceEmpty>
+        </section>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map((product) => (
+          {matches.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col"
+              className="workspace-surface min-w-0 overflow-hidden flex flex-col"
             >
               {/* Image */}
-              <div className="relative h-44 bg-gray-100 overflow-hidden">
+              <div className="relative h-36 bg-gray-100 overflow-hidden">
                 {product.primary_image ? (
                   <img
                     src={apiAssetUrl(product.primary_image)}
@@ -207,18 +202,18 @@ export default function MyProducts() {
                     {product.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
                   <Tag className="w-3 h-3" />
                   <span>{product.category}</span>
                 </div>
                 <div className="text-lg font-extrabold text-gray-900 mb-1">
                   ₱{Number(product.price_per_day).toLocaleString()}
-                  <span className="text-xs font-normal text-gray-400">
+                  <span className="text-xs font-normal text-slate-500">
                     {" "}
                     /day
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mb-4">
+                <p className="text-xs text-slate-500 mb-4">
                   Min {product.min_days} day{product.min_days !== 1 ? "s" : ""}
                 </p>
 
@@ -233,7 +228,7 @@ export default function MyProducts() {
                   {product.availability === "available" ? (
                     <ToggleRight className="w-4 h-4 text-green-500" />
                   ) : (
-                    <ToggleLeft className="w-4 h-4 text-gray-400" />
+                    <ToggleLeft className="w-4 h-4 text-slate-500" />
                   )}
                   {updatingId === product.id
                     ? "Updating availability…"
@@ -280,6 +275,6 @@ export default function MyProducts() {
           ))}
         </div>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

@@ -153,7 +153,7 @@ export default function CustomerDashboard() {
             </div>
           </div>
           <div className="overflow-x-auto mt-2">
-            <table className="w-full text-left text-xs">
+            <table className="workspace-bookings w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-100 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider">
                   <th className="py-3 px-3">Rental</th>
@@ -182,7 +182,7 @@ export default function CustomerDashboard() {
                         className="hover:bg-gray-50/70 transition group"
                       >
                         {/* RENTAL PRODUCT */}
-                        <td className="py-3.5 px-3">
+                        <td data-label="Rental" className="py-3.5 px-3">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-[#1e3a8a] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
                               <Package className="w-4 h-4" />
@@ -192,7 +192,7 @@ export default function CustomerDashboard() {
                                 {rental.product_title || "Equipment Item"}
                               </div>
                               <div className="text-[11px] font-mono text-gray-400">
-                                {rental.id?.slice(0, 7).toUpperCase()} ·{" "}
+                                {String(rental.id ?? "").slice(0, 7).toUpperCase()} ·{" "}
                                 {rental.product_category || "General"}
                               </div>
                             </div>
@@ -200,7 +200,7 @@ export default function CustomerDashboard() {
                         </td>
 
                         {/* SUPPLIER */}
-                        <td className="py-3.5 px-3">
+                        <td data-label="Supplier" className="py-3.5 px-3">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
                               {rental.supplier_name
@@ -213,18 +213,19 @@ export default function CustomerDashboard() {
                             </div>
                             <div>
                               <div className="font-semibold text-gray-800 truncate max-w-[130px]">
-                                {rental.supplier_name || "Verified Supplier"}
+                                {rental.supplier_name || "Supplier"}
                               </div>
-                              <div className="text-[10px] text-gray-400 truncate">
-                                Brgy.{" "}
-                                {rental.supplier_barangay || "San Aquilino"}
-                              </div>
+                              {rental.supplier_barangay && (
+                                <div className="truncate text-[11px] text-slate-600">
+                                  Brgy. {rental.supplier_barangay}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
 
                         {/* PERIOD */}
-                        <td className="py-3.5 px-3 whitespace-nowrap text-gray-600 font-medium">
+                        <td data-label="Period" className="py-3.5 px-3 whitespace-nowrap text-gray-600 font-medium">
                           <div>
                             {new Date(rental.start_date).toLocaleDateString(
                               "en-US",
@@ -242,12 +243,12 @@ export default function CustomerDashboard() {
                         </td>
 
                         {/* AMOUNT */}
-                        <td className="py-3.5 px-3 font-mono font-extrabold text-gray-900 text-sm whitespace-nowrap">
+                        <td data-label="Amount" className="py-3.5 px-3 font-mono font-extrabold text-gray-900 text-sm whitespace-nowrap">
                           ₱{rental.total_price?.toLocaleString()}
                         </td>
 
                         {/* STATUS BADGE */}
-                        <td className="py-3.5 px-3 whitespace-nowrap">
+                        <td data-label="Status" className="py-3.5 px-3 whitespace-nowrap">
                           {status === "active" && (
                             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700">
                               Active
@@ -281,7 +282,7 @@ export default function CustomerDashboard() {
                         </td>
 
                         {/* ACTION BUTTON */}
-                        <td className="py-3.5 px-3 text-right">
+                        <td data-label="Actions" className="py-3.5 px-3 text-right">
                           <Link
                             to="/customer/rentals"
                             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex transition"

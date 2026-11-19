@@ -355,7 +355,7 @@ export default function SupplierDashboard() {
           <div className="bg-white border border-gray-200/90 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table
-                className={`w-full border-collapse text-left ${filteredRentals.length ? "ledger-data-table" : ""}`}
+                className={`workspace-bookings w-full border-collapse text-left ${filteredRentals.length ? "ledger-data-table" : ""}`}
               >
                 <thead
                   className={
@@ -407,7 +407,7 @@ export default function SupplierDashboard() {
                         className="hover:bg-amber-50/30 transition group"
                       >
                         {/* Equipment & Renter */}
-                        <td className="py-4 px-5">
+                        <td data-label="Listing and renter" className="py-4 px-5">
                           <div className="flex items-center gap-3.5">
                             <div className="w-11 h-11 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
                               {rental.primary_image ? (
@@ -429,14 +429,14 @@ export default function SupplierDashboard() {
                                 <strong className="text-gray-700">
                                   {rental.customer_name || "Customer"}
                                 </strong>{" "}
-                                · {rental.barangay || "San Aquilino"}
+                                {rental.barangay && `· ${rental.barangay}`}
                               </div>
                             </div>
                           </div>
                         </td>
 
                         {/* Duration */}
-                        <td className="py-4 px-4 font-mono font-medium text-gray-700">
+                        <td data-label="Duration" className="py-4 px-4 font-mono font-medium text-gray-700">
                           <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 font-bold text-[11px]">
                             {rental.duration_days || 1} day
                             {rental.duration_days > 1 ? "s" : ""}
@@ -444,7 +444,7 @@ export default function SupplierDashboard() {
                         </td>
 
                         {/* Dates */}
-                        <td className="py-4 px-4 text-gray-600">
+                        <td data-label="Dates" className="py-4 px-4 text-gray-600">
                           <div className="font-medium text-gray-800">
                             {rental.start_date
                               ? new Date(rental.start_date).toLocaleDateString(
@@ -470,12 +470,12 @@ export default function SupplierDashboard() {
                         </td>
 
                         {/* Total Estimated rental value */}
-                        <td className="py-4 px-4 font-mono font-bold text-gray-900 text-sm">
+                        <td data-label="Estimated value" className="py-4 px-4 font-mono font-bold text-gray-900 text-sm">
                           ₱{(rental.total_price || 0).toLocaleString()}
                         </td>
 
                         {/* Status */}
-                        <td className="py-4 px-4">
+                        <td data-label="Status" className="py-4 px-4">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${STATUS_STYLES[rental.status] || STATUS_STYLES.pending}`}
                           >
@@ -485,7 +485,7 @@ export default function SupplierDashboard() {
                         </td>
 
                         {/* Supplier Quick Actions */}
-                        <td className="py-4 px-5 text-right">
+                        <td data-label="Actions" className="py-4 px-5 text-right">
                           <div className="inline-flex items-center justify-end gap-2">
                             {rental.status === "pending" ? (
                               <>

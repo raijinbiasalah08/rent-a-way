@@ -825,7 +825,7 @@ export default function Messages() {
         <p className="mt-1.5 text-sm text-slate-600">Find and continue your conversations on Rent-A-Way.</p>
       </header>
 
-      <div className={`admin-surface flex min-w-0 overflow-hidden ${showChat ? "h-[max(22rem,calc(100dvh-10rem))] md:h-[max(28rem,calc(100dvh-16rem))]" : ""}`}>
+      <div className={`workspace-surface flex min-w-0 overflow-hidden ${showChat ? "h-[max(22rem,calc(100dvh-10rem))] md:h-[max(28rem,calc(100dvh-16rem))]" : ""}`}>
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         <div
           className={`min-w-0 w-full flex-col overflow-hidden ${activeUser ? "hidden md:flex" : "flex"} ${showChat ? "md:w-72 md:shrink-0 md:border-r md:border-slate-200 lg:w-80" : ""}`}

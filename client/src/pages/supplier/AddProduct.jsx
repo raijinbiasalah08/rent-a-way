@@ -1,3 +1,4 @@
+import WorkspacePage from "../../components/WorkspacePage";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -190,25 +191,15 @@ export default function AddProduct() {
       </>
     );
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <Link
-          to="/supplier/products"
-          className="text-gray-400 hover:text-gray-700 transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
+    <WorkspacePage
+      title="Add listing"
+      description="Set your daily rate, pickup location, and availability."
+      action={
+        <Link to="/supplier/products" className="workspace-secondary">
+          <ArrowLeft size={16} /> Inventory
         </Link>
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">
-            Add New Listing
-          </h1>
-          <p className="text-sm text-gray-500">
-            Fill in the details below to publish your equipment.
-          </p>
-        </div>
-      </div>
-
+      }
+    >
       {error && (
         <div className="mb-5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {error}
@@ -221,7 +212,10 @@ export default function AddProduct() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="workspace-surface workspace-form space-y-6"
+      >
         {/* Title */}
         <div>
           <label
@@ -481,6 +475,6 @@ export default function AddProduct() {
           </button>
         </div>
       </form>
-    </div>
+    </WorkspacePage>
   );
 }

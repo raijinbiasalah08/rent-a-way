@@ -1,5 +1,5 @@
 import { useId } from "react";
-import AdminPage, { AdminEmpty } from "./AdminPage";
+import WorkspacePage, { WorkspaceEmpty } from "./WorkspacePage";
 import {
   Search,
   X,
@@ -56,10 +56,10 @@ export default function AdminRecords({
 }) {
   const { data, loading, error, page, totalPages, setPage, reload } = list;
   return (
-    <AdminPage title={title} description={description} action={action}>
+    <WorkspacePage title={title} description={description} action={action}>
       <section
         aria-label={`${title} records`}
-        className="admin-surface min-w-0 overflow-hidden"
+        className="workspace-surface min-w-0 overflow-hidden"
       >
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-slate-200 px-4 py-3">
           <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-end">
@@ -134,7 +134,7 @@ export default function AdminRecords({
               </button>
             </div>
           ) : !data.length ? (
-            <AdminEmpty
+            <WorkspaceEmpty
               icon={Inbox}
               title={filtered ? `No matching ${noun}` : `No ${noun} yet`}
             >
@@ -151,7 +151,7 @@ export default function AdminRecords({
                   Reset filters
                 </button>
               )}
-            </AdminEmpty>
+            </WorkspaceEmpty>
           ) : (
             <>
               <div className="space-y-3 bg-slate-50/60 p-3 lg:hidden">
@@ -262,7 +262,7 @@ export default function AdminRecords({
         )}
       </section>
       {children}
-    </AdminPage>
+    </WorkspacePage>
   );
 }
 

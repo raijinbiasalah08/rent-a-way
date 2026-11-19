@@ -1,3 +1,4 @@
+import WorkspacePage, { WorkspaceEmpty } from "./WorkspacePage";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getRentals, updateRentalStatus } from "../api/rentals";
@@ -118,37 +119,25 @@ export default function RentalWorkspace() {
         returned: [["completed", "Verify return"]],
       };
   return (
-    <div className="min-h-[70vh] bg-[#f6f5f1] px-3 py-6 sm:px-4 sm:py-10">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
-          <div className="min-w-0">
-            <Link
-              className="inline-flex min-h-10 items-center text-sm font-medium text-blue-800 hover:text-blue-950"
-              to={`/${user.role}/dashboard`}
-            >
-              ← Dashboard
-            </Link>
-            <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-              {customer ? "Your account" : "Supplier workspace"}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#0f172a] sm:text-4xl">
-              {customer ? "My Rentals" : "Rental Requests"}
-            </h1>
-            <p className="mt-1 max-w-xl text-sm leading-relaxed text-gray-500">
-              {customer
-                ? "Track booking requests, pickup, and returns in one place."
-                : "Review requests and keep every handover and return up to date."}
-            </p>
-          </div>
-          <Link
-            className="btn-primary w-full sm:w-auto"
-            to={customer ? "/browse" : "/supplier/products"}
-          >
-            {customer ? "Find equipment" : "Manage equipment"}
-            <ArrowRight size={18} aria-hidden="true" />
-          </Link>
-        </div>
-        <label className="mb-5 block sm:hidden">
+    <WorkspacePage
+      title={customer ? "My rentals" : "Rental requests"}
+      description={
+        customer
+          ? "Track your requests, pickup dates, and returns."
+          : "Review booking requests and manage handovers and returns."
+      }
+      action={
+        <Link
+          className="workspace-secondary"
+          to={customer ? "/browse" : "/supplier/products"}
+        >
+          {customer ? "Browse rentals" : "View inventory"}{" "}
+          <ArrowRight size={16} />
+        </Link>
+      }
+    >
+      <section className="workspace-surface min-w-0 overflow-hidden">
+        <label className="block border-b border-slate-200 p-3 sm:hidden">
           <span className="mb-2 block text-xs font-semibold text-slate-600">
             Filter by status
           </span>
@@ -168,7 +157,7 @@ export default function RentalWorkspace() {
           </select>
         </label>
         <div
-          className="mb-6 hidden flex-wrap gap-2 sm:flex"
+          className="hidden flex-wrap gap-1 border-b border-slate-200 p-3 sm:flex"
           role="group"
           aria-label="Filter rentals by status"
         >
@@ -180,7 +169,7 @@ export default function RentalWorkspace() {
                 setTab(t);
               }}
               aria-pressed={tab === t}
-              className={`min-h-11 shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold capitalize transition-colors ${tab === t ? "bg-[#1e3a8a] border-[#1e3a8a] text-white shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:border-blue-300"}`}
+              className={`min-h-11 shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition-colors ${tab === t ? "bg-[#14263f] border-[#14263f] text-white shadow-sm" : "bg-transparent border-transparent text-slate-600 hover:border-blue-300"}`}
             >
               {t}
             </button>
@@ -204,14 +193,11 @@ export default function RentalWorkspace() {
           </div>
         ) : (
           !error && (
-            <div className="space-y-4">
+            <div className="divide-y divide-slate-200">
               {filteredRows.map((r) => (
-                <article
-                  key={r.id}
-                  className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
-                >
-                  <div className="flex min-w-0 flex-col justify-between gap-3 sm:flex-row sm:gap-4">
-                    <div className="min-w-0">
+                <article key={r.id} className="min-w-0 p-4 sm:px-5">
+                  <div className="grid min-w-0 grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1fr)_7rem]">
+                    <div className="col-span-2 min-w-0 lg:col-span-1">
                       <Link
                         to={`/product/${r.product_id}`}
                         className="break-words text-base font-bold text-[#0f172a] hover:text-blue-800 sm:text-lg"
@@ -219,31 +205,45 @@ export default function RentalWorkspace() {
                         {r.product_title}
                       </Link>
                       <p className="mt-1 text-sm text-gray-500">
+                        {customer ? "Supplier" : "Renter"} ·{" "}
                         {customer ? r.supplier_name : r.customer_name}
                       </p>
-                      <p className="mb-2 mt-3 flex items-center gap-2 text-sm text-slate-600 sm:mt-4">
-                        <CalendarDays size={16} aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-slate-600">
+                        Rental period
+                      </p>
+                      <p className="flex items-center gap-2 text-sm text-slate-800">
+                        <CalendarDays
+                          size={15}
+                          className="hidden shrink-0 lg:block"
+                          aria-hidden="true"
+                        />
                         <span className="min-w-0 break-words">
                           {r.start_date} — {r.end_date}
                         </span>
                       </p>
-                      <p className="text-sm text-gray-500">
-                        Estimated rental value: ₱
-                        {Number(r.total_price).toLocaleString()}
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-slate-600">
+                        Estimated value
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums text-slate-900">
+                        ₱{Number(r.total_price).toLocaleString()}
                       </p>
                     </div>
                     <span
-                      className={`h-fit px-3 py-1 rounded-full text-sm capitalize ${r.is_overdue ? "bg-red-100 text-red-800" : "bg-blue-50 text-blue-800"}`}
+                      className={`h-fit justify-self-start rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${r.is_overdue ? "bg-red-100 text-red-800" : "bg-blue-50 text-blue-800"}`}
                     >
                       {r.is_overdue ? "Overdue" : r.status}
                     </span>
                   </div>
                   {r.notes && (
-                    <p className="text-sm mt-3 text-gray-600 whitespace-pre-wrap">
+                    <p className="text-sm mt-3 text-gray-600 whitespace-pre-wrap [overflow-wrap:anywhere]">
                       {r.notes}
                     </p>
                   )}
-                  <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 text-sm sm:mt-5 sm:flex-row sm:flex-wrap sm:gap-3">
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm">
                     {(actions[r.status] || []).map(([status, label]) => (
                       <button
                         key={status}
@@ -251,15 +251,15 @@ export default function RentalWorkspace() {
                         onClick={() => change(r, status)}
                         className={
                           status === "cancelled" || status === "rejected"
-                            ? "btn-secondary min-h-11 w-full !bg-rose-50 !text-rose-700 hover:!bg-rose-100 sm:w-auto"
-                            : "btn-primary min-h-11 w-full sm:w-auto"
+                            ? "btn-secondary min-h-11 !bg-rose-50 !text-rose-700 hover:!bg-rose-100 sm:w-auto"
+                            : "btn-primary min-h-11"
                         }
                       >
                         {label}
                       </button>
                     ))}
                     <Link
-                      className="btn-secondary min-h-11 w-full sm:w-auto"
+                      className="btn-secondary min-h-11"
                       to={`/messages?userId=${customer ? r.supplier_id : r.customer_id}`}
                     >
                       <MessageSquare size={16} aria-hidden="true" />
@@ -267,7 +267,7 @@ export default function RentalWorkspace() {
                     </Link>
                     {customer && r.status === "completed" && !r.review_id && (
                       <button
-                        className="btn-secondary min-h-11 w-full sm:w-auto"
+                        className="btn-secondary min-h-11"
                         onClick={() => setReview(r)}
                       >
                         Write review
@@ -283,15 +283,16 @@ export default function RentalWorkspace() {
                 </article>
               ))}
               {filteredRows.length === 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center sm:py-14">
-                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-800">
-                    <Package size={30} aria-hidden="true" />
-                  </div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {tab === "all"
-                      ? "Your rental journey starts here"
-                      : `No ${tab} rentals`}
-                  </h2>
+                <WorkspaceEmpty
+                  icon={Package}
+                  title={
+                    tab === "all"
+                      ? customer
+                        ? "No rentals yet"
+                        : "No rental requests yet"
+                      : `No ${tab} rentals`
+                  }
+                >
                   <p className="mx-auto mt-2 mb-6 max-w-sm text-sm leading-6 text-slate-500">
                     {tab !== "all"
                       ? "Try another status to find your booking."
@@ -318,15 +319,15 @@ export default function RentalWorkspace() {
                       <ArrowRight size={16} aria-hidden="true" />
                     </Link>
                   )}
-                </div>
+                </WorkspaceEmpty>
               )}
             </div>
           )
         )}
-        {(rows.length > 0 || hasMore || page > 1) && (
+        {(hasMore || page > 1) && (
           <nav
             aria-label="Rental pages"
-            className="mt-6 flex items-center justify-between gap-3 text-sm sm:justify-end sm:gap-4"
+            className="border-t border-slate-200 p-3 flex items-center justify-between gap-3 text-sm sm:justify-end sm:gap-4"
           >
             <button
               className="btn-secondary min-h-11 px-4"
@@ -348,66 +349,62 @@ export default function RentalWorkspace() {
             </button>
           </nav>
         )}
-        {review && (
-          <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
-            <form
-              onSubmit={submitReview}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Write review"
-              className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4"
-            >
-              <h2 className="text-xl font-bold">
-                Review {review.product_title}
-              </h2>
-              <label className="block">
-                Rating
-                <select
-                  className="input"
-                  value={rating}
-                  onChange={(e) => setRating(e.target.value)}
-                >
-                  {[5, 4, 3, 2, 1].map((n) => (
-                    <option key={n} value={n}>
-                      {n} stars
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                Your experience
-                <textarea
-                  className="input"
-                  maxLength={5000}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
-              </label>
-              <button disabled={!!busy} className="btn-primary">
-                Publish review
-              </button>
-              <button
-                type="button"
-                onClick={() => setReview(null)}
-                className="ml-4"
+      </section>
+      {review && (
+        <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+          <form
+            onSubmit={submitReview}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Write review"
+            className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4"
+          >
+            <h2 className="text-xl font-bold">Review {review.product_title}</h2>
+            <label className="block">
+              Rating
+              <select
+                className="input"
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
               >
-                Cancel
-              </button>
-            </form>
-          </div>
-        )}
-        {complaint && (
-          <ComplaintModal
-            reportedId={
-              customer ? complaint.supplier_id : complaint.customer_id
-            }
-            reportedName={
-              customer ? complaint.supplier_name : complaint.customer_name
-            }
-            onClose={() => setComplaint(null)}
-          />
-        )}
-      </div>
-    </div>
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <option key={n} value={n}>
+                    {n} stars
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              Your experience
+              <textarea
+                className="input"
+                maxLength={5000}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </label>
+            <button disabled={!!busy} className="btn-primary">
+              Publish review
+            </button>
+            <button
+              type="button"
+              onClick={() => setReview(null)}
+              className="ml-4"
+            >
+              Cancel
+            </button>
+          </form>
+        </div>
+      )}
+      {complaint && (
+        <ComplaintModal
+          reportedId={customer ? complaint.supplier_id : complaint.customer_id}
+          reportedName={
+            customer ? complaint.supplier_name : complaint.customer_name
+          }
+          onClose={() => setComplaint(null)}
+        />
+      )}
+    </WorkspacePage>
   );
 }

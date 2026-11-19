@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { getReports, getStats } from "../../api/admin";
-import AdminPage, { AdminEmpty } from "../../components/AdminPage";
+import WorkspacePage, { WorkspaceEmpty } from "../../components/WorkspacePage";
 import { adminActionClass } from "../../components/AdminRecords";
 
 const METRICS = [
@@ -24,15 +24,15 @@ function RentalBreakdown({ title, description, rows, empty }) {
   const maxCount = Math.max(1, ...rows.map(({ count }) => count));
 
   return (
-    <section className="admin-surface min-w-0">
+    <section className="workspace-surface min-w-0">
       <header className="border-b border-slate-200 px-4 py-4 sm:px-5">
         <h2 className="font-semibold text-slate-900">{title}</h2>
         <p className="mt-1 text-sm text-slate-600">{description}</p>
       </header>
       {rows.length === 0 ? (
-        <AdminEmpty icon={BarChart3} title="No rental activity yet">
+        <WorkspaceEmpty icon={BarChart3} title="No rental activity yet">
           {empty}
-        </AdminEmpty>
+        </WorkspaceEmpty>
       ) : (
         <ol className="space-y-4 px-4 py-5 sm:px-5">
           {rows.map(({ label, count }, index) => (
@@ -105,13 +105,13 @@ export default function Reports() {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <AdminPage
+    <WorkspacePage
       title="Reports & analytics"
       description="Track marketplace totals and see which listings and categories are rented most."
     >
       {failed ? (
-        <section role="alert" className="admin-surface">
-          <AdminEmpty icon={BarChart3} title="Couldn’t load reports">
+        <section role="alert" className="workspace-surface">
+          <WorkspaceEmpty icon={BarChart3} title="Couldn’t load reports">
             <p>Check your connection and try again.</p>
             <button
               className={`${adminActionClass} mt-4`}
@@ -119,7 +119,7 @@ export default function Reports() {
             >
               Try again
             </button>
-          </AdminEmpty>
+          </WorkspaceEmpty>
         </section>
       ) : (
         <>
@@ -129,7 +129,7 @@ export default function Reports() {
           >
             {METRICS.map(([key, label, Icon]) => (
               <div
-                className="admin-surface grid min-w-0 gap-2 p-3 sm:p-4"
+                className="workspace-surface grid min-w-0 gap-2 p-3 sm:p-4"
                 key={key}
               >
                 <dt className="flex items-center gap-2 text-xs font-semibold text-slate-600">
@@ -170,6 +170,6 @@ export default function Reports() {
           )}
         </>
       )}
-    </AdminPage>
+    </WorkspacePage>
   );
 }

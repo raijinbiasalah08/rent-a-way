@@ -96,6 +96,7 @@
 
 .ledger-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(20px, 3vw, 32px);
   padding-block: clamp(20px, 3.2vw, 40px) 44px;
 }
@@ -238,10 +239,74 @@
   border-color: var(--ledger-rule);
 }
 
-.admin-surface {
+.workspace-surface {
   border: 1px solid var(--ledger-rule);
   border-radius: 12px;
   background: var(--ledger-panel);
+}
+
+.workspace-form {
+  width: min(100%, 48rem);
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 1.75rem);
+}
+
+.workspace-primary,
+.workspace-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .5rem .875rem;
+  border-radius: .5rem;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.workspace-primary { background: var(--ledger-ink); color: white; }
+.workspace-primary:hover { background: #233f74; }
+.workspace-secondary { border: 1px solid var(--ledger-rule); background: white; color: var(--ledger-ink); }
+.workspace-secondary:hover { background: #f1eee8; }
+
+@media (max-width: 767px) {
+  table.workspace-bookings,
+  .workspace-bookings tbody {
+    display: block;
+    min-width: 0;
+  }
+  .workspace-bookings thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .workspace-bookings tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    padding: 1rem;
+  }
+  .workspace-bookings td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    white-space: normal;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .workspace-bookings td:first-child,
+  .workspace-bookings td:last-child { grid-column: 1 / -1; }
+  .workspace-bookings td[data-label]:not(:first-child):not(:last-child)::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: .25rem;
+    color: #475569;
+    font: 600 .72rem/1.4 var(--app-font-sans);
+  }
+  .workspace-bookings td:last-child > div { flex-wrap: wrap; }
+  .workspace-bookings td:last-child :is(button, a) { min-height: 44px; min-width: 44px; }
 }
 
 .ledger-workspace .admin-table thead tr {
