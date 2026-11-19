@@ -178,6 +178,7 @@ export default function Browse() {
     startDate: "",
     endDate: "",
   });
+  const budgetPanel = useRef(null);
   const datePanel = useRef(null);
   const dateStart = useRef(null);
   const { detecting, requestCustomerLocation, isGpsInsideRoxas } =
@@ -259,6 +260,8 @@ export default function Browse() {
       draft.maxPrice &&
       Number(draft.minPrice) > Number(draft.maxPrice)
     ) {
+      setFiltersOpen(true);
+      if (budgetPanel.current) budgetPanel.current.open = true;
       setValidation("Maximum price must be at least the minimum price.");
       return;
     }
@@ -283,6 +286,7 @@ export default function Browse() {
     setValidation("");
     setFiltersOpen(false);
     if (datePanel.current) datePanel.current.open = false;
+    if (budgetPanel.current) budgetPanel.current.open = false;
   }
   function reset() {
     setSearchParams({});
@@ -301,7 +305,8 @@ export default function Browse() {
   }
   function openDates() {
     if (datePanel.current) datePanel.current.open = true;
-    dateStart.current?.focus();
+    setFiltersOpen(true);
+    requestAnimationFrame(() => dateStart.current?.focus());
   }
   const hasFilters = [...searchParams.keys()].some(
     (key) => key !== "page" && searchParams.get(key),
@@ -312,7 +317,7 @@ export default function Browse() {
       : "Select dates";
 
   return (
-    <div className="browse-page">
+    <div className="browse-page browse-layout-b">
       <Helmet>
         <title>
           {category ? `${category} Rentals` : "Browse Rentals"} | Rent-A-Way
@@ -323,28 +328,29 @@ export default function Browse() {
         />
       </Helmet>
       <div className="browse-container">
-        <nav className="browse-breadcrumb" aria-label="Breadcrumb">
-          <Link to="/">Home</Link>
-          <ChevronRight size={14} />
-          <span aria-current="page">Browse rentals</span>
-        </nav>
         <header className="browse-intro">
-          <img
-            src="/logo.png"
-            alt=""
-            aria-hidden="true"
-            className="browse-watermark"
-          />
-          <p className="browse-eyebrow">Rent local. Do more.</p>
-          <h1>Explore rentals in Roxas.</h1>
+          <h1>Browse rentals</h1>
           <p className="browse-intro-copy">
-            Equipment, vehicles and apartments from local suppliers.
+            Equipment, vehicles and apartments in Roxas.
           </p>
         </header>
         <form
           id="browse-search"
           onSubmit={submit}
-          className="browse-search-bar"
+          className={`browse-search-bar ${filtersOpen ? "filters-expanded" : ""}`}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              const panel = e.target.closest("details[open]");
+              if (panel) {
+                panel.open = false;
+                panel.querySelector("summary")?.focus();
+              }
+            }
+          }}
+          onInvalid={() => {
+            setFiltersOpen(true);
+            if (budgetPanel.current) budgetPanel.current.open = true;
+          }}
           aria-label="Search rentals"
         >
           <label className="browse-search-field">
@@ -357,7 +363,7 @@ export default function Browse() {
               maxLength={200}
             />
           </label>
-          <label className="browse-location-field">
+          <label id="browse-location-filter" className="browse-location-field">
             <MapPin size={22} aria-hidden="true" />
             <span>
               <span className="browse-field-label">Location</span>
@@ -366,7 +372,7 @@ export default function Browse() {
                 value={draft.barangay}
                 onChange={(e) => change("barangay", e.target.value)}
               >
-                <option value="">Roxas, Oriental Mindoro</option>
+                <option value="">All barangays</option>
                 {ROXAS_BARANGAYS.map((b) => (
                   <option key={b.name} value={b.name}>
                     {b.name}, Roxas
@@ -375,7 +381,11 @@ export default function Browse() {
               </select>
             </span>
           </label>
-          <details ref={datePanel} className="browse-date-picker">
+          <details
+            id="browse-date-filter"
+            ref={datePanel}
+            className="browse-date-picker"
+          >
             <summary>
               <CalendarDays size={22} />
               <span>
@@ -419,6 +429,64 @@ export default function Browse() {
               </div>
             </div>
           </details>
+          <details
+            id="browse-budget-filter"
+            ref={budgetPanel}
+            className="browse-budget-picker"
+          >
+            <summary>
+              <SlidersHorizontal size={18} />
+              Daily budget
+            </summary>
+            <div className="browse-budget-panel">
+              {" "}
+              <fieldset>
+                <legend className="browse-filter-label">Daily budget</legend>
+                <div className="browse-budget">
+                  <label>
+                    <span className="sr-only">Minimum daily price</span>
+                    <input
+                      form="browse-search"
+                      type="number"
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                      placeholder="₱ Min"
+                      value={draft.minPrice}
+                      onChange={(e) => change("minPrice", e.target.value)}
+                    />
+                  </label>
+                  <span>–</span>
+                  <label>
+                    <span className="sr-only">Maximum daily price</span>
+                    <input
+                      form="browse-search"
+                      type="number"
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                      placeholder="₱ Max"
+                      value={draft.maxPrice}
+                      onChange={(e) => change("maxPrice", e.target.value)}
+                    />
+                  </label>
+                </div>
+              </fieldset>
+              <button type="submit" className="browse-primary">
+                Apply budget
+              </button>
+            </div>
+          </details>
+          <button
+            type="button"
+            className="browse-mobile-filter-toggle browse-secondary"
+            aria-expanded={filtersOpen}
+            aria-controls="browse-location-filter browse-date-filter browse-budget-filter"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+          >
+            <SlidersHorizontal size={16} />
+            {filtersOpen ? "Hide filters" : "Filters"}
+          </button>
           <button className="browse-primary browse-search-submit" type="submit">
             Search <ArrowRight size={17} className="sm:hidden" />
           </button>
@@ -452,121 +520,10 @@ export default function Browse() {
           ))}
         </nav>
         <div className="browse-body">
-          <div className="browse-mobile-filters">
-            <button
-              className="browse-secondary"
-              aria-expanded={filtersOpen}
-              aria-controls="browse-filters"
-              onClick={() => setFiltersOpen(!filtersOpen)}
-            >
-              <SlidersHorizontal size={18} />
-              Filters
-              {filtersOpen ? <X size={16} /> : <ChevronRight size={16} />}
-            </button>
-            {hasFilters && (
-              <button onClick={reset} className="text-sm text-blue-800">
-                Reset filters
-              </button>
-            )}
-          </div>
-          <aside
-            id="browse-filters"
-            className={`browse-filters ${filtersOpen ? "is-open" : ""}`}
-            aria-label="Rental filters"
-          >
-            <div className="browse-filter-heading">
-              <h2>Filters</h2>
-              <button onClick={reset}>
-                <RotateCcw size={14} />
-                Reset
-              </button>
-            </div>
-            <label className="browse-filter-label">
-              Barangay
-              <select
-                form="browse-search"
-                value={draft.barangay}
-                onChange={(e) => change("barangay", e.target.value)}
-              >
-                <option value="">All barangays</option>
-                {ROXAS_BARANGAYS.map((b) => (
-                  <option key={b.name} value={b.name}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <fieldset>
-              <legend className="browse-filter-label">Daily budget</legend>
-              <div className="browse-budget">
-                <label>
-                  <span className="sr-only">Minimum daily price</span>
-                  <input
-                    form="browse-search"
-                    type="number"
-                    min="0"
-                    max="1000000"
-                    step="0.01"
-                    placeholder="₱ Min"
-                    value={draft.minPrice}
-                    onChange={(e) => change("minPrice", e.target.value)}
-                  />
-                </label>
-                <span>–</span>
-                <label>
-                  <span className="sr-only">Maximum daily price</span>
-                  <input
-                    form="browse-search"
-                    type="number"
-                    min="0"
-                    max="1000000"
-                    step="0.01"
-                    placeholder="₱ Max"
-                    value={draft.maxPrice}
-                    onChange={(e) => change("maxPrice", e.target.value)}
-                  />
-                </label>
-              </div>
-            </fieldset>
-            <div>
-              <p className="browse-filter-label">Rental dates</p>
-              <button className="browse-date-shortcut" onClick={openDates}>
-                <CalendarDays size={17} />
-                <span>{dateLabel}</span>
-              </button>
-            </div>
-            <label className="browse-availability">
-              <span>Available only</span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={availableOnly}
-                onChange={(e) =>
-                  updateParam(
-                    "availability",
-                    e.target.checked ? "available" : "",
-                  )
-                }
-              />
-              <span className="browse-switch" aria-hidden="true" />
-            </label>
-            <button
-              type="submit"
-              form="browse-search"
-              className="browse-primary w-full"
-            >
-              Apply filters
-            </button>
-            <p className="browse-filter-note">
-              Choose dates to check availability for your rental period.
-            </p>
-          </aside>
           <section className="browse-results" aria-label="Rental results">
             <div className="browse-results-heading">
               <div>
-                <h2>
-                  {availableOnly ? "Available near you" : "Rentals near you"}
-                </h2>
+                <h2 className="sr-only">Rental results</h2>
                 <p role="status" aria-live="polite">
                   {loading
                     ? "Finding rentals…"
@@ -587,13 +544,26 @@ export default function Browse() {
               </div>
             </div>
             <div className="browse-results-tools">
-              {hasFilters ? (
+              <label className="browse-availability">
+                <span>Available only</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={availableOnly}
+                  onChange={(e) =>
+                    updateParam(
+                      "availability",
+                      e.target.checked ? "available" : "",
+                    )
+                  }
+                />
+                <span className="browse-switch" aria-hidden="true" />
+              </label>
+              {hasFilters && (
                 <button onClick={reset}>
-                  <X size={14} />
-                  Clear active filters
+                  <RotateCcw size={14} />
+                  Reset filters
                 </button>
-              ) : (
-                <span>Discover equipment from local suppliers</span>
               )}
               <button
                 disabled={detecting}
