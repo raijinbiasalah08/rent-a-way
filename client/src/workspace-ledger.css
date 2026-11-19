@@ -238,6 +238,26 @@
   border-color: var(--ledger-rule);
 }
 
+.admin-surface {
+  border: 1px solid var(--ledger-rule);
+  border-radius: 12px;
+  background: var(--ledger-panel);
+}
+
+.ledger-workspace .admin-table thead tr {
+  background: #f2ede4;
+  color: #475569;
+}
+
+.admin-table td:last-child,
+.admin-table th:last-child {
+  width: 1%;
+}
+
+.admin-table td:last-child button {
+  white-space: nowrap;
+}
+
 .ledger-data-table {
   min-width: 640px;
 }

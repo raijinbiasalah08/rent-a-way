@@ -1,30 +1,66 @@
 import { useState, useEffect } from "react";
-import { getReports, getStats } from "../../api/admin";
-import LoadingSpinner from "../../components/LoadingSpinner";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+  BarChart3,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Package,
+  Users,
+} from "lucide-react";
+import { getReports, getStats } from "../../api/admin";
+import AdminPage, { AdminEmpty } from "../../components/AdminPage";
+import { adminActionClass } from "../../components/AdminRecords";
 
-const PIE_COLORS = [
-  "#1a237e",
-  "#f4c430",
-  "#3b82f6",
-  "#10b981",
-  "#f97316",
-  "#8b5cf6",
+const METRICS = [
+  ["totalRentals", "Total rentals", CalendarDays],
+  ["activeRentals", "Active rentals", CheckCircle2],
+  ["pendingRentals", "Pending requests", Clock3],
+  ["totalProducts", "Total listings", Package],
+  ["totalUsers", "Total users", Users],
 ];
+const formatNumber = new Intl.NumberFormat("en-PH").format;
+
+function RentalBreakdown({ title, description, rows, empty }) {
+  const maxCount = Math.max(1, ...rows.map(({ count }) => count));
+
+  return (
+    <section className="admin-surface min-w-0">
+      <header className="border-b border-slate-200 px-4 py-4 sm:px-5">
+        <h2 className="font-semibold text-slate-900">{title}</h2>
+        <p className="mt-1 text-sm text-slate-600">{description}</p>
+      </header>
+      {rows.length === 0 ? (
+        <AdminEmpty icon={BarChart3} title="No rental activity yet">
+          {empty}
+        </AdminEmpty>
+      ) : (
+        <ol className="space-y-4 px-4 py-5 sm:px-5">
+          {rows.map(({ label, count }, index) => (
+            <li key={`${label}-${index}`} className="min-w-0">
+              <div className="mb-1.5 flex items-baseline justify-between gap-4 text-sm">
+                <span className="font-medium text-slate-800 [overflow-wrap:anywhere]">
+                  {label}
+                </span>
+                <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                  {formatNumber(count)}{" "}
+                  <span className="font-normal text-slate-600">
+                    {count === 1 ? "rental" : "rentals"}
+                  </span>
+                </span>
+              </div>
+              <div aria-hidden="true" className="h-2 rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-[#233f74]"
+                  style={{ width: `${(count / maxCount) * 100}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
 
 export default function Reports() {
   const [reports, setReports] = useState(null);
@@ -54,174 +90,86 @@ export default function Reports() {
     };
   }, [attempt]);
 
-  if (loading)
-    return (
-      <div className="p-8">
-        <LoadingSpinner />
-      </div>
-    );
-
-  const topProducts = reports?.topProducts || [];
-  if (failed)
-    return (
-      <section className="card mx-auto my-8 max-w-lg">
-        <h1 className="text-xl font-bold">Reports</h1>
-        <p role="alert" className="my-3">
-          Could not load the latest figures.
-        </p>
-        <button
-          className="btn-primary"
-          onClick={() => setAttempt((value) => value + 1)}
-        >
-          Try again
-        </button>
-      </section>
-    );
-  const rentalsByCategory = reports?.rentalsByCategory || [];
-
-  const SUMMARY_CARDS = [
-    {
-      label: "Total Rentals",
-      value: stats?.totalRentals ?? 0,
-      color: "text-navy-700",
-      emoji: "📋",
-    },
-    {
-      label: "Active Rentals",
-      value: stats?.activeRentals ?? 0,
-      color: "text-blue-600",
-      emoji: "✅",
-    },
-    {
-      label: "Pending",
-      value: stats?.pendingRentals ?? 0,
-      color: "text-yellow-600",
-      emoji: "⏳",
-    },
-    {
-      label: "Total Products",
-      value: stats?.totalProducts ?? 0,
-      color: "text-purple-600",
-      emoji: "📦",
-    },
-    {
-      label: "Total Users",
-      value: stats?.totalUsers ?? 0,
-      color: "text-gray-700",
-      emoji: "👥",
-    },
-  ];
+  const topProducts = (reports?.topProducts || [])
+    .map((product) => ({
+      label: product.title,
+      count: Number(product.rental_count),
+    }))
+    .filter(({ count }) => count > 0);
+  const byCategory = (reports?.rentalsByCategory || [])
+    .map((entry) => ({
+      label: entry.category || "Uncategorized",
+      count: Number(entry.count),
+    }))
+    .filter(({ count }) => count > 0)
+    .sort((a, b) => b.count - a.count);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-navy-700">
-        Reports & Analytics
-      </h1>
-
-      {/* Summary KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        {SUMMARY_CARDS.map((c) => (
-          <div
-            key={c.label}
-            className="card text-center p-4 hover:shadow-md transition"
+    <AdminPage
+      title="Reports & analytics"
+      description="Track marketplace totals and see which listings and categories are rented most."
+    >
+      {failed ? (
+        <section role="alert" className="admin-surface">
+          <AdminEmpty icon={BarChart3} title="Couldn’t load reports">
+            <p>Check your connection and try again.</p>
+            <button
+              className={`${adminActionClass} mt-4`}
+              onClick={() => setAttempt((value) => value + 1)}
+            >
+              Try again
+            </button>
+          </AdminEmpty>
+        </section>
+      ) : (
+        <>
+          <dl
+            aria-busy={loading}
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
           >
-            <div className="text-2xl mb-1">{c.emoji}</div>
-            <div className={`text-xl font-extrabold ${c.color}`}>{c.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{c.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Top Products by Rentals */}
-        <div className="card">
-          <h2 className="font-bold text-lg text-navy-700 mb-5">
-            Top Products by Rentals
-          </h2>
-          {topProducts.length === 0 ? (
-            <p className="text-gray-400 text-center py-8 text-sm">
-              No rental data yet.
-            </p>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={topProducts}
-                  layout="vertical"
-                  margin={{ left: 10, right: 20 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    horizontal={false}
-                    stroke="#e2e8f0"
+            {METRICS.map(([key, label, Icon]) => (
+              <div
+                className="admin-surface grid min-w-0 gap-2 p-3 sm:p-4"
+                key={key}
+              >
+                <dt className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <Icon
+                    size={16}
+                    className="shrink-0 text-[#233f74]"
+                    aria-hidden="true"
                   />
-                  <XAxis
-                    type="number"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11 }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="title"
-                    width={130}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) =>
-                      v?.length > 18 ? v.slice(0, 18) + "…" : v
-                    }
-                  />
-
-                  <Tooltip formatter={(v) => [v, "Rentals"]} />
-                  <Bar
-                    dataKey="rental_count"
-                    fill="#1a237e"
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+                  {label}
+                </dt>
+                <dd className="text-2xl font-bold tabular-nums text-slate-900">
+                  {loading ? (
+                    <span className="block h-8 w-12 rounded bg-slate-200 motion-safe:animate-pulse">
+                      <span className="sr-only">Loading</span>
+                    </span>
+                  ) : (
+                    formatNumber(stats?.[key] ?? 0)
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {!loading && (
+            <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+              <RentalBreakdown
+                title="Top listings by rentals"
+                description="Up to five listings ranked by booking count."
+                rows={topProducts}
+                empty="Listings will appear here once they receive bookings."
+              />
+              <RentalBreakdown
+                title="Rentals by category"
+                description="Booking counts grouped by listing category."
+                rows={byCategory}
+                empty="Category counts will appear once bookings are recorded."
+              />
             </div>
           )}
-        </div>
-
-        {/* Rentals by Category */}
-        <div className="card">
-          <h2 className="font-bold text-lg text-navy-700 mb-5">
-            Rentals by Category
-          </h2>
-          {rentalsByCategory.length === 0 ? (
-            <p className="text-gray-400 text-center py-8 text-sm">
-              No category data yet.
-            </p>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={rentalsByCategory}
-                    dataKey="count"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={({ category, percent }) =>
-                      `${category} ${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                  >
-                    {rentalsByCategory.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AdminPage>
   );
 }

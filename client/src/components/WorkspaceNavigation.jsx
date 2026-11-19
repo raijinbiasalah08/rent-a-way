@@ -9,6 +9,9 @@ import {
   Heart,
   Plus,
   MapPin,
+  CalendarDays,
+  Flag,
+  BarChart3,
 } from "lucide-react";
 
 export default function WorkspaceNavigation({ role }) {
@@ -23,10 +26,10 @@ export default function WorkspaceNavigation({ role }) {
       ? [
           ["/admin/dashboard", "Overview", LayoutDashboard],
           ["/admin/users", "Users", Users],
-          ["/admin/products", "Listings", Compass],
-          ["/admin/rentals", "Rentals", Package],
-          ["/admin/complaints", "Complaints", MessageSquare],
-          ["/admin/reports", "Reports", LayoutDashboard],
+          ["/admin/products", "Listings", Package],
+          ["/admin/rentals", "Rentals", CalendarDays],
+          ["/admin/complaints", "Complaints", Flag],
+          ["/admin/reports", "Reports", BarChart3],
           ["/messages", "Messages", MessageSquare],
         ]
       : [

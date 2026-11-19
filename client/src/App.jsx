@@ -122,8 +122,10 @@ function App() {
       >
         Skip to content
       </a>
-      <Navbar workspaceRole={workspaceRole} />
-      {workspaceRole && <WorkspaceNavigation role={workspaceRole} />}
+      <div className={workspaceRole === "admin" ? "sticky top-0 z-50" : "contents"}>
+        <Navbar workspaceRole={workspaceRole} />
+        {workspaceRole && <WorkspaceNavigation role={workspaceRole} />}
+      </div>
       <main
         ref={content}
         id="main-content"

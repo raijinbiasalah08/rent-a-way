@@ -1,6 +1,6 @@
 import api from "../../api/axios";
 import { useRef, useState } from "react";
-import { Users as UsersIcon, Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Contact, CreditCard } from "lucide-react";
 import {
   createAdminUser,
   updateUser,
@@ -130,12 +130,15 @@ export default function Users() {
     }
   };
   const columns = [
-    { key: "name", label: "Name", render: (u) => u.name || "Unnamed user" },
     {
-      key: "email",
-      label: "Email address",
-      wide: true,
-      render: (u) => u.email || "—",
+      key: "account",
+      label: "Account",
+      render: (u) => (
+        <span className="block min-w-0">
+          <span className="block font-semibold text-slate-900">{u.name || "Unnamed user"}</span>
+          <span className="mt-0.5 block text-xs font-normal text-slate-600">{u.email || "—"}</span>
+        </span>
+      ),
     },
     {
       key: "role",
@@ -166,29 +169,33 @@ export default function Users() {
       label: "Manage account",
       wide: true,
       render: (u) => (
-        <div className="flex flex-wrap gap-2">
-          <button className={adminActionClass} onClick={() => viewIdentity(u)}>View ID</button>
+        <div className="grid gap-1.5">
+          <div className="flex flex-wrap gap-1.5 lg:flex-nowrap">
+            <button
+              onClick={() => openDialog("edit", u)}
+              className={adminActionClass}
+            >
+              <Pencil size={14} aria-hidden="true" />
+              Edit
+            </button>
+            <button className={adminActionClass} onClick={() => viewIdentity(u)}>
+              <Contact size={14} aria-hidden="true" /> View ID
+            </button>
+            <button
+              onClick={() => openDialog("status", u)}
+              className={adminActionClass}
+            >
+              {u.is_active ? "Suspend" : "Reactivate"}
+            </button>
+          </div>
           {u.role === "supplier" && !!u.is_active && u.requested_package && (
             <button
               onClick={() => openDialog("subscription", u)}
-              className={adminActionClass}
+              className={`${adminActionClass} justify-self-start border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100`}
             >
-              Review subscription
+              <CreditCard size={14} aria-hidden="true" /> Review subscription
             </button>
           )}
-          <button
-            onClick={() => openDialog("edit", u)}
-            className={adminActionClass}
-          >
-            <Pencil size={14} className="mr-2" aria-hidden="true" />
-            Edit
-          </button>
-          <button
-            onClick={() => openDialog("status", u)}
-            className={adminActionClass}
-          >
-            {u.is_active ? "Suspend" : "Reactivate"}
-          </button>
         </div>
       ),
     },
@@ -197,10 +204,9 @@ export default function Users() {
     <>
     {identity && <AdminDialog title={`Registration ID — ${identity.name}`} onClose={() => { URL.revokeObjectURL(identity.url); setIdentity(null); }}><img src={identity.url} alt="Registration ID" className="w-full object-contain" /></AdminDialog>}
     <AdminRecords
-      title="Manage users"
+      title="Users"
       description="Manage accounts, roles, and access to Rent-A-Way."
       noun="users"
-      icon={UsersIcon}
       list={list}
       columns={columns}
       search={search}

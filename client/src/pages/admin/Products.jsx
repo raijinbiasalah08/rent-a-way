@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Package } from "lucide-react";
 import { toggleProduct } from "../../api/admin";
 import { apiAssetUrl } from "../../config";
 import toast from "react-hot-toast";
@@ -55,7 +54,7 @@ export default function Products() {
                 : "/placeholder.svg"
             }
             alt=""
-            className="h-12 w-12 shrink-0 rounded-xl object-cover"
+            className="h-10 w-10 shrink-0 rounded-lg bg-slate-100 object-cover"
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = "/placeholder.svg";
@@ -120,15 +119,14 @@ export default function Products() {
   ];
   return (
     <AdminRecords
-      title="Manage products"
-      description="Review equipment, daily rates, and listing visibility."
-      noun="products"
-      icon={Package}
+      title="Listings"
+      description="Review supplier listings, daily rates, and marketplace visibility."
+      noun="listings"
       list={list}
       columns={columns}
       search={search}
       setSearch={setSearch}
-      searchLabel="Search by product or supplier"
+      searchLabel="Search by listing or supplier"
       filtered={Boolean(search)}
       onReset={() => setSearch("")}
     >

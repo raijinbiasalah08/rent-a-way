@@ -345,6 +345,7 @@ export default function Messages() {
   const [conversations, setConversations] = useState([]);
   const [filteredConvs, setFilteredConvs] = useState([]);
   const [loadingConv, setLoadingConv] = useState(true);
+  const [conversationError, setConversationError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
@@ -383,6 +384,7 @@ export default function Messages() {
       .get("/messages/conversations")
       .then((r) => {
         const list = r.data?.data || [];
+        setConversationError(false);
         setConversations(list);
         setFilteredConvs(list);
         // Ask socket for online statuses of all conversation partners
@@ -392,7 +394,7 @@ export default function Messages() {
           });
         }
       })
-      .catch(() => toast.error("Could not load conversations."))
+      .catch(() => setConversationError(true))
       .finally(() => setLoadingConv(false));
   }, [socket]);
 
@@ -796,9 +798,11 @@ export default function Messages() {
   };
 
   const isBlocked = blockStatus.iBlockedThem || blockStatus.theyBlockedMe;
+  const hasConversations = conversations.length > 0;
+  const showChat = hasConversations || Boolean(activeUser);
 
   return (
-    <div className="min-h-screen bg-[#f5f0e8] pt-6 pb-12">
+    <div className="ledger-content">
       {lightboxSrc && (
         <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       )}
@@ -816,26 +820,31 @@ export default function Messages() {
         />
       )}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-[82vh] flex gap-4">
+      <header className={activeUser ? "hidden md:block" : ""}>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Messages</h1>
+        <p className="mt-1.5 text-sm text-slate-600">Find and continue your conversations on Rent-A-Way.</p>
+      </header>
+
+      <div className={`admin-surface flex min-w-0 overflow-hidden ${showChat ? "h-[max(22rem,calc(100dvh-10rem))] md:h-[max(28rem,calc(100dvh-16rem))]" : ""}`}>
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         <div
-          className={`bg-white rounded-2xl border border-gray-200 flex flex-col overflow-hidden w-full md:w-80 flex-shrink-0 ${activeUser ? "hidden md:flex" : "flex"}`}
+          className={`min-w-0 w-full flex-col overflow-hidden ${activeUser ? "hidden md:flex" : "flex"} ${showChat ? "md:w-72 md:shrink-0 md:border-r md:border-slate-200 lg:w-80" : ""}`}
         >
           {/* Sidebar header */}
           <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-gray-900 text-base">Messages</h2>
-              <MessageCircle className="w-5 h-5 text-gray-400" />
+              <h2 className="text-sm font-semibold text-slate-900">Conversations</h2>
             </div>
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
-                type="text"
+                type="search"
+                aria-label="Search conversations"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search conversations…"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#1e3a8a] transition"
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-base focus:border-blue-600 sm:text-sm"
               />
 
               {isSearching && (
@@ -850,9 +859,30 @@ export default function Messages() {
               <div className="p-8 flex justify-center">
                 <LoadingSpinner />
               </div>
+            ) : conversationError && !hasConversations ? (
+              <div role="alert" className="grid justify-items-center gap-3 p-8 text-center text-sm text-slate-600">
+                <p>Couldn’t load conversations.</p>
+                <button
+                  className="btn-secondary min-h-11 text-sm"
+                  onClick={() => {
+                    setLoadingConv(true);
+                    fetchConversations();
+                  }}
+                >
+                  Try again
+                </button>
+              </div>
             ) : filteredConvs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">
-                {searchQuery ? "No results found." : "No conversations yet."}
+              <div className="grid justify-items-center gap-2 px-4 py-10 text-center text-sm text-slate-600">
+                <MessageCircle size={20} className="mb-1 text-slate-500" aria-hidden="true" />
+                <p className="font-semibold text-slate-900">
+                  {searchQuery.trim() ? "No matching conversations" : "No conversations yet"}
+                </p>
+                {searchQuery.trim() ? (
+                  <button className="min-h-11 font-semibold text-blue-800 hover:underline" onClick={() => setSearchQuery("")}>Clear search</button>
+                ) : (
+                  <p>New conversations will appear here.</p>
+                )}
               </div>
             ) : (
               filteredConvs.map((conv) => {
@@ -863,7 +893,8 @@ export default function Messages() {
                   <button
                     key={conv.other_user_id}
                     onClick={() => openConversation(conv)}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition flex items-center gap-3 ${isActive ? "bg-blue-50 border-l-2 border-l-[#1e3a8a]" : ""}`}
+                    aria-current={isActive ? "true" : undefined}
+                    className={`flex w-full items-center gap-3 border-b border-l-2 border-b-slate-100 px-4 py-3 text-left transition-colors focus-visible:outline-offset-[-3px] ${isActive ? "border-l-[#1e3a8a] bg-blue-50" : "border-l-transparent hover:bg-slate-50"}`}
                   >
                     <Avatar
                       user={conv}
@@ -918,15 +949,15 @@ export default function Messages() {
 
         {/* ── Chat area ───────────────────────────────────────────────────── */}
         <div
-          className={`bg-white rounded-2xl border border-gray-200 flex-1 flex flex-col overflow-hidden ${!activeUser ? "hidden md:flex" : "flex"}`}
+          className={`min-w-0 flex-1 flex-col overflow-hidden ${activeUser ? "flex" : showChat ? "hidden md:flex" : "hidden"}`}
         >
           {!activeUser ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <MessageCircle className="w-10 h-10 text-gray-300" />
+            <div className="flex flex-1 flex-col items-center justify-center bg-slate-50/60 px-4 text-center">
+              <div className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-slate-600">
+                <MessageCircle size={22} aria-hidden="true" />
               </div>
-              <p className="font-semibold text-gray-600 mb-1">Your Messages</p>
-              <p className="text-sm">Select a conversation to start chatting</p>
+              <p className="mb-1 text-sm font-semibold text-slate-900">Select a conversation</p>
+              <p className="text-sm text-slate-600">Choose a conversation to read or reply to messages.</p>
             </div>
           ) : (
             <>
@@ -937,7 +968,8 @@ export default function Messages() {
                     setActiveUser(null);
                     setMessages([]);
                   }}
-                  className="md:hidden p-1.5 -ml-1 text-gray-500 hover:text-gray-900"
+                  aria-label="Back to conversations"
+                  className="-ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>

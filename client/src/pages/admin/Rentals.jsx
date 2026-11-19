@@ -72,8 +72,8 @@ export default function Rentals() {
   ];
   return (
     <AdminRecords
-      title="Manage rentals"
-      description="Keep track of bookings, rental dates, and their progress."
+      title="Rentals"
+      description="Track rental bookings, dates, and status."
       noun="rentals"
       icon={CalendarDays}
       list={list}
@@ -81,6 +81,7 @@ export default function Rentals() {
       search={search}
       setSearch={setSearch}
       searchLabel="Search product, customer, or supplier"
+      emptyDescription="Rental requests will appear here when renters make a booking."
       filtered={Boolean(search || statusFilter)}
       onReset={() => {
         setSearch("");

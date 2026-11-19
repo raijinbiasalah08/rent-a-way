@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
-import { getComplaints, updateComplaint } from "../../api/admin";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import { useRef, useState } from "react";
+import { updateComplaint } from "../../api/admin";
 import toast from "react-hot-toast";
 import usePagedList from "../../hooks/usePagedList";
-import PageControls from "../../components/PageControls";
+import AdminDialog from "../../components/AdminDialog";
+import AdminRecords, {
+  AdminBadge,
+  adminActionClass,
+  adminDate,
+} from "../../components/AdminRecords";
 
 const STATUS_STYLES = {
   open: "bg-red-100 text-red-700",
@@ -18,162 +22,136 @@ export default function Complaints() {
   const [updating, setUpdating] = useState(false);
 
   const list = usePagedList("/admin/complaints", { status: filter });
-  const { data: complaints, loading, reload: fetchComplaints } = list;
+  const updatingRef = useRef(false);
 
   const handleUpdateStatus = async (id, status) => {
+    if (updatingRef.current) return;
+    updatingRef.current = true;
     setUpdating(true);
     try {
       await updateComplaint(id, { status });
       toast.success(`Complaint marked as ${status}`);
       setSelected(null);
-      fetchComplaints();
+      list.reload();
     } catch {
       toast.error("Failed to update complaint");
     } finally {
+      updatingRef.current = false;
       setUpdating(false);
     }
   };
 
-  const filtered = complaints.filter((c) => !filter || c.status === filter);
+  const statuses = Object.keys(STATUS_STYLES);
+  const columns = [
+    {
+      key: "subject",
+      label: "Complaint",
+      render: (complaint) => (
+        <span className="font-semibold text-slate-900">
+          {complaint.subject}
+        </span>
+      ),
+    },
+    {
+      key: "reporter",
+      label: "Reporter",
+      render: (c) => c.reporter_name || "—",
+    },
+    {
+      key: "details",
+      label: "Details",
+      wide: true,
+      render: (c) => <span className="line-clamp-2">{c.details || "—"}</span>,
+    },
+    { key: "date", label: "Reported", render: (c) => adminDate(c.created_at) },
+    {
+      key: "status",
+      label: "Status",
+      render: (c) => (
+        <AdminBadge className={STATUS_STYLES[c.status]}>{c.status}</AdminBadge>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      wide: true,
+      render: (c) => (
+        <button className={adminActionClass} onClick={() => setSelected(c)}>
+          Review complaint
+        </button>
+      ),
+    },
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-navy-700">
-        Manage Complaints
-      </h1>
-      <PageControls {...list} />
-
-      {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {["open", "investigating", "resolved", "dismissed"].map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(filter === s ? "" : s)}
-            className={`card text-center transition hover:shadow-md ${filter === s ? "ring-2 ring-navy-400" : ""}`}
-          >
-            <div className="text-2xl font-bold text-navy-700">
-              {s === filter ? "Selected" : "View"}
-            </div>
-            <div className="text-xs text-gray-500 capitalize mt-1">{s}</div>
-          </button>
-        ))}
-      </div>
-
-      <div className="card overflow-x-auto">
-        {loading ? (
-          <LoadingSpinner />
-        ) : list.error ? (
-          <div className="py-8 text-center">
-            <p role="alert">Could not load complaints.</p>
-            <button className="btn-secondary mt-3" onClick={fetchComplaints}>
-              Try again
-            </button>
+    <AdminRecords
+      title="Complaints"
+      description="Review reported issues and track how each case is handled."
+      noun="complaints"
+      list={list}
+      columns={columns}
+      filtered={Boolean(filter)}
+      onReset={() => setFilter("")}
+      emptyDescription="New reports from renters and suppliers will appear here."
+      filters={
+        <fieldset className="min-w-0">
+          <legend className="mb-2 text-xs font-semibold text-slate-600">
+            Complaint status
+          </legend>
+          <div className="flex flex-wrap gap-1.5">
+            {["", ...statuses].map((status) => (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={filter === status}
+                onClick={() => setFilter(status)}
+                className="min-h-11 rounded-lg px-3 text-xs font-semibold capitalize text-slate-700 hover:bg-slate-100 aria-pressed:bg-[#14263f] aria-pressed:text-white"
+              >
+                {status || "All statuses"}
+              </button>
+            ))}
           </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">No complaints found.</p>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-gray-500">
-                <th className="pb-3 font-medium">Reporter</th>
-                <th className="pb-3 font-medium">Subject</th>
-                <th className="pb-3 font-medium">Details</th>
-                <th className="pb-3 font-medium">Date</th>
-                <th className="pb-3 font-medium">Status</th>
-                <th className="pb-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-gray-100 hover:bg-cream-50 transition align-top"
-                >
-                  <td className="py-3 font-medium text-navy-700 whitespace-nowrap">
-                    {c.reporter_name}
-                  </td>
-                  <td className="py-3 font-semibold whitespace-nowrap">
-                    {c.subject}
-                  </td>
-                  <td className="py-3 text-gray-500 text-xs max-w-xs truncate">
-                    {c.details}
-                  </td>
-                  <td className="py-3 text-gray-400 text-xs whitespace-nowrap">
-                    {new Date(c.created_at).toLocaleDateString("en-PH", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </td>
-                  <td className="py-3 whitespace-nowrap">
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[c.status] || "bg-gray-100 text-gray-600"}`}
-                    >
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="py-3 whitespace-nowrap">
-                    <button
-                      onClick={() => setSelected(c)}
-                      className="text-xs text-navy-600 font-semibold hover:underline"
-                    >
-                      Manage
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div className="mt-4 text-xs text-gray-400">
-          {filtered.length} complaint(s)
-        </div>
-      </div>
-
-      {/* Detail Modal */}
+        </fieldset>
+      }
+    >
       {selected && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="font-bold text-lg text-navy-700 mb-1">
-              {selected.subject}
-            </h2>
-            <p className="text-xs text-gray-400 mb-4">
-              Reported by <strong>{selected.reporter_name}</strong> on{" "}
-              {new Date(selected.created_at).toLocaleDateString("en-PH", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
-            <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 mb-5">
-              {selected.details || "No details provided."}
-            </div>
-            <p className="text-sm font-medium text-gray-600 mb-3">
-              Update Status:
-            </p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              {["open", "investigating", "resolved", "dismissed"].map((s) => (
+        <AdminDialog
+          title={selected.subject}
+          busy={updating}
+          onClose={() => setSelected(null)}
+        >
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <AdminBadge className={STATUS_STYLES[selected.status]}>
+              {selected.status}
+            </AdminBadge>
+            <span>
+              Reported by {selected.reporter_name} ·{" "}
+              {adminDate(selected.created_at)}
+            </span>
+          </div>
+          <p className="my-4 whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-relaxed [overflow-wrap:anywhere]">
+            {selected.details || "No details provided."}
+          </p>
+          <fieldset>
+            <legend className="mb-2 text-sm font-semibold text-slate-800">
+              {updating ? "Updating status…" : "Update status"}
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {statuses.map((status) => (
                 <button
-                  key={s}
-                  disabled={updating || selected.status === s}
-                  onClick={() => handleUpdateStatus(selected.id, s)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition capitalize
-                    ${selected.status === s ? "border-navy-400 bg-navy-50 text-navy-700" : "border-gray-200 hover:border-navy-400 text-gray-600 hover:text-navy-700"}
-                    disabled:opacity-50`}
+                  key={status}
+                  type="button"
+                  disabled={updating || selected.status === status}
+                  onClick={() => handleUpdateStatus(selected.id, status)}
+                  className={`${adminActionClass} capitalize`}
                 >
-                  {s}
+                  {status}
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => setSelected(null)}
-              className="btn-outline w-full"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+          </fieldset>
+        </AdminDialog>
       )}
-    </div>
+    </AdminRecords>
   );
 }
