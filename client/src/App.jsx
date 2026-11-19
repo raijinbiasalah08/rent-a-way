@@ -10,6 +10,7 @@ import {
 import RouteMotion from "./components/RouteMotion";
 import Navbar from "./components/Navbar";
 import WorkspaceNavigation from "./components/WorkspaceNavigation";
+import "./workspace-ledger.css";
 import Footer from "./components/Footer";
 import MobileBottomNav, {
   shouldShowMobileBottomNav,
@@ -102,11 +103,13 @@ function App() {
   }, [pathname, hash, navigation]);
   const { loading, user } = useAuth();
   const workspace = pathname.split("/")[1];
-  const showWorkspaceLinks =
+  const workspaceRole =
     user &&
-    (workspace === user.role ||
-      (workspace === "renter" && user.role === "customer")) &&
-    /^\/(admin|supplier|customer|renter)\/(?!dashboard\/?$).+/.test(pathname);
+    (workspace === "messages" ||
+      workspace === user.role ||
+      (workspace === "renter" && user.role === "customer"))
+      ? user.role
+      : null;
   const showMobileNav = !loading && shouldShowMobileBottomNav(pathname);
 
   return (
@@ -119,9 +122,14 @@ function App() {
       >
         Skip to content
       </a>
-      <Navbar />
-      {showWorkspaceLinks && <WorkspaceNavigation role={user.role} fullWidth />}
-      <main ref={content} id="main-content" tabIndex={-1} className="flex-grow">
+      <Navbar workspaceRole={workspaceRole} />
+      {workspaceRole && <WorkspaceNavigation role={workspaceRole} />}
+      <main
+        ref={content}
+        id="main-content"
+        tabIndex={-1}
+        className={workspaceRole ? "flex-grow ledger-workspace" : "flex-grow"}
+      >
         <Suspense
           fallback={
             <div className="route-loading min-h-[60svh] flex items-center justify-center">
@@ -287,11 +295,12 @@ function App() {
           </RouteMotion>
         </Suspense>
       </main>
-      {!pathname.startsWith("/admin/") &&
+      {!workspaceRole &&
+        !pathname.startsWith("/admin/") &&
         !/^\/(register(?:-renter|-supplier)?|choose-role|login|forgot-password|reset-password)(\/|$)/.test(
           pathname,
         ) && <Footer />}
-      {showMobileNav && <MobileBottomNav />}
+      {showMobileNav && <MobileBottomNav workspaceRole={workspaceRole} />}
     </div>
   );
 }

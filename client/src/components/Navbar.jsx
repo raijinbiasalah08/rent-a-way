@@ -72,7 +72,7 @@ const CATEGORIES = [
   },
 ];
 
-export default function Navbar() {
+export default function Navbar({ workspaceRole }) {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
@@ -246,7 +246,11 @@ export default function Navbar() {
 
   return (
     <nav
-      className="bg-[#0f1729] text-white shadow-md sticky top-0 z-50"
+      className={
+        workspaceRole
+          ? "ledger-header sticky top-0 z-50 text-white"
+          : "bg-[#0f1729] text-white shadow-md sticky top-0 z-50"
+      }
       onKeyDown={(event) => {
         if (event.key === "Escape" && isOpen) {
           setIsOpen(false);
@@ -256,8 +260,20 @@ export default function Navbar() {
         }
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div
+        className={
+          workspaceRole
+            ? "ledger-header-inner"
+            : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        }
+      >
+        <div
+          className={
+            workspaceRole
+              ? "ledger-header-row"
+              : "flex items-center justify-between h-16"
+          }
+        >
           {/* Logo */}
           <Link
             to="/"
@@ -277,7 +293,23 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
+          {workspaceRole && (
+            <span className="ledger-role-label">
+              {workspaceRole === "customer"
+                ? "Renter"
+                : workspaceRole === "supplier"
+                  ? "Supplier"
+                  : "Admin"}{" "}
+              workspace
+            </span>
+          )}
+          <div
+            className={
+              workspaceRole
+                ? "ledger-public-links hidden lg:flex"
+                : "hidden lg:flex items-center gap-6 text-sm font-medium"
+            }
+          >
             <Link
               to="/browse"
               className={
@@ -321,7 +353,13 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden lg:flex items-center gap-3">
+          <div
+            className={
+              workspaceRole
+                ? "ledger-account-tools flex items-center gap-1 sm:gap-3"
+                : "hidden lg:flex items-center gap-3"
+            }
+          >
             {user && user.role === "customer" && (
               <Link
                 to="/customer/favorites"
@@ -386,7 +424,7 @@ export default function Navbar() {
                     )}
                   </button>
                   {notifOpen && (
-                    <div className="menu-enter [--enter-offset:-4px] absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                    <div className="ledger-notifications menu-enter [--enter-offset:-4px] absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
                       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                         <span className="font-bold text-gray-900">
                           Notifications
@@ -457,6 +495,7 @@ export default function Navbar() {
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
                     aria-expanded={profileOpen}
+                    aria-label="Account menu"
                     className="flex items-center gap-2 bg-[#1a2744] hover:bg-[#1e2f50] border border-[#2a3a5c] px-3 py-1.5 rounded-full transition"
                   >
                     {user.avatar ? (
@@ -470,7 +509,13 @@ export default function Navbar() {
                         {user.name?.charAt(0)}
                       </div>
                     )}
-                    <span className="text-sm font-medium text-gray-200">
+                    <span
+                      className={
+                        workspaceRole
+                          ? "hidden text-sm font-medium text-gray-200 sm:inline"
+                          : "text-sm font-medium text-gray-200"
+                      }
+                    >
                       {user.name?.split(" ")[0]}
                     </span>
                     <ChevronDown
@@ -537,7 +582,7 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="lg:hidden text-gray-300 hover:text-white p-2"
+            className="ledger-header-menu lg:hidden text-gray-300 hover:text-white p-2"
             aria-label={isOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={isOpen}
             aria-controls="mobile-navigation"

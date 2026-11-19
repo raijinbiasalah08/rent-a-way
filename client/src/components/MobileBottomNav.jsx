@@ -79,7 +79,7 @@ export function shouldShowMobileBottomNav(pathname) {
   return !HIDDEN_PATHS.some((path) => path.test(pathname));
 }
 
-export default function MobileBottomNav() {
+export default function MobileBottomNav({ workspaceRole }) {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -88,14 +88,14 @@ export default function MobileBottomNav() {
 
   if (!shouldShowMobileBottomNav(pathname)) return null;
 
-  const links = user
+  const defaultLinks = user
     ? user.role === "admin"
       ? ADMIN_LINKS
       : user.role === "supplier"
         ? SUPPLIER_LINKS
         : CUSTOMER_LINKS
     : GUEST_LINKS;
-  const moreLinks =
+  const defaultMoreLinks =
     user?.role === "admin"
       ? ADMIN_MORE
       : user?.role === "supplier"
@@ -103,8 +103,26 @@ export default function MobileBottomNav() {
         : user
           ? CUSTOMER_MORE
           : [];
+  const isPrimary = ([to]) => /\/(dashboard|rentals)$/.test(to);
+  const rolePath = (to) =>
+    workspaceRole === "customer" && pathname.startsWith("/renter/")
+      ? to.replace(/^\/customer\//, "/renter/")
+      : to;
+  const links = workspaceRole
+    ? defaultLinks
+        .filter(isPrimary)
+        .map(([to, label, Icon]) => [
+          to,
+          to.endsWith("/dashboard") ? "Overview" : label,
+          Icon,
+        ])
+    : defaultLinks;
+  const moreLinks = workspaceRole
+    ? [...defaultLinks.filter((item) => !isPrimary(item)), ...defaultMoreLinks]
+    : defaultMoreLinks;
   const moreActive = moreLinks.some(
-    ([to]) => pathname === to || pathname.startsWith(`${to}/`),
+    ([to]) =>
+      pathname === rolePath(to) || pathname.startsWith(`${rolePath(to)}/`),
   );
 
   return (
@@ -120,7 +138,7 @@ export default function MobileBottomNav() {
           <div
             id="mobile-more-navigation"
             aria-label="More navigation links"
-            className="menu-enter fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[45] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl md:hidden"
+            className={`menu-enter fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[45] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl md:hidden ${workspaceRole ? "ledger-mobile-more" : ""}`}
           >
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
               More
@@ -129,7 +147,7 @@ export default function MobileBottomNav() {
               {moreLinks.map(([to, label, Icon]) => (
                 <Link
                   key={to}
-                  to={to}
+                  to={rolePath(to)}
                   onClick={() => setMoreOpen(false)}
                   className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold transition hover:bg-blue-50 hover:text-[#1e3a8a] ${pathname === to || pathname.startsWith(`${to}/`) ? "bg-blue-50 text-[#1e3a8a]" : "text-slate-700"}`}
                 >
@@ -144,13 +162,15 @@ export default function MobileBottomNav() {
 
       <nav
         aria-label="Primary mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-md md:hidden"
+        className={`fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-md md:hidden ${workspaceRole ? "ledger-mobile-nav" : ""}`}
       >
-        <div className="mx-auto grid h-16 max-w-xl grid-cols-5">
+        <div
+          className={`mx-auto grid h-16 max-w-xl ${workspaceRole ? "grid-cols-3" : "grid-cols-5"}`}
+        >
           {links.map(([to, label, Icon]) => (
             <NavLink
               key={to}
-              to={to}
+              to={rolePath(to)}
               end
               aria-label={label}
               className={({ isActive }) =>

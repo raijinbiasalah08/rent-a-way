@@ -1,6 +1,6 @@
-import WorkspaceNavigation from "../../components/WorkspaceNavigation";
+import LedgerOverview from "../../components/LedgerOverview";
 import { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getRentals, updateRentalStatus } from "../../api/rentals";
 import { getProducts } from "../../api/products";
@@ -74,14 +74,12 @@ const STATUS_STYLES = {
 
 export default function SupplierDashboard() {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
 
   const [dbRentals, setDbRentals] = useState([]);
   const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedRental, setSelectedRental] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
@@ -288,916 +286,498 @@ export default function SupplierDashboard() {
       .slice(0, 5);
   }, [allSupplierRentals]);
 
-  const userName = user?.name ? user.name.split(" ")[0] : "Supplier";
-  const userInitials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "SP";
-
   return (
-    <div className="workspace-dashboard min-h-screen bg-[#f5f0e8] text-gray-900 font-sans flex flex-col">
-      {/* ══════════════════════════════════════════════════════════
-           WORKSPACE CONTAINER (SIDEBAR + MAIN CONTENT)
-        ══════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex max-w-[1720px] w-full mx-auto">
-        {/* ── LEFT SIDEBAR (Matching Pic 2 & 3 layout, No Upgrade To Pro) ── */}
-        <aside
-          className={`${sidebarCollapsed ? "w-20" : "w-64"} hidden lg:flex flex-col bg-white border-r border-gray-200/80 transition-all duration-300 flex-shrink-0 relative select-none`}
+    <div className="ledger-dashboard">
+      <div className="ledger-content">
+        <LedgerOverview
+          title="Supplier overview"
+          loading={loading}
+          action={{ to: "/supplier/products/new", label: "Add equipment" }}
+          groups={[
+            {
+              title: "Inventory",
+              items: [{ label: "Listings", value: metrics.totalListings }],
+            },
+            {
+              title: "Rental activity",
+              items: [
+                { label: "Pending", value: metrics.pending, highlight: true },
+                { label: "Active", value: metrics.active },
+                { label: "Completed", value: metrics.completed },
+              ],
+            },
+          ]}
         >
-          {/* Logo brand */}
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3 group">
-              <img
-                src="/logo.png"
-                alt="Rent-A-Way Logo"
-                className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
-              />
-
-              {!sidebarCollapsed && (
-                <div>
-                  <div className="text-gray-900 font-extrabold text-sm leading-none">
-                    Rent-A-Way
-                  </div>
-                  <div className="text-amber-600 text-[8px] font-bold tracking-widest uppercase mt-0.5">
-                    Supplier Workspace
-                  </div>
-                </div>
-              )}
-            </Link>
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <ChevronLeft
-                className={`w-4 h-4 transition-transform duration-200 ${sidebarCollapsed ? "rotate-180" : ""}`}
-              />
-            </button>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="flex-1 p-3.5 space-y-6 overflow-y-auto">
-            {/* WORKSPACE GROUP */}
+          <button
+            type="button"
+            className="ledger-text-action"
+            onClick={() => setShowLocationModal(true)}
+          >
+            Edit pickup location
+          </button>
+        </LedgerOverview>
+        <section className="ledger-rentals space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              {!sidebarCollapsed && (
-                <div className="text-[10px] font-bold text-gray-400 tracking-widest uppercase px-3 mb-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>{" "}
-                  Workspace
-                </div>
-              )}
-              <nav className="space-y-1">
-                {/* Active Dashboard Link */}
-                <Link
-                  to="/supplier/dashboard"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#0f1729] text-white font-semibold text-xs shadow-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <LayoutDashboard className="w-4 h-4 flex-shrink-0 text-amber-400" />
-                    {!sidebarCollapsed && <span>Dashboard</span>}
-                  </div>
-                  {!sidebarCollapsed && metrics.pending > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white font-mono text-[9px] font-bold">
-                      {metrics.pending}
-                    </span>
-                  )}
-                </Link>
-
-                {/* My Equipment Inventory */}
-                <Link
-                  to="/supplier/products"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <Package className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                    {!sidebarCollapsed && <span>Equipment Inventory</span>}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">
-                      {metrics.totalListings}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Rental Requests */}
-                <Link
-                  to="/supplier/rentals"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <FolderOpen className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                    {!sidebarCollapsed && <span>Rental Requests</span>}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold">
-                      {metrics.pending} new
-                    </span>
-                  )}
-                </Link>
-
-                {/* Add New Listing */}
-                <Link
-                  to="/supplier/products/new"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 font-semibold text-xs transition"
-                >
-                  <Plus className="w-4 h-4 flex-shrink-0 text-blue-600" />
-                  {!sidebarCollapsed && <span>Add Equipment</span>}
-                </Link>
-
-                {/* Roxas Map Finder */}
-                <Link
-                  to="/map"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition"
-                >
-                  <Compass className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  {!sidebarCollapsed && <span>Roxas Map Finder</span>}
-                </Link>
-              </nav>
-            </div>
-
-            {/* MANAGE GROUP */}
-            <div>
-              {!sidebarCollapsed && (
-                <div className="text-[10px] font-bold text-gray-400 tracking-widest uppercase px-3 mb-2">
-                  Manage
-                </div>
-              )}
-              <nav className="space-y-1">
-                <Link
-                  to="/customer/community"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition"
-                >
-                  <Users className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  {!sidebarCollapsed && <span>Community</span>}
-                </Link>
-
-                {/* Business Pickup Hub */}
-                <button
-                  type="button"
-                  onClick={() => setShowLocationModal(true)}
-                  className="w-full text-left flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                    {!sidebarCollapsed && <span>Pickup Location</span>}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  )}
-                </button>
-
-                <Link
-                  to="/messages"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                    {!sidebarCollapsed && <span>Messages</span>}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                  )}
-                </Link>
-
-                <Link
-                  to="/supplier/profile"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium text-xs transition"
-                >
-                  <Settings className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  {!sidebarCollapsed && <span>Settings &amp; Profile</span>}
-                </Link>
-              </nav>
-            </div>
-          </div>
-
-          {/* User profile footer */}
-          <div className="p-3.5 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between">
-            <Link
-              to="/supplier/profile"
-              className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#0f1729] text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-2xs">
-                {userInitials}
-              </div>
-              {!sidebarCollapsed && (
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-gray-800 truncate">
-                    {user?.name || "Equipment Supplier"}
-                  </div>
-                  <div className="text-[10px] text-gray-400 truncate">
-                    Supplier · Brgy. {user?.barangay || "San Aquilino"}
-                  </div>
-                </div>
-              )}
-            </Link>
-          </div>
-        </aside>
-
-        {/* ── RIGHT MAIN DASHBOARD CONTENT ── */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Main Dashboard Scroll Area */}
-          <WorkspaceNavigation role="supplier" />
-          <main className="p-4 sm:p-7 space-y-7">
-            <div className="workspace-heading">
-              <p className="workspace-kicker">supplier workspace / Overview</p>
-              <span className="text-xs text-slate-500">
-                Your rentals, all in one place
-              </span>
-            </div>
-            {/* ══════════════════════════════════════════════════════
-                 HERO OVERVIEW BANNER (Dark Technical Navy matching Pic 1 theme & Pic 2 layout)
-              ══════════════════════════════════════════════════════ */}
-            <div className="workspace-hero relative bg-[#0f1729] rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-white overflow-hidden shadow-lg border border-blue-900/40">
-              {/* Radial glow background & subtle lighting */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-              {/* Top row: Greeting & supplier summary stats */}
-              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6">
-                <div>
-                  <div className="text-blue-300/80 text-[10px] font-mono tracking-widest uppercase mb-2 flex items-center gap-2">
-                    <span>OVERVIEW</span>
-                    <span className="w-6 h-px bg-blue-400/40"></span>
-                    <span>
-                      {new Date()
-                        .toLocaleDateString("en-US", {
-                          month: "short",
-                          year: "numeric",
-                        })
-                        .toUpperCase()}
-                    </span>
-                  </div>
-
-                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">
-                    Welcome back, {userName}
-                  </h1>
-                  <p className="text-gray-300 text-xs sm:text-sm max-w-xl leading-relaxed">
-                    You have{" "}
-                    <span className="text-amber-400 font-bold">
-                      {metrics.pending} pending requests
-                    </span>{" "}
-                    awaiting your confirmation and{" "}
-                    <span className="text-emerald-400 font-bold">
-                      {metrics.active} active rentals
-                    </span>{" "}
-                    in use across Roxas.
-                  </p>
-                </div>
-
-                {/* Right Stat Numbers & CTA */}
-                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                  <div className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[100px]">
-                    <div className="text-2xl sm:text-3xl font-mono font-extrabold text-amber-400 leading-none mb-1">
-                      {String(metrics.pending).padStart(2, "0")}
-                    </div>
-                    <div className="text-[9px] font-bold text-gray-400 tracking-wider uppercase">
-                      Pending Requests
-                    </div>
-                  </div>
-
-                  <div className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[100px]">
-                    <div className="text-2xl sm:text-3xl font-mono font-extrabold text-emerald-400 leading-none mb-1">
-                      {String(metrics.active).padStart(2, "0")}
-                    </div>
-                    <div className="text-[9px] font-bold text-gray-400 tracking-wider uppercase">
-                      Active Rentals
-                    </div>
-                  </div>
-
-                  <Link
-                    to="/supplier/products/new"
-                    className="inline-flex items-center gap-2 bg-white text-[#0f1729] font-bold text-xs sm:text-sm px-5 py-3 rounded-xl hover:bg-gray-100 transition shadow-sm cursor-pointer whitespace-nowrap"
-                  >
-                    <Plus className="w-4 h-4 text-blue-600" /> Add Product
-                  </Link>
-                </div>
-              </div>
-
-              {/* Bottom live status ticker bar */}
-              <div className="relative z-10 pt-4 border-t border-white/10 flex flex-wrap items-center gap-y-2 gap-x-6 text-[11px] text-gray-300">
-                {metrics.active > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="font-bold text-white uppercase text-[9px] tracking-wider">
-                      LIVE
-                    </span>
-                    <span className="text-gray-300">
-                      {metrics.active} rental{metrics.active !== 1 ? "s" : ""}{" "}
-                      currently active in Roxas
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                    <span className="font-bold text-gray-400 uppercase text-[9px] tracking-wider">
-                      STATUS
-                    </span>
-                    <span className="text-gray-300">
-                      No active rentals in progress
-                    </span>
-                  </div>
-                )}
-
-                {metrics.pending > 0 ? (
-                  <div className="flex items-center gap-1.5 text-amber-300">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    <span>
-                      {metrics.pending} pending request
-                      {metrics.pending !== 1 ? "s" : ""} awaiting review
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-gray-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>All rental requests handled</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1.5 text-blue-300">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Verified Supplier in Roxas, Oriental Mindoro</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ══════════════════════════════════════════════════════
-                 SECTION 01: KEY METRICS (Exact 4 Cards from Pic 2)
-              ══════════════════════════════════════════════════════ */}
-            <section className="space-y-3">
               <div className="flex items-baseline gap-2.5">
-                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-xs">
-                  01
-                </span>
                 <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-                  Key Metrics
+                  Rental Requests &amp; Active Bookings
                 </h2>
-                <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase ml-2 hidden sm:inline">
-                  Your rolling 30-day performance snapshot
-                </span>
               </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {filteredRentals.length} bookings &amp; customer requests in
+                view
+              </p>
+            </div>
+            <div className="inline-flex p-1 bg-white border border-gray-200/90 rounded-xl text-xs font-semibold text-gray-600 shadow-2xs self-start sm:self-auto overflow-x-auto max-w-full">
+              {[
+                "All",
+                "Pending",
+                "Active",
+                "Approved",
+                "Completed",
+                "Declined",
+              ].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  aria-pressed={activeTab === tab}
+                  className="ledger-filter-button"
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <div className="workspace-metrics grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {/* Metric Card 1: COMPLETED RENTALS */}
-                <div className="relative bg-white border border-gray-200/90 rounded-2xl p-5 shadow-xs hover:border-[#1e3a8a]/40 transition group overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
-                  </div>
+          {/* Data Table */}
+          <div className="bg-white border border-gray-200/90 rounded-2xl shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table
+                className={`w-full border-collapse text-left ${filteredRentals.length ? "ledger-data-table" : ""}`}
+              >
+                <thead
+                  className={
+                    filteredRentals.length
+                      ? undefined
+                      : "hidden sm:table-header-group"
+                  }
+                >
+                  <tr className="border-b border-gray-100 bg-gray-50/75 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <th className="py-3 px-5">Equipment &amp; Renter</th>
+                    <th className="py-3 px-4">Rental Duration</th>
+                    <th className="py-3 px-4">Dates</th>
+                    <th className="py-3 px-4">Estimated rental value</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-5 text-right">Supplier Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-xs">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="py-16 flex flex-col items-center justify-center">
+                          <LoadingSpinner />
+                          <p className="text-xs text-gray-400 mt-3">
+                            Loading supplier bookings…
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredRentals.length === 0 ? (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="py-16 text-center px-4">
+                          <FolderOpen className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+                          <h3 className="text-sm font-bold text-gray-800">
+                            No requests found
+                          </h3>
+                          <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+                            There are no rental requests matching your selected
+                            tab or search query.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRentals.map((rental) => (
+                      <tr
+                        key={rental.id}
+                        className="hover:bg-amber-50/30 transition group"
+                      >
+                        {/* Equipment & Renter */}
+                        <td className="py-4 px-5">
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-11 h-11 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
+                              {rental.primary_image ? (
+                                <img
+                                  src={apiAssetUrl(rental.primary_image)}
+                                  alt={rental.product_title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Package className="w-5 h-5 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-gray-900 truncate">
+                                {rental.product_title}
+                              </div>
+                              <div className="text-[11px] text-gray-500 mt-0.5">
+                                Renter:{" "}
+                                <strong className="text-gray-700">
+                                  {rental.customer_name || "Customer"}
+                                </strong>{" "}
+                                · {rental.barangay || "San Aquilino"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
 
-                  <div className="text-3xl font-mono font-extrabold text-gray-900 mb-1">
-                    {metrics.completed}
-                  </div>
-                  <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
-                    Completed Rentals
-                  </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">
-                    verified equipment returns
-                  </div>
-                </div>
+                        {/* Duration */}
+                        <td className="py-4 px-4 font-mono font-medium text-gray-700">
+                          <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 font-bold text-[11px]">
+                            {rental.duration_days || 1} day
+                            {rental.duration_days > 1 ? "s" : ""}
+                          </span>
+                        </td>
 
-                {/* Metric Card 2: ACTIVE RENTALS (IN FIELD) */}
-                <div className="relative bg-white border border-gray-200/90 rounded-2xl p-5 shadow-xs hover:border-[#1e3a8a]/40 transition group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                  </div>
+                        {/* Dates */}
+                        <td className="py-4 px-4 text-gray-600">
+                          <div className="font-medium text-gray-800">
+                            {rental.start_date
+                              ? new Date(rental.start_date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                  },
+                                )
+                              : "—"}
+                            <span className="text-gray-400 mx-1">→</span>
+                            {rental.end_date
+                              ? new Date(rental.end_date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  },
+                                )
+                              : "—"}
+                          </div>
+                        </td>
 
-                  <div className="text-3xl font-mono font-extrabold text-gray-900 mb-1">
-                    {metrics.active}
-                  </div>
-                  <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
-                    Active Rentals
-                  </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">
-                    items currently with renters
-                  </div>
-                </div>
+                        {/* Total Estimated rental value */}
+                        <td className="py-4 px-4 font-mono font-bold text-gray-900 text-sm">
+                          ₱{(rental.total_price || 0).toLocaleString()}
+                        </td>
 
-                {/* Metric Card 3: EQUIPMENT LISTINGS (INVENTORY) */}
-                <div className="relative bg-white border border-gray-200/90 rounded-2xl p-5 shadow-xs hover:border-[#1e3a8a]/40 transition group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1e3a8a] flex items-center justify-center">
-                      <Package className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  <div className="text-3xl font-mono font-extrabold text-gray-900 mb-1">
-                    {metrics.totalListings}
-                  </div>
-                  <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
-                    Equipment Listed
-                  </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">
-                    live in Roxas catalog
-                  </div>
-                </div>
-
-                {/* Metric Card 4: PENDING APPROVALS */}
-                <div className="relative bg-white border border-gray-200/90 rounded-2xl p-5 shadow-xs hover:border-[#1e3a8a]/40 transition group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    {metrics.pending > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                        Action Needed
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="text-3xl font-mono font-extrabold text-gray-900 mb-1">
-                    {metrics.pending}
-                  </div>
-                  <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">
-                    Pending Requests
-                  </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">
-                    review &amp; confirm bookings
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* ══════════════════════════════════════════════════════
-                 SECTION 02: ACTIVE & APPROVED RENTALS (Pic 2 Layout with Supplier Actions)
-              ══════════════════════════════════════════════════════ */}
-            <section className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-xs">
-                      02
-                    </span>
-                    <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-                      Rental Requests &amp; Active Bookings
-                    </h2>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5 ml-7">
-                    {filteredRentals.length} bookings &amp; customer requests in
-                    view
-                  </p>
-                </div>
-
-                {/* Filter Tabs matching Pic 2 */}
-                <div className="inline-flex p-1 bg-white border border-gray-200/90 rounded-xl text-xs font-semibold text-gray-600 shadow-2xs self-start sm:self-auto overflow-x-auto max-w-full">
-                  {[
-                    "All",
-                    "Pending",
-                    "Active",
-                    "Approved",
-                    "Completed",
-                    "Declined",
-                  ].map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer whitespace-nowrap ${
-                        activeTab === tab
-                          ? "bg-[#0f1729] text-white shadow-2xs"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Data Table */}
-              <div className="bg-white border border-gray-200/90 rounded-2xl shadow-xs overflow-hidden">
-                {loading ? (
-                  <div className="py-16 flex flex-col items-center justify-center">
-                    <LoadingSpinner />
-                    <p className="text-xs text-gray-400 mt-3">
-                      Loading supplier bookings…
-                    </p>
-                  </div>
-                ) : filteredRentals.length === 0 ? (
-                  <div className="py-16 text-center px-4">
-                    <FolderOpen className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                    <h3 className="text-sm font-bold text-gray-800">
-                      No requests found
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-                      There are no rental requests matching your selected tab or
-                      search query.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50/75 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                          <th className="py-3 px-5">Equipment &amp; Renter</th>
-                          <th className="py-3 px-4">Rental Duration</th>
-                          <th className="py-3 px-4">Dates</th>
-                          <th className="py-3 px-4">Estimated rental value</th>
-                          <th className="py-3 px-4">Status</th>
-                          <th className="py-3 px-5 text-right">
-                            Supplier Action
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-xs">
-                        {filteredRentals.map((rental) => (
-                          <tr
-                            key={rental.id}
-                            className="hover:bg-amber-50/30 transition group"
+                        {/* Status */}
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${STATUS_STYLES[rental.status] || STATUS_STYLES.pending}`}
                           >
-                            {/* Equipment & Renter */}
-                            <td className="py-4 px-5">
-                              <div className="flex items-center gap-3.5">
-                                <div className="w-11 h-11 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-400 shadow-2xs">
-                                  {rental.primary_image ? (
-                                    <img
-                                      src={apiAssetUrl(rental.primary_image)}
-                                      alt={rental.product_title}
-                                      className="w-full h-full object-cover"
-                                    />
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            {rental.status}
+                          </span>
+                        </td>
+
+                        {/* Supplier Quick Actions */}
+                        <td className="py-4 px-5 text-right">
+                          <div className="inline-flex items-center justify-end gap-2">
+                            {rental.status === "pending" ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleStatusUpdate(rental.id, "approved")
+                                  }
+                                  disabled={
+                                    actionLoading === rental.id + "approved"
+                                  }
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer disabled:opacity-60"
+                                  title="Approve rental request"
+                                >
+                                  {actionLoading === rental.id + "approved" ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                   ) : (
-                                    <Package className="w-5 h-5 text-gray-400" />
+                                    <Check className="w-3.5 h-3.5" />
                                   )}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="font-bold text-gray-900 truncate">
-                                    {rental.product_title}
-                                  </div>
-                                  <div className="text-[11px] text-gray-500 mt-0.5">
-                                    Renter:{" "}
-                                    <strong className="text-gray-700">
-                                      {rental.customer_name || "Customer"}
-                                    </strong>{" "}
-                                    · {rental.barangay || "San Aquilino"}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Duration */}
-                            <td className="py-4 px-4 font-mono font-medium text-gray-700">
-                              <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 font-bold text-[11px]">
-                                {rental.duration_days || 1} day
-                                {rental.duration_days > 1 ? "s" : ""}
-                              </span>
-                            </td>
-
-                            {/* Dates */}
-                            <td className="py-4 px-4 text-gray-600">
-                              <div className="font-medium text-gray-800">
-                                {rental.start_date
-                                  ? new Date(
-                                      rental.start_date,
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })
-                                  : "—"}
-                                <span className="text-gray-400 mx-1">→</span>
-                                {rental.end_date
-                                  ? new Date(
-                                      rental.end_date,
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })
-                                  : "—"}
-                              </div>
-                            </td>
-
-                            {/* Total Estimated rental value */}
-                            <td className="py-4 px-4 font-mono font-bold text-gray-900 text-sm">
-                              ₱{(rental.total_price || 0).toLocaleString()}
-                            </td>
-
-                            {/* Status */}
-                            <td className="py-4 px-4">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${STATUS_STYLES[rental.status] || STATUS_STYLES.pending}`}
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                {rental.status}
-                              </span>
-                            </td>
-
-                            {/* Supplier Quick Actions */}
-                            <td className="py-4 px-5 text-right">
-                              <div className="inline-flex items-center justify-end gap-2">
-                                {rental.status === "pending" ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          rental.id,
-                                          "approved",
-                                        )
-                                      }
-                                      disabled={
-                                        actionLoading === rental.id + "approved"
-                                      }
-                                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer disabled:opacity-60"
-                                      title="Approve rental request"
-                                    >
-                                      {actionLoading ===
-                                      rental.id + "approved" ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                      ) : (
-                                        <Check className="w-3.5 h-3.5" />
-                                      )}
-                                      <span>Approve</span>
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          rental.id,
-                                          "rejected",
-                                        )
-                                      }
-                                      disabled={
-                                        actionLoading === rental.id + "rejected"
-                                      }
-                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition cursor-pointer disabled:opacity-60"
-                                      title="Decline request"
-                                    >
-                                      {actionLoading ===
-                                      rental.id + "rejected" ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                      ) : (
-                                        <X className="w-3.5 h-3.5" />
-                                      )}
-                                      <span>Decline</span>
-                                    </button>
-                                  </>
-                                ) : rental.status === "approved" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleStatusUpdate(rental.id, "active")
-                                    }
-                                    disabled={
-                                      actionLoading === rental.id + "active"
-                                    }
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
-                                    title="Mark item as picked up by renter"
-                                  >
-                                    {actionLoading === rental.id + "active" ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <Package className="w-3.5 h-3.5" />
-                                    )}
-                                    <span>Hand Over</span>
-                                  </button>
-                                ) : rental.status === "active" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleStatusUpdate(rental.id, "completed")
-                                    }
-                                    disabled={
-                                      actionLoading === rental.id + "completed"
-                                    }
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
-                                    title="Verify return and complete rental"
-                                  >
-                                    {actionLoading ===
-                                    rental.id + "completed" ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <CheckCheck className="w-3.5 h-3.5" />
-                                    )}
-                                    <span>Verify Return</span>
-                                  </button>
-                                ) : null}
+                                  <span>Approve</span>
+                                </button>
 
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedRental(rental)}
-                                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
-                                  title="View Full Rental Agreement"
+                                  onClick={() =>
+                                    handleStatusUpdate(rental.id, "rejected")
+                                  }
+                                  disabled={
+                                    actionLoading === rental.id + "rejected"
+                                  }
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition cursor-pointer disabled:opacity-60"
+                                  title="Decline request"
                                 >
-                                  <Eye className="w-4 h-4" />
+                                  {actionLoading === rental.id + "rejected" ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <X className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>Decline</span>
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </section>
+                              </>
+                            ) : rental.status === "approved" ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleStatusUpdate(rental.id, "active")
+                                }
+                                disabled={
+                                  actionLoading === rental.id + "active"
+                                }
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
+                                title="Mark item as picked up by renter"
+                              >
+                                {actionLoading === rental.id + "active" ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Package className="w-3.5 h-3.5" />
+                                )}
+                                <span>Hand Over</span>
+                              </button>
+                            ) : rental.status === "active" ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleStatusUpdate(rental.id, "completed")
+                                }
+                                disabled={
+                                  actionLoading === rental.id + "completed"
+                                }
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
+                                title="Verify return and complete rental"
+                              >
+                                {actionLoading === rental.id + "completed" ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                )}
+                                <span>Verify Return</span>
+                              </button>
+                            ) : null}
 
-            {/* ══════════════════════════════════════════════════════
-                 SECTION 03: ANALYTICS & ROXAS PICKUP LOCATION HUB
-              ══════════════════════════════════════════════════════ */}
-            <section className="space-y-4">
-              <div className="flex items-baseline gap-2.5">
-                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-xs">
-                  03
-                </span>
-                <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-                  Operations &amp; Performance
-                </h2>
-                <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase ml-2 hidden sm:inline">
-                  Top performing equipment and Roxas pickup location
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* ── Left: Top Earning Equipment Chart ── */}
-                <div className="lg:col-span-7 bg-white border border-gray-200/90 rounded-2xl p-6 shadow-xs">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-blue-600" />
-                        Most Booked Equipment in Roxas
-                      </h3>
-                      <p className="text-[11px] text-gray-500 mt-0.5">
-                        Number of approved and completed rental agreements
-                      </p>
-                    </div>
-                    <Link
-                      to="/supplier/products"
-                      className="text-xs font-semibold text-blue-700 hover:underline"
-                    >
-                      View Catalog →
-                    </Link>
-                  </div>
-
-                  {bookingCounts.length > 0 ? (
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={bookingCounts}
-                          layout="vertical"
-                          margin={{ left: 10, right: 20 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            horizontal={false}
-                            stroke="#f1f5f9"
-                          />
-                          <XAxis
-                            type="number"
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(v) => v}
-                            tick={{ fontSize: 11, fill: "#64748b" }}
-                          />
-
-                          <YAxis
-                            type="category"
-                            dataKey="title"
-                            width={140}
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{
-                              fontSize: 11,
-                              fill: "#334155",
-                              fontWeight: 600,
-                            }}
-                            tickFormatter={(v) =>
-                              v?.length > 18 ? v.slice(0, 18) + "…" : v
-                            }
-                          />
-
-                          <Tooltip
-                            cursor={{ fill: "#f8fafc" }}
-                            contentStyle={{
-                              borderRadius: "12px",
-                              border: "1px solid #e2e8f0",
-                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.08)",
-                            }}
-                            formatter={(v) => [v, "Bookings"]}
-                          />
-
-                          <Bar
-                            dataKey="bookings"
-                            fill="#1e3a8a"
-                            radius={[0, 6, 6, 0]}
-                            barSize={22}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-                      <Package className="w-8 h-8 text-gray-300 mb-2" />
-                      <div className="text-xs font-bold text-gray-700">
-                        No bookings recorded yet
-                      </div>
-                      <p className="text-[11px] text-gray-400 max-w-xs mt-1">
-                        Completed and active bookings will display your most
-                        booked equipment here.
-                      </p>
-                    </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRental(rental)}
+                              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                              title="View Full Rental Agreement"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-baseline gap-2.5">
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+              Operations &amp; Performance
+            </h2>
+            <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase ml-2 hidden sm:inline">
+              Top performing equipment and Roxas pickup location
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* ── Left: Top Earning Equipment Chart ── */}
+            <div className="lg:col-span-7 bg-white border border-gray-200/90 rounded-2xl p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                    Most Booked Equipment in Roxas
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Number of approved and completed rental agreements
+                  </p>
                 </div>
+                <Link
+                  to="/supplier/products"
+                  className="text-xs font-semibold text-blue-700 hover:underline"
+                >
+                  View Catalog →
+                </Link>
+              </div>
 
-                {/* ── Right: Business & Pickup Location Card ── */}
-                <div className="lg:col-span-5 bg-white border border-gray-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-sm text-gray-900">
-                            Roxas Pickup Hub
-                          </h3>
-                          <p className="text-[11px] text-gray-500">
-                            Equipment pickup spot for local renters
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowLocationModal(true)}
-                        className="text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition cursor-pointer"
-                      >
-                        Update Location
-                      </button>
+              {bookingCounts.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={bookingCounts}
+                      layout="vertical"
+                      margin={{ left: 10, right: 20 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        stroke="#f1f5f9"
+                      />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => v}
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                      />
+
+                      <YAxis
+                        type="category"
+                        dataKey="title"
+                        width={140}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{
+                          fontSize: 11,
+                          fill: "#334155",
+                          fontWeight: 600,
+                        }}
+                        tickFormatter={(v) =>
+                          v?.length > 18 ? v.slice(0, 18) + "…" : v
+                        }
+                      />
+
+                      <Tooltip
+                        cursor={{ fill: "#f8fafc" }}
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.08)",
+                        }}
+                        formatter={(v) => [v, "Bookings"]}
+                      />
+
+                      <Bar
+                        dataKey="bookings"
+                        fill="#1e3a8a"
+                        radius={[0, 6, 6, 0]}
+                        barSize={22}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                  <Package className="w-8 h-8 text-gray-300 mb-2" />
+                  <div className="text-xs font-bold text-gray-700">
+                    No bookings recorded yet
+                  </div>
+                  <p className="text-[11px] text-gray-400 max-w-xs mt-1">
+                    Completed and active bookings will display your most booked
+                    equipment here.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ── Right: Business & Pickup Location Card ── */}
+            <div className="lg:col-span-5 bg-white border border-gray-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5" />
                     </div>
-
-                    <div className="bg-[#f5f0e8]/80 border border-amber-200/70 rounded-xl p-4 space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold bg-[#0f1729] text-white px-2.5 py-0.5 rounded-md">
-                          Brgy. {user?.barangay || "San Aquilino"}
-                        </span>
-                        <span className="text-xs font-medium text-gray-600">
-                          Roxas, Oriental Mindoro
-                        </span>
-                      </div>
-
-                      <div className="flex items-start gap-2 pt-1">
-                        <MapPin className="w-4 h-4 text-amber-700 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2">
-                          {user?.address ||
-                            "Brgy. San Aquilino, Roxas, Oriental Mindoro"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-amber-200/60">
-                        <span>
-                          GPS:{" "}
-                          <strong className="font-mono text-gray-800">
-                            {user?.latitude && user?.longitude
-                              ? `${Number(user.latitude).toFixed(4)}, ${Number(user.longitude).toFixed(4)}`
-                              : "12.5967, 121.4841"}
-                          </strong>
-                        </span>
-                        <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />{" "}
-                          Auto-syncs listings
-                        </span>
-                      </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-gray-900">
+                        Roxas Pickup Hub
+                      </h3>
+                      <p className="text-[11px] text-gray-500">
+                        Equipment pickup spot for local renters
+                      </p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationModal(true)}
+                    className="text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition cursor-pointer"
+                  >
+                    Update Location
+                  </button>
+                </div>
 
-                  <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
-                    <Link
-                      to="/supplier/products"
-                      className="p-3 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-200/80 hover:border-blue-200 text-center transition group"
-                    >
-                      <Package className="w-5 h-5 text-gray-400 group-hover:text-blue-600 mx-auto mb-1" />
-                      <div className="text-xs font-bold text-gray-800">
-                        Manage Listings
-                      </div>
-                      <div className="text-[10px] text-gray-400">
-                        {metrics.totalListings} items active
-                      </div>
-                    </Link>
+                <div className="bg-[#f5f0e8]/80 border border-amber-200/70 rounded-xl p-4 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold bg-[#0f1729] text-white px-2.5 py-0.5 rounded-md">
+                      Brgy. {user?.barangay || "San Aquilino"}
+                    </span>
+                    <span className="text-xs font-medium text-gray-600">
+                      Roxas, Oriental Mindoro
+                    </span>
+                  </div>
 
-                    <Link
-                      to="/supplier/rentals"
-                      className="p-3 rounded-xl bg-gray-50 hover:bg-amber-50 border border-gray-200/80 hover:border-amber-200 text-center transition group"
-                    >
-                      <Clock className="w-5 h-5 text-gray-400 group-hover:text-amber-600 mx-auto mb-1" />
-                      <div className="text-xs font-bold text-gray-800">
-                        Rental Requests
-                      </div>
-                      <div className="text-[10px] text-gray-400">
-                        {metrics.pending} awaiting reply
-                      </div>
-                    </Link>
+                  <div className="flex items-start gap-2 pt-1">
+                    <MapPin className="w-4 h-4 text-amber-700 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2">
+                      {user?.address ||
+                        "Brgy. San Aquilino, Roxas, Oriental Mindoro"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-amber-200/60">
+                    <span>
+                      GPS:{" "}
+                      <strong className="font-mono text-gray-800">
+                        {user?.latitude && user?.longitude
+                          ? `${Number(user.latitude).toFixed(4)}, ${Number(user.longitude).toFixed(4)}`
+                          : "12.5967, 121.4841"}
+                      </strong>
+                    </span>
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />{" "}
+                      Auto-syncs listings
+                    </span>
                   </div>
                 </div>
               </div>
-            </section>
-          </main>
-        </div>
+
+              <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                <Link
+                  to="/supplier/products"
+                  className="p-3 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-200/80 hover:border-blue-200 text-center transition group"
+                >
+                  <Package className="w-5 h-5 text-gray-400 group-hover:text-blue-600 mx-auto mb-1" />
+                  <div className="text-xs font-bold text-gray-800">
+                    Manage Listings
+                  </div>
+                  <div className="text-[10px] text-gray-400">
+                    {metrics.totalListings} items active
+                  </div>
+                </Link>
+
+                <Link
+                  to="/supplier/rentals"
+                  className="p-3 rounded-xl bg-gray-50 hover:bg-amber-50 border border-gray-200/80 hover:border-amber-200 text-center transition group"
+                >
+                  <Clock className="w-5 h-5 text-gray-400 group-hover:text-amber-600 mx-auto mb-1" />
+                  <div className="text-xs font-bold text-gray-800">
+                    Rental Requests
+                  </div>
+                  <div className="text-[10px] text-gray-400">
+                    {metrics.pending} awaiting reply
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       {/* ══════════════════════════════════════════════════════════

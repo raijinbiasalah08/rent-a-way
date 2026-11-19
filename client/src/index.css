@@ -63,81 +63,9 @@
   }
 }
 
-/* Shared dashboard presentation, scoped away from public pages and dialogs. */
-.workspace-dashboard {
-  background: #f6f5f1;
-}
-.workspace-dashboard aside nav a {
-  min-height: 44px;
-  font-size: 0.875rem;
-}
-.workspace-hero {
-  isolation: isolate;
-  background: linear-gradient(115deg, #101a30, #172b50);
-  box-shadow: 0 12px 30px -18px #0f172a80;
-}
-.workspace-hero::after {
-  content: "";
-  position: absolute;
-  width: 310px;
-  height: 310px;
-  right: -45px;
-  top: -65px;
-  background: url("/logo.png") center / contain no-repeat;
-  opacity: 0.045;
-  pointer-events: none;
-  z-index: -1;
-}
-.workspace-hero h1 {
-  font-size: clamp(1.75rem, 2.7vw, 2.75rem);
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-.workspace-metrics > div,
-.workspace-metrics > a {
-  box-shadow: 0 4px 18px -12px #0f172a30;
-  border-color: #e2e8f0;
-}
-.workspace-metrics .text-gray-400 {
-  color: #64748b;
-  font-size: 0.75rem;
-}
-.workspace-metrics .font-mono {
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-}
-.workspace-heading {
-  @apply flex flex-wrap items-center justify-between gap-3;
-}
-.workspace-kicker {
-  @apply text-xs font-semibold tracking-widest uppercase text-slate-500;
-}
-
-/* Keep shared cards and workspace content comfortable on narrow screens. */
 @media (max-width: 639px) {
   .card {
     padding: 1rem;
-  }
-
-  .workspace-dashboard,
-  .workspace-dashboard main {
-    min-width: 0;
-  }
-}
-
-@media (max-width: 420px) {
-  .workspace-dashboard .workspace-hero {
-    padding: 1.25rem;
-  }
-
-  .workspace-dashboard .workspace-heading > span {
-    flex-basis: 100%;
-  }
-}
-
-@media (min-width: 380px) and (max-width: 639px) {
-  .workspace-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
