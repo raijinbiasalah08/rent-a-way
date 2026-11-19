@@ -50,6 +50,7 @@ const SUPPLIER_LINKS = [
 
 const SUPPLIER_MORE = [
   ["/supplier/products/new", "Add equipment", Plus],
+  ["/browse", "Browse rentals", Search],
   ["/community", "Community", Users],
   ["/map", "Roxas map", MapPin],
   ["/supplier/profile", "Account settings", Settings],
@@ -66,6 +67,7 @@ const ADMIN_MORE = [
   ["/admin/complaints", "Complaints", Shield],
   ["/admin/reports", "Reports & analytics", FileText],
   ["/admin/wallet", "Wallet", Wallet],
+  ["/browse", "Browse rentals", Search],
   ["/messages", "Messages", MessageCircle],
 ];
 

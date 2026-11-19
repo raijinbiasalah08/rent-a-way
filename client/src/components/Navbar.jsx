@@ -582,7 +582,7 @@ export default function Navbar({ workspaceRole }) {
 
           {/* Mobile hamburger */}
           <button
-            className="ledger-header-menu lg:hidden text-gray-300 hover:text-white p-2"
+            className={`ledger-header-menu lg:hidden text-gray-300 hover:text-white p-2 ${user ? "hidden" : ""}`}
             aria-label={isOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={isOpen}
             aria-controls="mobile-navigation"
@@ -594,7 +594,7 @@ export default function Navbar({ workspaceRole }) {
       </div>
 
       {/* Mobile Menu */}
-      {isOpen && (
+      {isOpen && !user && (
         <div
           id="mobile-navigation"
           className="menu-enter [--enter-offset:-4px] lg:hidden max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-[#0f1729] border-t border-gray-700 px-4 py-4 space-y-2"

@@ -304,7 +304,7 @@ function App() {
         !/^\/(register(?:-renter|-supplier)?|choose-role|login|forgot-password|reset-password)(\/|$)/.test(
           pathname,
         ) && <Footer />}
-      {showMobileNav && <MobileBottomNav workspaceRole={workspaceRole} />}
+      {showMobileNav && <MobileBottomNav workspaceRole={user?.role ?? null} />}
     </div>
   );
 }
