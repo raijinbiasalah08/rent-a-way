@@ -282,7 +282,7 @@ export default function Navbar({ workspaceRole }) {
             <img
               src="/logo.png"
               alt="Rent-A-Way Logo"
-              className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+              className={`${workspaceRole ? "w-12 h-12" : "w-10 h-10"} object-contain drop-shadow-sm group-hover:scale-105 transition-transform`}
             />
 
             <div className="leading-none">
