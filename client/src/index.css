@@ -3,9 +3,15 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --app-font-sans: theme('fontFamily.sans');
+  }
   body {
     @apply bg-cream-100 text-gray-800 font-sans;
     -webkit-font-smoothing: antialiased;
+  }
+  :where(nav, [role="tablist"], [role="tab"]) {
+    font-family: var(--app-font-sans);
   }
   :where(a, button, input, select, textarea):focus-visible {
     outline: 3px solid #3b82f6;
