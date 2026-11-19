@@ -57,15 +57,6 @@ router.put(
           { status: 409 },
         );
       }
-      if (
-        !(await db
-          .prepare("SELECT id FROM subscription_receiver WHERE id = 1")
-          .get())
-      )
-        throw Object.assign(
-          new Error("Subscription payments are not set up yet."),
-          { status: 409 },
-        );
       const amount = packages.find((pkg) => pkg.id === plan).monthlyPrice;
       const payment = await db
         .prepare(

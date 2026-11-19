@@ -803,7 +803,17 @@ test("registration requires a private ID and only admins can view it", async () 
   });
   assert.equal(result.status, 400);
   const user = await db.prepare("SELECT id FROM users WHERE email = ?").get("new@example.test");
-  assert.equal((await api("/admin/users/" + user.id + "/identity")).status, 403);
+  assert.equal(
+    (
+      await api(
+        "/admin/users/" + user.id + "/identity",
+        "GET",
+        undefined,
+        "stranger",
+      )
+    ).status,
+    403,
+  );
   const response = await fetch(base + "/api/admin/users/" + user.id + "/identity", { headers: { Authorization: "Bearer " + tokens.admin } });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "private, no-store");

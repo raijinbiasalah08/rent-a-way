@@ -80,6 +80,10 @@ void main() {
       await tester.ensureVisible(request);
       await tester.tap(request);
       await tester.pumpAndSettle();
+      final manualRequest = find.text('Request plan for manual confirmation');
+      await tester.ensureVisible(manualRequest);
+      await tester.tap(manualRequest);
+      await tester.pumpAndSettle();
       expect(session.api.requestedPlan, 'student');
       expect(find.text('Request pending'), findsOneWidget);
 

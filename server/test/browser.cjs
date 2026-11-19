@@ -86,6 +86,17 @@ async function main() {
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
+      page.on("console", (message) => {
+        if (message.type() === "error")
+          console.error("Browser console:", message.text());
+      });
+      page.on("requestfailed", (request) => {
+        console.error(
+          "Browser request failed:",
+          request.url(),
+          request.failure()?.errorText,
+        );
+      });
       const routes =
         role === "customer"
           ? [
@@ -119,16 +130,17 @@ async function main() {
         if (route === "/supplier/products/new") {
           await page.goto("http://127.0.0.1:5179/supplier/products");
           await page
-            .getByRole("link", { name: "Add New Listing", exact: true })
+            .getByRole("link", { name: "Add listing", exact: true })
             .click();
         } else {
-          await page.goto("http://127.0.0.1:5179" + route);
+          await page.goto("http://127.0.0.1:5179" + route, {
+            waitUntil: "domcontentloaded",
+          });
         }
-        await page.waitForLoadState("networkidle");
         await expect(page.locator("main").first()).toBeVisible();
         if (route === "/browse") {
           const categories = page
-            .getByRole("button", { name: "Categories", exact: true })
+            .getByRole("button", { name: "Cameras", exact: true })
             .first();
           for (const reducedMotion of ["no-preference", "reduce"]) {
             await page.emulateMedia({ reducedMotion });
@@ -137,15 +149,10 @@ async function main() {
             if (reducedMotion === "reduce") {
               await expect(categories).toHaveCSS("scale", "none");
             } else {
-              await expect(categories).toHaveCSS("scale", "0.975");
+              await expect(categories).toHaveCSS("scale", "0.98");
             }
             await page.mouse.up();
-            await expect(categories).toHaveAttribute("aria-expanded", "true");
-            await expect(page.locator(".menu-enter:visible").first()).toHaveCSS(
-              "animation-name",
-              reducedMotion === "reduce" ? "none" : "surface-enter",
-            );
-            await categories.press("Escape");
+            await expect(categories).toHaveAttribute("aria-pressed", "true");
           }
           await page.emulateMedia({ reducedMotion: "no-preference" });
         }
@@ -164,6 +171,11 @@ async function main() {
           ).toBeVisible();
           await plans
             .getByRole("button", { name: "Request Premium Student" })
+            .click();
+          await plans
+            .getByRole("button", {
+              name: "Request plan for manual confirmation",
+            })
             .click();
           await expect(
             plans.getByRole("button", { name: "Request pending" }),
