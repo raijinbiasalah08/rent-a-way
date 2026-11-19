@@ -58,7 +58,9 @@ function ProductCard({ product, wide, dateQuery }) {
   const distance = getItemDistance(product.latitude, product.longitude);
   const [status, tone] = STATUS[product.availability] || STATUS.unavailable;
   return (
-    <article className={`browse-product ${wide ? "browse-product-wide" : ""}`}>
+    <article
+      className={`browse-product motion-card ${wide ? "browse-product-wide" : ""}`}
+    >
       <Link
         to={detailUrl}
         className="browse-product-image"

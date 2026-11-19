@@ -57,7 +57,7 @@ function ListingCard({ product }) {
     ? apiAssetUrl(product.primary_image)
     : "/placeholder.svg";
   return (
-    <article className="rental-card">
+    <article className="rental-card motion-card">
       <Link
         to={`/product/${product.id}`}
         className="rental-photo"
@@ -155,14 +155,12 @@ export default function Home() {
   }
   function selectCategory(value) {
     setCategory(value);
-    document
-      .getElementById("explore-rentals")
-      ?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-        block: "start",
-      });
+    document.getElementById("explore-rentals")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+      block: "start",
+    });
   }
   return (
     <div className="market-home">

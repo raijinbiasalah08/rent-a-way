@@ -5,7 +5,7 @@ import { apiAssetUrl } from "../config";
 
 export default function ProductCard({ product }) {
   return (
-    <div className="card hover:shadow-md transition group overflow-hidden flex flex-col p-0">
+    <div className="motion-card card hover:shadow-md transition group overflow-hidden flex flex-col p-0">
       <div className="h-48 overflow-hidden relative">
         <img
           src={

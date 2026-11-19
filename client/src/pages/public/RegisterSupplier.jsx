@@ -349,6 +349,7 @@ export default function RegisterSupplier() {
 
               <button
                 type="submit"
+                aria-busy={loading}
                 disabled={loading || !acceptedTerms || !identityDocument}
                 className="w-full mt-2 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60 text-white font-semibold text-xs sm:text-sm py-2.5 rounded-xl shadow-xs transition cursor-pointer"
               >

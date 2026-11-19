@@ -7,6 +7,7 @@ import {
   useLocation,
   useNavigationType,
 } from "react-router-dom";
+import RouteMotion from "./components/RouteMotion";
 import Navbar from "./components/Navbar";
 import WorkspaceNavigation from "./components/WorkspaceNavigation";
 import Footer from "./components/Footer";
@@ -123,159 +124,167 @@ function App() {
       <main ref={content} id="main-content" tabIndex={-1} className="flex-grow">
         <Suspense
           fallback={
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="route-loading min-h-[60svh] flex items-center justify-center">
               <LoadingSpinner />
             </div>
           }
         >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/browse" element={<Browse />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/how-it-works" element={<Help />} />
-            <Route path="/map" element={<MapSearch />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/register-renter" element={<RegisterRenter />} />
-            <Route path="/register-supplier" element={<RegisterSupplier />} />
-            <Route path="/choose-role" element={<ChooseRole />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardRedirect />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SettingsRedirect />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <SettingsRedirect />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/community" element={<CustomerCommunity />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/for-suppliers" element={<ForSuppliers />} />
-            <Route
-              path="/messages"
-              element={
-                <ProtectedRoute
-                  allowedRoles={["renter", "customer", "supplier", "admin"]}
-                >
-                  <Messages />
-                </ProtectedRoute>
-              }
-            />
+          <RouteMotion contentRef={content}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/browse" element={<Browse />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/how-it-works" element={<Help />} />
+              <Route path="/map" element={<MapSearch />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/register-renter" element={<RegisterRenter />} />
+              <Route path="/register-supplier" element={<RegisterSupplier />} />
+              <Route path="/choose-role" element={<ChooseRole />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <SettingsRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/community" element={<CustomerCommunity />} />
+              <Route
+                path="/reset-password/:token"
+                element={<ResetPassword />}
+              />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/for-suppliers" element={<ForSuppliers />} />
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["renter", "customer", "supplier", "admin"]}
+                  >
+                    <Messages />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Renter aliases */}
-            <Route
-              path="/renter"
-              element={<Navigate to="/customer/dashboard" replace />}
-            />
-            <Route
-              path="/renter/*"
-              element={
-                <ProtectedRoute allowedRoles={["renter", "customer"]}>
-                  <Routes>
-                    <Route index element={<CustomerDashboard />} />
-                    <Route path="dashboard" element={<CustomerDashboard />} />
-                    <Route path="checkout" element={<Checkout />} />
-                    <Route path="rentals" element={<CustomerRentals />} />
-                    <Route
-                      path="booking/:productId"
-                      element={<CustomerBooking />}
-                    />
-                    <Route path="profile" element={<CustomerProfile />} />
-                    <Route path="settings" element={<CustomerProfile />} />
-                    <Route path="community" element={<CustomerCommunity />} />
-                    <Route path="favorites" element={<CustomerFavorites />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </ProtectedRoute>
-              }
-            />
+              {/* Renter aliases */}
+              <Route
+                path="/renter"
+                element={<Navigate to="/customer/dashboard" replace />}
+              />
+              <Route
+                path="/renter/*"
+                element={
+                  <ProtectedRoute allowedRoles={["renter", "customer"]}>
+                    <Routes>
+                      <Route index element={<CustomerDashboard />} />
+                      <Route path="dashboard" element={<CustomerDashboard />} />
+                      <Route path="checkout" element={<Checkout />} />
+                      <Route path="rentals" element={<CustomerRentals />} />
+                      <Route
+                        path="booking/:productId"
+                        element={<CustomerBooking />}
+                      />
+                      <Route path="profile" element={<CustomerProfile />} />
+                      <Route path="settings" element={<CustomerProfile />} />
+                      <Route path="community" element={<CustomerCommunity />} />
+                      <Route path="favorites" element={<CustomerFavorites />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/customer"
-              element={<Navigate to="/customer/dashboard" replace />}
-            />
-            <Route
-              path="/customer/*"
-              element={
-                <ProtectedRoute allowedRoles={["renter", "customer"]}>
-                  <Routes>
-                    <Route index element={<CustomerDashboard />} />
-                    <Route path="checkout" element={<Checkout />} />
-                    <Route path="dashboard" element={<CustomerDashboard />} />
-                    <Route path="rentals" element={<CustomerRentals />} />
-                    <Route
-                      path="booking/:productId"
-                      element={<CustomerBooking />}
-                    />
-                    <Route path="profile" element={<CustomerProfile />} />
-                    <Route path="settings" element={<CustomerProfile />} />
-                    <Route path="community" element={<CustomerCommunity />} />
-                    <Route path="favorites" element={<CustomerFavorites />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/customer"
+                element={<Navigate to="/customer/dashboard" replace />}
+              />
+              <Route
+                path="/customer/*"
+                element={
+                  <ProtectedRoute allowedRoles={["renter", "customer"]}>
+                    <Routes>
+                      <Route index element={<CustomerDashboard />} />
+                      <Route path="checkout" element={<Checkout />} />
+                      <Route path="dashboard" element={<CustomerDashboard />} />
+                      <Route path="rentals" element={<CustomerRentals />} />
+                      <Route
+                        path="booking/:productId"
+                        element={<CustomerBooking />}
+                      />
+                      <Route path="profile" element={<CustomerProfile />} />
+                      <Route path="settings" element={<CustomerProfile />} />
+                      <Route path="community" element={<CustomerCommunity />} />
+                      <Route path="favorites" element={<CustomerFavorites />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/supplier"
-              element={<Navigate to="/supplier/dashboard" replace />}
-            />
-            <Route
-              path="/supplier/*"
-              element={
-                <ProtectedRoute allowedRoles={["supplier"]}>
-                  <Routes>
-                    <Route index element={<SupplierDashboard />} />
-                    <Route path="dashboard" element={<SupplierDashboard />} />
-                    <Route path="products" element={<SupplierProducts />} />
-                    <Route path="products/new" element={<AddProduct />} />
-                    <Route path="products/:id/edit" element={<EditProduct />} />
-                    <Route path="rentals" element={<RentalRequests />} />
-                    <Route path="profile" element={<CustomerProfile />} />
-                    <Route path="settings" element={<CustomerProfile />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/supplier"
+                element={<Navigate to="/supplier/dashboard" replace />}
+              />
+              <Route
+                path="/supplier/*"
+                element={
+                  <ProtectedRoute allowedRoles={["supplier"]}>
+                    <Routes>
+                      <Route index element={<SupplierDashboard />} />
+                      <Route path="dashboard" element={<SupplierDashboard />} />
+                      <Route path="products" element={<SupplierProducts />} />
+                      <Route path="products/new" element={<AddProduct />} />
+                      <Route
+                        path="products/:id/edit"
+                        element={<EditProduct />}
+                      />
+                      <Route path="rentals" element={<RentalRequests />} />
+                      <Route path="profile" element={<CustomerProfile />} />
+                      <Route path="settings" element={<CustomerProfile />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/admin/*"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <Routes>
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                    <Route path="users" element={<AdminUsers />} />
-                    <Route path="products" element={<AdminProducts />} />
-                    <Route path="rentals" element={<AdminRentals />} />
-                    <Route path="complaints" element={<AdminComplaints />} />
-                    <Route path="reports" element={<AdminReports />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/admin/*"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <Routes>
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="users" element={<AdminUsers />} />
+                      <Route path="products" element={<AdminProducts />} />
+                      <Route path="rentals" element={<AdminRentals />} />
+                      <Route path="complaints" element={<AdminComplaints />} />
+                      <Route path="reports" element={<AdminReports />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </RouteMotion>
         </Suspense>
       </main>
       {!pathname.startsWith("/admin/") &&
