@@ -68,6 +68,7 @@
 }
 
 .ledger-nav-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -77,6 +78,23 @@
   color: #465369;
   font-size: 0.8125rem;
   font-weight: 600;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.ledger-nav-link::after {
+  position: absolute;
+  right: 12px;
+  bottom: -1px;
+  left: 12px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: #bd821b;
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .ledger-nav-link:hover {
@@ -85,8 +103,15 @@
 }
 
 .ledger-nav-link[aria-current="page"] {
-  border-color: #bd821b;
   color: var(--ledger-ink);
+}
+
+.ledger-nav-link[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.ledger-nav-link:active {
+  transform: translateY(1px);
 }
 
 .ledger-workspace {

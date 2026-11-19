@@ -182,11 +182,12 @@ export default function MobileBottomNav({ workspaceRole }) {
             >
               {({ isActive }) => (
                 <>
-                  {isActive && (
-                    <span className="absolute top-0 h-0.5 w-8 rounded-full bg-amber-400" />
-                  )}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-0 h-0.5 w-8 origin-center rounded-full bg-amber-400 transition-transform duration-200 ease-out ${isActive ? "scale-x-100" : "scale-x-0"}`}
+                  />
                   <Icon
-                    className={`h-5 w-5 shrink-0 ${isActive ? "stroke-[2.4]" : "stroke-[1.8]"}`}
+                    className={`h-5 w-5 shrink-0 transition-transform duration-200 ease-out ${isActive ? "-translate-y-0.5 stroke-[2.4]" : "stroke-[1.8]"}`}
                     aria-hidden="true"
                   />
                   <span className="max-w-full truncate leading-none">
