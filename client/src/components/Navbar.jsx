@@ -1,19 +1,11 @@
-import { Car, Building2 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import {
   Menu,
   X,
   ChevronDown,
-  Search,
   User,
-  Camera,
-  Mountain,
-  Bike,
-  Calendar,
-  Wrench,
-  BookOpen,
   Bell,
   MessageCircle,
   Download,
@@ -30,55 +22,53 @@ import { apiAssetUrl } from "../config";
 import InstallAppDialog from "./InstallAppDialog";
 
 const CATEGORIES = [
-  {id: "Vehicles", label: "Vehicles", to: "/browse?category=Vehicles", icon: Car, bg: "bg-slate-50", iconColor: "text-slate-600"},
-  {id: "Apartments", label: "Apartments", to: "/browse?category=Apartments", icon: Building2, bg: "bg-rose-50", iconColor: "text-rose-600"},
   {
     id: "Cameras",
     label: "Cameras & Drones",
     to: "/browse?category=Cameras",
-    icon: Camera,
-    bg: "bg-teal-50",
-    iconColor: "text-teal-600",
+    icon: "/category-icons/camera.png",
   },
   {
     id: "Camping",
     label: "Camping Equipment",
     to: "/browse?category=Camping",
-    icon: Mountain,
-    bg: "bg-green-50",
-    iconColor: "text-green-600",
+    icon: "/category-icons/mountain.png",
   },
   {
     id: "Sports",
     label: "Sports Equipment",
     to: "/browse?category=Sports",
-    icon: Bike,
-    bg: "bg-orange-50",
-    iconColor: "text-orange-600",
+    icon: "/category-icons/bicycle.png",
   },
   {
     id: "Event",
     label: "Event Equipment",
     to: "/browse?category=Event",
-    icon: Calendar,
-    bg: "bg-purple-50",
-    iconColor: "text-purple-600",
+    icon: "/category-icons/calendar.png",
   },
   {
     id: "Household",
     label: "Household Equipment",
     to: "/browse?category=Household",
-    icon: Wrench,
-    bg: "bg-blue-50",
-    iconColor: "text-blue-600",
+    icon: "/category-icons/wrench.png",
   },
   {
     id: "School",
     label: "School Project Equipment",
     to: "/browse?category=School",
-    icon: BookOpen,
-    bg: "bg-amber-50",
-    iconColor: "text-amber-600",
+    icon: "/category-icons/book.png",
+  },
+  {
+    id: "Vehicles",
+    label: "Vehicles",
+    to: "/browse?category=Vehicles",
+    icon: "/category-icons/car.png",
+  },
+  {
+    id: "Apartments",
+    label: "Apartments",
+    to: "/browse?category=Apartments",
+    icon: "/category-icons/apartment.png",
   },
 ];
 
@@ -94,14 +84,13 @@ export default function Navbar() {
   const [moreNotifications, setMoreNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState({});
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
+  const { pathname, search: locationSearch } = useLocation();
   useEffect(() => {
     setIsOpen(false);
     setCatOpen(false);
     setNotifOpen(false);
     setProfileOpen(false);
-  }, [pathname]);
+  }, [pathname, locationSearch]);
 
   function disclosure(setOpen) {
     return {
@@ -222,20 +211,51 @@ export default function Navbar() {
     }
   };
 
-  const scrollToSection = (id) => {
-    if (pathname === "/") {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    } else {
-      navigate("/");
-      setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      }, 300);
-    }
-    setIsOpen(false);
-  };
+  if (
+    /^\/(register(?:-renter|-supplier)?|choose-role|login|forgot-password|reset-password)(\/|$)/.test(
+      pathname,
+    )
+  ) {
+    return (
+      <nav
+        aria-label="Account navigation"
+        className="border-b border-slate-200 bg-white"
+      >
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-bold text-slate-900"
+          >
+            <img
+              src="/logo.png"
+              alt="Rent-A-Way"
+              className="h-9 w-9 object-contain"
+            />
+            Rent-A-Way
+          </Link>
+          <Link
+            to="/browse"
+            className="text-sm font-medium text-slate-600 hover:text-blue-800"
+          >
+            Back to browse
+          </Link>
+        </div>
+      </nav>
+    );
+  }
 
   return (
-    <nav className="bg-[#0f1729] text-white shadow-md sticky top-0 z-50">
+    <nav
+      className="bg-[#0f1729] text-white shadow-md sticky top-0 z-50"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && isOpen) {
+          setIsOpen(false);
+          event.currentTarget
+            .querySelector("[aria-controls=mobile-navigation]")
+            ?.focus();
+        }
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -253,104 +273,49 @@ export default function Navbar() {
               <div className="font-bold text-white text-base tracking-tight">
                 Rent-A-Way
               </div>
-              <div className="text-[9px] text-amber-400 font-semibold tracking-widest uppercase">
-                Find Better Ways to Save
-              </div>
+              <div className="sr-only">Find Better Ways to Save</div>
             </div>
           </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
+          <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
             <Link
-              to="/"
-              className={`hover:text-white transition ${pathname === "/" ? "text-white" : "text-gray-300"}`}
+              to="/browse"
+              className={
+                pathname === "/browse"
+                  ? "text-amber-300"
+                  : "text-slate-200 hover:text-white"
+              }
             >
-              Home
+              Browse rentals
             </Link>
-
-            {/* ── Categories Mega-Dropdown ── */}
-            <div className="relative" {...disclosure(setCatOpen)}>
-              <button
-                aria-expanded={catOpen}
-                onClick={() => setCatOpen(!catOpen)}
-                className={`flex items-center gap-1 transition ${catOpen ? "text-white" : "text-gray-300 hover:text-white"}`}
-              >
-                Categories
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${catOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {catOpen && (
-                <div className="menu-enter [--enter-offset:-4px] absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[480px] bg-white rounded-2xl shadow-2xl border border-gray-100 py-4 px-4 z-50">
-                  {/* Arrow pointer */}
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-100 rotate-45" />
-
-                  <div className="grid grid-cols-2 gap-1">
-                    {CATEGORIES.map((cat) => {
-                      const Icon = cat.icon;
-                      return (
-                        <Link
-                          key={cat.to}
-                          to={cat.to}
-                          className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition group"
-                          onClick={() => setCatOpen(false)}
-                        >
-                          {/* Icon box */}
-                          <div
-                            className={`w-9 h-9 rounded-lg ${cat.bg} flex items-center justify-center flex-shrink-0`}
-                          >
-                            <Icon className={`w-4 h-4 ${cat.iconColor}`} />
-                          </div>
-                          {/* Text */}
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900 group-hover:text-[#1e3a8a] leading-tight">
-                              {cat.label}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-0.5">
-                              {categoryCounts[cat.id] || 0} items
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => scrollToSection("how-it-works")}
-              className="text-gray-300 hover:text-white transition"
-            >
-              How It Works
-            </button>
-            {!user && (
-              <Link
-                to="/for-suppliers"
-                className="text-gray-300 hover:text-white transition"
-              >
-                For Suppliers
-              </Link>
-            )}
             <Link
-              to="/community"
-              className="text-gray-300 hover:text-white transition"
+              to="/map"
+              className={
+                pathname === "/map"
+                  ? "text-amber-300"
+                  : "text-slate-200 hover:text-white"
+              }
             >
+              Roxas map
+            </Link>
+            <Link
+              to="/how-it-works"
+              className="text-slate-200 hover:text-white"
+            >
+              How it works
+            </Link>
+            <Link to="/community" className="text-slate-200 hover:text-white">
               Community
             </Link>
-
             {!isAppInstalled && (
               <button
                 type="button"
                 onClick={handleInstallClick}
-                className="group flex min-h-9 items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Install Rent-A-Way"
+                title="Install Rent-A-Way"
+                className="p-2 text-slate-300 hover:text-white"
               >
-                <Download
-                  className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-white"
-                  aria-hidden="true"
-                />
-                Install App
+                <Download size={17} />
               </button>
             )}
           </div>
@@ -388,10 +353,10 @@ export default function Navbar() {
                   <User className="w-4 h-4" /> Sign in
                 </Link>
                 <Link
-                  to="/browse"
-                  className="flex items-center gap-1.5 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+                  to="/register-supplier"
+                  className="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-semibold px-4 py-2 rounded-lg transition"
                 >
-                  <Search className="w-4 h-4" /> Browse Equipment
+                  <span aria-hidden="true">+</span> List a rental
                 </Link>
               </>
             ) : (
@@ -600,6 +565,8 @@ export default function Navbar() {
           <div>
             <button
               className="flex items-center gap-1 text-gray-300 hover:text-white text-sm py-2 w-full"
+              aria-expanded={catOpen}
+              aria-controls="mobile-categories"
               onClick={() => setCatOpen(!catOpen)}
             >
               Categories{" "}
@@ -608,9 +575,11 @@ export default function Navbar() {
               />
             </button>
             {catOpen && (
-              <div className="mt-1 grid grid-cols-1 gap-1 pl-2">
+              <div
+                id="mobile-categories"
+                className="mt-1 grid grid-cols-1 gap-1 pl-2"
+              >
                 {CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
                   return (
                     <Link
                       key={cat.to}
@@ -621,11 +590,11 @@ export default function Navbar() {
                         setIsOpen(false);
                       }}
                     >
-                      <div
-                        className={`w-7 h-7 rounded-lg ${cat.bg} flex items-center justify-center flex-shrink-0`}
-                      >
-                        <Icon className={`w-3.5 h-3.5 ${cat.iconColor}`} />
-                      </div>
+                      <img
+                        src={cat.icon}
+                        alt=""
+                        className="h-8 w-8 flex-shrink-0 object-contain"
+                      />
                       <div>
                         <div className="text-xs font-semibold text-gray-200">
                           {cat.label}
@@ -641,12 +610,20 @@ export default function Navbar() {
             )}
           </div>
 
-          <button
-            onClick={() => scrollToSection("how-it-works")}
-            className="block text-gray-300 hover:text-white py-2 text-sm w-full text-left"
+          <Link
+            to="/map"
+            className="block py-2 text-sm text-gray-300"
+            onClick={() => setIsOpen(false)}
           >
-            How It Works
-          </button>
+            Roxas map
+          </Link>
+          <Link
+            to="/how-it-works"
+            onClick={() => setIsOpen(false)}
+            className="block text-gray-300 hover:text-white py-2 text-sm"
+          >
+            How it works
+          </Link>
           {!user && (
             <Link
               to="/for-suppliers"
@@ -687,11 +664,11 @@ export default function Navbar() {
                 Sign in
               </Link>
               <Link
-                to="/browse"
-                className="text-center bg-[#1e3a8a] text-white text-sm font-semibold px-4 py-2 rounded-lg"
+                to="/register-supplier"
+                className="text-center bg-amber-400 text-slate-950 hover:bg-amber-300 text-sm font-semibold px-4 py-2 rounded-lg"
                 onClick={() => setIsOpen(false)}
               >
-                Browse Equipment
+                List a rental
               </Link>
             </div>
           ) : (

@@ -33,7 +33,7 @@ import { apiAssetUrl } from "../../config";
 import "./Browse.css";
 
 const CATEGORIES = [
-  ["", "All equipment", LayoutGrid],
+  ["", "All rentals", LayoutGrid],
   ["Cameras", "Cameras", Camera],
   ["Camping", "Camping", Tent],
   ["Sports", "Sports", Dumbbell],
@@ -140,7 +140,7 @@ function ProductCard({ product, wide, dateQuery }) {
             <span> / day</span>
           </p>
           <Link className="browse-primary" to={detailUrl}>
-            View equipment <ArrowRight size={17} />
+            View rental <ArrowRight size={17} />
           </Link>
         </div>
       </div>
@@ -324,7 +324,7 @@ export default function Browse() {
         <nav className="browse-breadcrumb" aria-label="Breadcrumb">
           <Link to="/">Home</Link>
           <ChevronRight size={14} />
-          <span aria-current="page">Browse equipment</span>
+          <span aria-current="page">Browse rentals</span>
         </nav>
         <header className="browse-intro">
           <img
@@ -334,24 +334,24 @@ export default function Browse() {
             className="browse-watermark"
           />
           <p className="browse-eyebrow">Rent local. Do more.</p>
-          <h1>Find the right gear, nearby.</h1>
+          <h1>Explore rentals in Roxas.</h1>
           <p className="browse-intro-copy">
-            Equipment for your next project, adventure, or event in Roxas.
+            Equipment, vehicles and apartments from local suppliers.
           </p>
         </header>
         <form
           id="browse-search"
           onSubmit={submit}
           className="browse-search-bar"
-          aria-label="Search equipment"
+          aria-label="Search rentals"
         >
           <label className="browse-search-field">
             <Search size={22} aria-hidden="true" />
-            <span className="sr-only">Search equipment</span>
+            <span className="sr-only">Search rentals</span>
             <input
               value={draft.q}
               onChange={(e) => change("q", e.target.value)}
-              placeholder="Search equipment…"
+              placeholder="Search rentals…"
               maxLength={200}
             />
           </label>
@@ -426,7 +426,7 @@ export default function Browse() {
             {validation}
           </p>
         )}
-        <nav className="browse-categories" aria-label="Equipment categories">
+        <nav className="browse-categories" aria-label="Rental categories">
           {CATEGORIES.map(([value, label, Icon]) => (
             <button
               type="button"
@@ -435,7 +435,16 @@ export default function Browse() {
               onClick={() => updateParam("category", value)}
               className={category === value ? "is-active" : ""}
             >
-              <Icon size={23} aria-hidden="true" />
+              {value ? (
+                <img
+                  src={`/category-icons/${{ Cameras: "camera", Camping: "mountain", Sports: "bicycle", Event: "calendar", Household: "wrench", School: "book", Vehicles: "car", Apartments: "apartment" }[value]}.png`}
+                  alt=""
+                  width="36"
+                  height="36"
+                />
+              ) : (
+                <Icon size={23} aria-hidden="true" />
+              )}
               {label}
             </button>
           ))}
@@ -550,17 +559,17 @@ export default function Browse() {
               Choose dates to check availability for your rental period.
             </p>
           </aside>
-          <section className="browse-results" aria-label="Equipment results">
+          <section className="browse-results" aria-label="Rental results">
             <div className="browse-results-heading">
               <div>
                 <h2>
-                  {availableOnly ? "Available near you" : "Equipment near you"}
+                  {availableOnly ? "Available near you" : "Rentals near you"}
                 </h2>
                 <p role="status" aria-live="polite">
                   {loading
-                    ? "Finding equipment…"
+                    ? "Finding rentals…"
                     : error
-                      ? "Equipment unavailable"
+                      ? "Rentals unavailable"
                       : `${total} ${total === 1 ? "result" : "results"}${totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ""}`}
                 </p>
               </div>
@@ -627,13 +636,13 @@ export default function Browse() {
                 <Search size={32} />
                 <h3>
                   {hasFilters
-                    ? "No equipment matches your search"
+                    ? "No rentals match your search"
                     : "New rentals are on the way"}
                 </h3>
                 <p>
                   {hasFilters
                     ? "Try a different category, location, or date range to find your next rental."
-                    : "Local suppliers haven't listed equipment here yet. Check back soon."}
+                    : "Local suppliers haven't added rentals here yet. Check back soon."}
                 </p>
                 {hasFilters ? (
                   <button className="browse-primary" onClick={reset}>

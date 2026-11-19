@@ -1,0 +1,490 @@
+.market-home {
+  background: #faf9f6;
+  color: #101b30;
+}
+.market-container {
+  width: min(1240px, calc(100% - 64px));
+  margin-inline: auto;
+}
+.market-hero {
+  background: #101b30;
+  color: #fff;
+}
+.market-hero-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 48px;
+  align-items: center;
+  min-height: 330px;
+  padding-block: 42px;
+}
+.market-hero h1 {
+  font-size: clamp(34px, 3.8vw, 52px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+.market-hero h1 span {
+  color: #ffc52f;
+}
+.market-hero p {
+  color: #dbe1eb;
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 16px 0 25px;
+  max-width: 530px;
+}
+.market-search {
+  display: flex;
+  align-items: center;
+  padding: 7px;
+  gap: 7px;
+  background: white;
+  border-radius: 10px;
+  color: #172137;
+}
+.market-search label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-left: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.market-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  height: 42px;
+  outline: none;
+}
+.market-search label:focus-within {
+  box-shadow: 0 2px #233f91;
+}
+.market-search select {
+  width: 135px;
+  border: 0;
+  border-left: 1px solid #e2e5eb;
+  background: white;
+  font-size: 12px;
+  padding: 12px 7px;
+}
+.market-search button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #ffc52f;
+  color: #142036;
+  font-size: 13px;
+  font-weight: 750;
+  padding: 12px;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+.market-hero-photos {
+  position: relative;
+  height: 255px;
+}
+.market-hero-photos img {
+  object-fit: cover;
+  border-radius: 14px;
+  border: 3px solid #ffffffc9;
+}
+.market-stay-photo {
+  width: 77%;
+  height: 95%;
+  margin-left: auto;
+  transform: rotate(3deg);
+}
+.market-camera-photo {
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 49%;
+  height: 63%;
+  transform: rotate(-5deg);
+}
+.market-categories {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 16px;
+  border-bottom: 1px solid #e4e3df;
+  padding: 26px 0;
+}
+.market-categories button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  min-width: 0;
+  border-radius: 8px;
+  padding: 4px;
+}
+.market-categories button img {
+  width: 72px;
+  height: 64px;
+  object-fit: contain;
+}
+.market-categories button:hover,
+.market-categories button[aria-pressed="true"] {
+  color: #9c6500;
+  background: #f5f0e5;
+}
+.market-explore {
+  padding: 30px 0 40px;
+  scroll-margin-top: 85px;
+}
+.market-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.market-section-heading h2,
+.market-how h2 {
+  font-size: 28px;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+}
+.market-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.market-tools select {
+  border: 1px solid #d9dde3;
+  border-radius: 7px;
+  background: white;
+  padding: 10px;
+  font-size: 12px;
+}
+.market-view {
+  display: flex;
+  border: 1px solid #d9dde3;
+  border-radius: 7px;
+  background: #fff;
+  overflow: hidden;
+}
+.market-view > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.market-view span {
+  background: #142138;
+  color: white;
+}
+.market-filter-chips {
+  display: flex;
+  gap: 8px;
+  padding: 18px 0 22px;
+  overflow: auto;
+}
+.market-filter-chips button {
+  flex-shrink: 0;
+  border: 1px solid #dddfe3;
+  background: white;
+  border-radius: 20px;
+  padding: 7px 15px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.market-filter-chips button[aria-pressed="true"] {
+  background: #ffc52f;
+  border-color: #ffc52f;
+  color: #111b30;
+}
+.market-listings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.rental-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e0e2e5;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.rental-card:hover {
+  box-shadow: 0 5px 20px #14213812;
+}
+.rental-photo {
+  display: block;
+  aspect-ratio: 1.6;
+  overflow: hidden;
+  background: #edece7;
+}
+.rental-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rental-save {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fffffff2;
+  color: #263249;
+}
+.rental-save[aria-pressed="true"] {
+  color: #bd3148;
+}
+.rental-card-body {
+  padding: 14px 16px 16px;
+}
+.rental-card h3 {
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rental-card-body p {
+  font-size: 12px;
+  color: #647084;
+  margin: 5px 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rental-card-price strong {
+  font-size: 20px;
+  font-weight: 800;
+}
+.rental-card-price span {
+  font-size: 12px;
+  color: #647084;
+}
+.rental-status {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #7c5807;
+  background: #fff1cd;
+  border-radius: 4px;
+  padding: 3px 6px;
+  text-transform: capitalize;
+}
+.market-skeleton {
+  height: 285px;
+  background: #e9e8e3;
+  border-radius: 10px;
+}
+.market-empty {
+  border: 1px solid #e1e3e7;
+  background: white;
+  border-radius: 10px;
+  padding: 44px 24px;
+  text-align: center;
+}
+.market-empty h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.market-empty p {
+  color: #647084;
+  margin: 10px 0 20px;
+}
+.market-empty a,
+.market-empty button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 650;
+  color: #233f91;
+}
+.market-browse-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 26px auto 0;
+  border: 1px solid #ccd2dc;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 13px;
+  font-weight: 650;
+  background: #fff;
+}
+.market-how {
+  border-top: 1px solid #e0e2e5;
+  padding: 38px 0 50px;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 40px;
+}
+.market-how p {
+  color: #647084;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.market-how a {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: #233f91;
+  font-weight: 650;
+  margin-top: 15px;
+}
+.market-how ol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.market-home :is(button, a, select):focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 3px;
+}
+@media (max-width: 1023px) {
+  .market-container {
+    width: calc(100% - 40px);
+  }
+  .market-hero-grid {
+    grid-template-columns: 1.5fr 0.8fr;
+    gap: 24px;
+  }
+  .market-hero-photos {
+    height: 220px;
+  }
+  .market-search {
+    flex-wrap: wrap;
+  }
+  .market-search label {
+    flex-basis: 100%;
+  }
+  .market-search select {
+    flex: 1;
+    width: auto;
+    border-left: 0;
+  }
+  .market-categories {
+    gap: 8px;
+  }
+  .market-categories button {
+    font-size: 11px;
+  }
+  .market-listings {
+    gap: 16px;
+  }
+}
+@media (max-width: 639px) {
+  .market-container {
+    width: calc(100% - 32px);
+  }
+  .market-hero-grid {
+    display: block;
+    padding: 26px 0;
+    min-height: 0;
+  }
+  .market-hero h1 {
+    font-size: 34px;
+  }
+  .market-hero p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 12px 0 18px;
+  }
+  .market-hero-photos {
+    display: none;
+  }
+  .market-search input {
+    height: 36px;
+    font-size: 14px;
+  }
+  .market-search select {
+    font-size: 13px;
+  }
+  .market-categories {
+    display: flex;
+    overflow-x: auto;
+    gap: 14px;
+    padding: 18px 0;
+  }
+  .market-categories button {
+    min-width: 62px;
+    font-size: 11px;
+  }
+  .market-categories button img {
+    width: 53px;
+    height: 46px;
+  }
+  .market-explore {
+    padding-top: 22px;
+  }
+  .market-section-heading {
+    flex-wrap: wrap;
+  }
+  .market-section-heading h2 {
+    font-size: 24px;
+  }
+  .market-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .market-listings {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .rental-card {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    min-height: 130px;
+  }
+  .rental-photo {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .rental-card-body {
+    padding: 14px 38px 14px 12px;
+    align-self: center;
+  }
+  .rental-card h3 {
+    font-size: 14px;
+  }
+  .rental-card-body p {
+    font-size: 11px;
+  }
+  .rental-card-price strong {
+    font-size: 17px;
+  }
+  .rental-save {
+    top: 8px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+    background: white;
+  }
+  .market-skeleton {
+    height: 130px;
+  }
+  .market-filter-chips {
+    padding: 15px 0;
+  }
+  .market-how {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  .market-how ol {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}

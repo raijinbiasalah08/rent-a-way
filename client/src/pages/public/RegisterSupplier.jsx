@@ -1,5 +1,7 @@
 import RegistrationIdentity from "../../components/RegistrationIdentity";
-import RegistrationTerms, { TERMS_VERSION } from "../../components/RegistrationTerms";
+import RegistrationTerms, {
+  TERMS_VERSION,
+} from "../../components/RegistrationTerms";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -8,12 +10,9 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ArrowLeft,
-  Check,
   User,
   Phone,
   MapPin,
-  Tag,
   LocateFixed,
   Loader2,
   AlertCircle,
@@ -143,81 +142,11 @@ export default function RegisterSupplier() {
   };
 
   return (
-    <div className="min-h-screen flex font-sans">
-      {/* ══ LEFT PANEL — dark navy ══════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-[42%] bg-[#0f1729] flex-col p-10 relative overflow-hidden justify-between">
-        {/* Decorative background glows */}
-        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#1a2744] opacity-50" />
-        <div className="absolute bottom-20 -left-16 w-56 h-56 rounded-full bg-[#1a2744] opacity-40" />
-
-        {/* Logo & Header */}
-        <div className="relative">
-          <Link to="/" className="flex items-center gap-3 mb-12 group">
-            <img
-              src="/logo.png"
-              alt="Rent-A-Way Logo"
-              className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
-            />
-
-            <div>
-              <div className="text-white font-extrabold text-base leading-none">
-                Rent-A-Way
-              </div>
-              <div className="text-amber-400 text-[9px] font-bold tracking-widest uppercase">
-                Find better ways to save
-              </div>
-            </div>
-          </Link>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-semibold mb-5">
-            <Tag className="w-3.5 h-3.5 text-amber-400" /> Supplier Registration
-          </div>
-
-          <h2 className="text-white text-4xl font-extrabold leading-tight mb-6">
-            Turn your idle equipment into steady income in Roxas.
-          </h2>
-
-          <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
-            {[
-              "List tools, event equipment, party rentals, vehicles & machinery",
-              "Set your own rates per day and specify your exact Roxas Barangay pickup spot",
-              "Direct GPS mapping ensures nearby renters find your listings first",
-              "Manage rental requests, track bookings, and confirm handover directly",
-            ].map((benefit) => (
-              <div key={benefit} className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="w-3 h-3 text-amber-400" strokeWidth={3} />
-                </div>
-                <span>{benefit}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Renter switch banner */}
-        <div className="relative bg-[#1a2744]/60 border border-amber-500/30 rounded-2xl p-4 mt-8">
-          <p className="text-xs text-gray-300">
-            Looking to rent items instead of listing them?
-          </p>
-          <Link
-            to="/register-renter"
-            className="inline-flex items-center gap-1.5 text-blue-300 text-xs font-semibold hover:text-white mt-2 transition"
-          >
-            Register as a Renter <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </div>
-
+    <div className="registration-page flex font-sans">
       {/* ══ RIGHT PANEL — cream form ════════════════════════════ */}
-      <div className="min-w-0 flex-1 bg-[#f5f0e8] flex flex-col justify-between">
+      <div className="min-w-0 flex-1 bg-[#faf9f6] flex flex-col">
         {/* Top bar */}
-        <div className="flex justify-between items-center p-4 sm:p-6">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to site
-          </Link>
+        <div className="mx-auto flex w-full max-w-xl justify-end items-center px-5 pt-6">
           <div className="text-xs sm:text-sm text-gray-500">
             Already registered?{" "}
             <Link
@@ -230,21 +159,39 @@ export default function RegisterSupplier() {
         </div>
 
         {/* Main Content */}
-        <div className="min-w-0 flex-1 flex items-center justify-center px-4 sm:px-8 py-6">
-          <div className="w-full max-w-lg">
+        <div className="min-w-0 flex justify-center px-4 py-6 sm:pb-12">
+          <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 sm:p-8">
             <div className="mb-5">
               <div className="text-amber-700 text-[10px] font-bold tracking-widest uppercase mb-1">
                 Supplier Account
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">
-                Create your Supplier account
+                Create your account
               </h1>
               <p className="text-xs sm:text-sm text-gray-500">
-                Register as a verified equipment supplier in Roxas, Oriental
+                List your rentals and manage requests in Roxas, Oriental
                 Mindoro.
               </p>
             </div>
 
+            <nav
+              aria-label="Account type"
+              className="mb-6 grid grid-cols-2 gap-2"
+            >
+              <Link
+                to="/register-renter"
+                className="rounded-lg border px-4 py-2.5 text-center text-sm font-semibold border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Renter
+              </Link>
+              <Link
+                to="/register-supplier"
+                aria-current="page"
+                className="rounded-lg border px-4 py-2.5 text-center text-sm font-semibold border-amber-300 bg-amber-100 text-slate-950"
+              >
+                Supplier
+              </Link>
+            </nav>
             {/* Error banner */}
             {error && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl flex items-start gap-2">
@@ -472,7 +419,10 @@ export default function RegisterSupplier() {
               </div>
 
               <RegistrationIdentity onChange={setIdentityDocument} />
-              <RegistrationTerms accepted={acceptedTerms} onChange={setAcceptedTerms} />
+              <RegistrationTerms
+                accepted={acceptedTerms}
+                onChange={setAcceptedTerms}
+              />
 
               <button
                 type="submit"

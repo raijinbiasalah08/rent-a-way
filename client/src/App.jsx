@@ -278,7 +278,10 @@ function App() {
           </Routes>
         </Suspense>
       </main>
-      {!pathname.startsWith("/admin/") && <Footer />}
+      {!pathname.startsWith("/admin/") &&
+        !/^\/(register(?:-renter|-supplier)?|choose-role|login|forgot-password|reset-password)(\/|$)/.test(
+          pathname,
+        ) && <Footer />}
       {showMobileNav && <MobileBottomNav />}
     </div>
   );
