@@ -290,7 +290,7 @@ export default function SupplierDashboard() {
     <div className="ledger-dashboard">
       <div className="ledger-content">
         <LedgerOverview
-          title="Supplier overview"
+          title="Supplier Overview"
           loading={loading}
           action={{ to: "/supplier/products/new", label: "Add equipment" }}
           groups={[

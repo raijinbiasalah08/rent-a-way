@@ -106,7 +106,7 @@ export default function CustomerDashboard() {
     <div className="ledger-dashboard">
       <div className="ledger-content">
         <LedgerOverview
-          title="Renter overview"
+          title="Renter Overview"
           loading={loading}
           action={{ to: "/browse", label: "Browse rentals" }}
           groups={[

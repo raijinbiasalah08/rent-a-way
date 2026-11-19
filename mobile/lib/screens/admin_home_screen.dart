@@ -50,7 +50,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
       children: [
         const Text(
-          'Admin overview',
+          'Admin Overview',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w900,
