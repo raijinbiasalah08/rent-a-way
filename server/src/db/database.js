@@ -214,6 +214,26 @@ const db = {
           )
           .run(new Date().toISOString());
       }
+      if (
+        !(await db
+          .prepare("SELECT version FROM schema_migrations WHERE version = 4")
+          .get())
+      ) {
+        await db.exec(`INSERT INTO subscription_payments
+          (id,supplier_id,plan,amount,status,created_at,reviewed_at,reviewed_by)
+          SELECT 'legacy_' || id, resource_id,
+            CASE action WHEN 'subscription_approve_student' THEN 'student' ELSE 'business' END,
+            CASE action WHEN 'subscription_approve_student' THEN 80 ELSE 100 END,
+            'approved',created_at,created_at,actor_id
+          FROM admin_audit
+          WHERE action IN ('subscription_approve_student','subscription_approve_business')
+          ON CONFLICT(id) DO NOTHING`);
+        await db
+          .prepare(
+            "INSERT INTO schema_migrations (version, applied_at) VALUES (4, ?)",
+          )
+          .run(new Date().toISOString());
+      }
       for (const b of require("../utils/roxasLocation").ROXAS_BARANGAYS) {
         await db
           .prepare(

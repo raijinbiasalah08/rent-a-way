@@ -15,6 +15,7 @@ import {
   Shield,
   Users,
   UserRound,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -64,6 +65,7 @@ const ADMIN_LINKS = [
 const ADMIN_MORE = [
   ["/admin/complaints", "Complaints", Shield],
   ["/admin/reports", "Reports & analytics", FileText],
+  ["/admin/wallet", "Wallet", Wallet],
   ["/messages", "Messages", MessageCircle],
 ];
 

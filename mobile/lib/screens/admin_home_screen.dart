@@ -168,6 +168,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           detail: 'See rental activity summaries',
           onTap: () => _open(context, 'reports'),
         ),
+        const SizedBox(height: 8),
+        _AdminShortcut(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Subscription wallet',
+          detail: 'View confirmed subscription payments',
+          onTap: () => _open(context, 'wallet'),
+        ),
       ],
     ),
   );

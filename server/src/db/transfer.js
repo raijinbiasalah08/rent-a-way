@@ -17,6 +17,8 @@ const tables = [
   "community_likes",
   "admin_audit",
   "uploaded_assets",
+  "subscription_receiver",
+  "subscription_payments",
 ];
 async function main() {
   const [mode, input, output] = process.argv.slice(2);

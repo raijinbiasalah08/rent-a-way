@@ -21,6 +21,9 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
   late Map<String, dynamic> _status = widget.status;
   bool _saving = false;
   String? _error;
+  Map<String, dynamic>? _checkout;
+  bool _showQr = false;
+  String _reference = '';
 
   Future<void> _request(String plan) async {
     setState(() {
@@ -30,10 +33,16 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
     try {
       final response = await widget.api.put(
         'subscriptions/request',
-        body: {'plan': plan},
+        body: {
+          'plan': plan,
+          if (_reference.trim().isNotEmpty) 'reference': _reference,
+        },
       );
       if (mounted) {
-        setState(() => _status = response['data'] as Map<String, dynamic>);
+        setState(() {
+          _status = response['data'] as Map<String, dynamic>;
+          _checkout = null;
+        });
       }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -68,6 +77,9 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
         ? 'business advertising'
         : 'featured listing';
     final expiry = DateTime.tryParse(_status['expiresAt']?.toString() ?? '');
+    if (_checkout case final checkout?) {
+      return _buildCheckout(context, checkout, _status['receiver']);
+    }
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -123,9 +135,14 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
                     ),
                   if (pkg['id'] != 'free')
                     FilledButton(
-                      onPressed: _saving || pkg['id'] == pending
+                      onPressed: _saving || pending != null
                           ? null
-                          : () => _request(pkg['id'] as String),
+                          : () => setState(() {
+                              _checkout = pkg;
+                              _reference = '';
+                              _showQr = false;
+                              _error = null;
+                            }),
                       child: Text(
                         pkg['id'] == pending
                             ? 'Request pending'
@@ -140,7 +157,7 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
           ),
         if (pending != null) ...[
           const Text(
-            'Your request is pending. Contact the supplier team to arrange payment.',
+            'Your request is awaiting admin verification. Please wait for review before making another payment.',
           ),
           TextButton(
             onPressed: () => _contact('Subscription payment'),
@@ -160,6 +177,108 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
             _error!,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
+      ],
+    );
+  }
+
+  Widget _buildCheckout(
+    BuildContext context,
+    Map<String, dynamic> checkout,
+    dynamic receiver,
+  ) {
+    final theme = Theme.of(context);
+    return ListView(
+      shrinkWrap: true,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        8,
+        20,
+        24 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text('Pay with GCash', style: theme.textTheme.titleLarge),
+            ),
+            IconButton(
+              tooltip: 'Close',
+              onPressed: _saving ? null : () => Navigator.pop(context),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        Text(
+          '${checkout['name']} · ₱${checkout['monthlyPrice']} for one month',
+          style: theme.textTheme.titleMedium,
+        ),
+        if (receiver is Map) ...[
+          Text(
+            'Confirm the recipient in GCash is ${receiver['account_name']} before paying.',
+          ),
+          OutlinedButton(
+            onPressed: () => setState(() => _showQr = !_showQr),
+            child: Text(_showQr ? 'Hide GCash QR code' : 'Show GCash QR code'),
+          ),
+          if (_showQr) ...[
+            Image.network(
+              widget.api.assetUri(receiver['qr_url']).toString(),
+              height: 230,
+              fit: BoxFit.contain,
+              semanticLabel: 'GCash receiving QR',
+              errorBuilder: (_, _, _) =>
+                  const Text('The QR image could not load.'),
+            ),
+            const Text(
+              'On one phone, take a screenshot of the QR and select it in the GCash QR scanner.',
+            ),
+          ],
+          TextField(
+            keyboardType: TextInputType.number,
+            maxLength: 50,
+            decoration: const InputDecoration(
+              labelText: 'GCash payment reference',
+            ),
+            onChanged: (value) => setState(() => _reference = value),
+          ),
+          FilledButton(
+            onPressed:
+                !_saving &&
+                    RegExp(
+                      r'^\d{10,20}$',
+                    ).hasMatch(_reference.replaceAll(RegExp(r'[ -]'), ''))
+                ? () => _request(checkout['id'])
+                : null,
+            child: Text(
+              _saving ? 'Submitting…' : 'Submit for admin verification',
+            ),
+          ),
+        ] else ...[
+          const Text(
+            'The GCash receiving account has not been set up yet. Contact the team to arrange payment, then submit for manual review.',
+          ),
+          TextButton(
+            onPressed: () => _contact('Subscription payment'),
+            child: const Text('Contact supplier team'),
+          ),
+          FilledButton(
+            onPressed: _saving ? null : () => _request(checkout['id']),
+            child: Text(
+              _saving ? 'Submitting…' : 'Request plan for manual confirmation',
+            ),
+          ),
+        ],
+        if (_error != null)
+          Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () => setState(() {
+                  _checkout = null;
+                  _error = null;
+                }),
+          child: const Text('Back to plans'),
+        ),
       ],
     );
   }

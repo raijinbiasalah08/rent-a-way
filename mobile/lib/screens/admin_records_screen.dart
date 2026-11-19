@@ -18,6 +18,9 @@ class AdminRecordsScreen extends StatefulWidget {
 class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
   List<Map<String, dynamic>> _items = [];
   Map<String, dynamic> _reports = {};
+  int _walletPage = 1;
+  int _walletPages = 1;
+  num _collected = 0;
   bool _loading = true;
   String? _error;
 
@@ -25,6 +28,7 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
     'users' => 'Users',
     'products' => 'Equipment listings',
     'complaints' => 'Complaints',
+    'wallet' => 'Subscription wallet',
     _ => 'Reports',
   };
 
@@ -52,14 +56,21 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
         final endpoint = switch (widget.section) {
           'users' => 'admin/users',
           'products' => 'admin/products',
+          'wallet' => 'admin/wallet',
           _ => 'admin/complaints',
         };
         final response = await widget.session.api.get(
           endpoint,
-          query: const {'page': '1', 'limit': '100'},
+          query: widget.section == 'wallet'
+              ? {'page': '$_walletPage', 'limit': '20'}
+              : const {'page': '1', 'limit': '100'},
         );
         final data = response['data'];
         if (mounted) {
+          if (widget.section == 'wallet') {
+            _walletPages = response['pagination']['totalPages'] as int;
+            _collected = num.parse(response['summary']['collected'].toString());
+          }
           setState(
             () => _items = data is List
                 ? data
@@ -157,7 +168,7 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Review subscription'),
         content: Text(
-          "${user['name']} requested ${pkg['name']} at ₱${pkg['monthlyPrice']}/month. Confirm payment with ${user['email']} before activation.${pkg['id'] == 'business' ? ' Verify the business before granting its badge.' : ''}",
+          "${user['name']} requested ${pkg['name']} at ₱${user['payment_amount'] ?? pkg['monthlyPrice']}/month. ${user['payment_reference'] == null ? 'Confirm receipt of payment before activation.' : 'Match GCash reference ${user['payment_reference']} and the amount before approval.'} Approval credits the subscription wallet.${pkg['id'] == 'business' ? ' Verify the business before granting its badge.' : ''}",
         ),
         actions: [
           TextButton(
@@ -179,7 +190,11 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
     try {
       await widget.session.api.put(
         "admin/users/${user['id']}/subscription",
-        body: {'plan': pkg['id'], 'decision': decision},
+        body: {
+          'plan': pkg['id'],
+          'decision': decision,
+          'paymentId': user['payment_id'],
+        },
       );
       if (mounted) {
         _message(
@@ -244,6 +259,54 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
             )
           : widget.section == 'reports'
           ? _buildReports()
+          : widget.section == 'wallet'
+          ? ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  'Total collected · ₱$_collected',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                if (_items.isEmpty)
+                  const Text('No confirmed subscription payments yet.'),
+                for (final item in _items)
+                  Card(
+                    child: ListTile(
+                      title: Text(item['supplier']),
+                      trailing: Text('₱${item['amount']}'),
+                      subtitle: Text(
+                        "${item['plan'] == 'business' ? 'Premium Business' : 'Premium Student'} · ${item['reference'] ?? 'Manual confirmation'}",
+                      ),
+                    ),
+                  ),
+                if (_walletPages > 1)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: _walletPage > 1
+                            ? () {
+                                _walletPage--;
+                                _load();
+                              }
+                            : null,
+                        child: const Text('Previous'),
+                      ),
+                      Text('$_walletPage / $_walletPages'),
+                      TextButton(
+                        onPressed: _walletPage < _walletPages
+                            ? () {
+                                _walletPage++;
+                                _load();
+                              }
+                            : null,
+                        child: const Text('Next'),
+                      ),
+                    ],
+                  ),
+              ],
+            )
           : _items.isEmpty
           ? ListView(
               children: [

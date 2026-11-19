@@ -12,6 +12,7 @@ const {
   nextMonth,
   checkListingSlot,
 } = require("../utils/subscriptions");
+const { removeAsset } = require("../utils/assets");
 async function audit(req, action, id) {
   await db
     .prepare(
@@ -165,6 +166,62 @@ router.get("/public-stats", async (req, res) => {
 
 // All routes below are admin only
 router.use(authenticate, authorize("admin"));
+
+router.get("/wallet", async (req, res) => {
+  const receiver = await db
+    .prepare(
+      "SELECT account_name, qr_url FROM subscription_receiver WHERE id = 1",
+    )
+    .get();
+  const summary = await db
+    .prepare(
+      "SELECT COALESCE(SUM(amount), 0) AS collected, COUNT(*) AS payments FROM subscription_payments WHERE status = 'approved'",
+    )
+    .get();
+  const ledger = await paginated(
+    `SELECT p.id, p.plan, p.amount, p.reference, p.reviewed_at, u.name AS supplier
+    FROM subscription_payments p JOIN users u ON u.id = p.supplier_id
+    WHERE p.status = 'approved' ORDER BY p.reviewed_at DESC, p.id`,
+    [],
+    req,
+  );
+  res.json({ ...ledger, summary, receiver: receiver || null });
+});
+
+router.put(
+  "/wallet/receiver",
+  require("../utils/imageStorage").single("qr"),
+  async (req, res) => {
+    const name =
+      typeof req.body?.accountName === "string" && req.body.accountName.trim();
+    if (!req.file || !name || name.length > 100)
+      return res.status(400).json({
+        success: false,
+        message:
+          "Enter the receiving account name and upload its GCash QR image.",
+      });
+    let previous;
+    await db.transaction(async () => {
+      if (db.dialect === "postgres")
+        await db.exec("SELECT pg_advisory_xact_lock(7834523)");
+      previous = await db
+        .prepare("SELECT qr_url FROM subscription_receiver WHERE id = 1")
+        .get();
+      await db
+        .prepare(
+          `INSERT INTO subscription_receiver (id, account_name, qr_url) VALUES (1,?,?)
+      ON CONFLICT(id) DO UPDATE SET account_name=excluded.account_name, qr_url=excluded.qr_url`,
+        )
+        .run(name, req.file.url);
+      await audit(req, "updated_subscription_receiver", req.file.url);
+    });
+    if (previous) await removeAsset(previous.qr_url);
+    res.json({
+      success: true,
+      data: { account_name: name, qr_url: req.file.url },
+    });
+  },
+);
 router.get("/users/:id/identity", async (req, res, next) => {
   try {
     const document = await db.prepare("SELECT content_type, image_data FROM registration_ids WHERE user_id = ?").get(req.params.id);
@@ -274,8 +331,9 @@ router.get("/stats", async (req, res) => {
 router.get("/users", async (req, res) => {
   try {
     const { search, role } = req.query;
-    let query =
-      "SELECT id, name, email, role, phone, address, is_active, created_at, requested_plan, subscription_plan, subscription_expires_at FROM users WHERE 1=1";
+    let query = `SELECT users.id, name, email, role, phone, address, is_active, users.created_at, requested_plan, subscription_plan, subscription_expires_at,
+        p.id AS payment_id, p.reference AS payment_reference, p.amount AS payment_amount
+        FROM users LEFT JOIN subscription_payments p ON p.supplier_id = users.id AND p.status = 'pending' WHERE 1=1`;
     const params = [];
 
     if (search) {
@@ -289,7 +347,7 @@ router.get("/users", async (req, res) => {
 
     const result = await paginated(
       query +
-        " ORDER BY CASE WHEN role = 'supplier' AND requested_plan IS NOT NULL THEN 0 ELSE 1 END, created_at DESC,id",
+        " ORDER BY CASE WHEN role = 'supplier' AND requested_plan IS NOT NULL THEN 0 ELSE 1 END, users.created_at DESC,users.id",
       params,
       req,
     );
@@ -315,6 +373,7 @@ router.put(
     z.object({
       plan: z.enum(paidPlans),
       decision: z.enum(["approve", "decline"]),
+      paymentId: z.string().uuid().nullable().optional(),
     }),
   ),
   async (req, res) => {
@@ -329,7 +388,51 @@ router.put(
         )
         .get(supplierId, plan);
       if (!current) return false;
+      const pending = await db
+        .prepare(
+          "SELECT id FROM subscription_payments WHERE supplier_id = ? AND status = 'pending' AND plan = ?",
+        )
+        .get(supplierId, plan);
+      if (
+        (req.body.paymentId && req.body.paymentId !== pending?.id) ||
+        (!req.body.paymentId && pending?.reference)
+      )
+        throw Object.assign(
+          new Error(
+            "This request has changed. Reopen the review to see the current payment.",
+          ),
+          { status: 409 },
+        );
       const pkg = packages.find((item) => item.id === plan);
+      const reviewedAt = new Date().toISOString();
+      if (pending) {
+        await db
+          .prepare(
+            "UPDATE subscription_payments SET status = ?, reviewed_at = ?, reviewed_by = ? WHERE id = ?",
+          )
+          .run(
+            decision === "approve" ? "approved" : "declined",
+            reviewedAt,
+            req.user.id,
+            pending.id,
+          );
+      } else if (decision === "approve") {
+        // A pre-checkout request can still be confirmed after manual payment verification.
+        await db
+          .prepare(
+            `INSERT INTO subscription_payments (id,supplier_id,plan,amount,status,created_at,reviewed_at,reviewed_by)
+          VALUES (?,?,?,?,'approved',?,?,?)`,
+          )
+          .run(
+            uuidv4(),
+            supplierId,
+            plan,
+            pkg.monthlyPrice,
+            reviewedAt,
+            reviewedAt,
+            req.user.id,
+          );
+      }
       let message = `Your ${pkg.name} request was declined. Contact the supplier team for details.`;
       if (decision === "approve") {
         const now = new Date().toISOString();

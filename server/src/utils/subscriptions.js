@@ -52,7 +52,13 @@ async function subscriptionStatus(id) {
     user.subscription_expires_at > new Date().toISOString()
       ? user.subscription_plan
       : "free";
+  const receiver = await db
+    .prepare(
+      "SELECT account_name, qr_url FROM subscription_receiver WHERE id = 1",
+    )
+    .get();
   return {
+    receiver: receiver || null,
     currentPlan,
     expiresAt: currentPlan === "free" ? null : user.subscription_expires_at,
     requestedPlan: user.requested_plan,

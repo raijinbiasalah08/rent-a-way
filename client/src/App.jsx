@@ -52,6 +52,7 @@ const AdminProducts = lazy(() => import("./pages/admin/Products"));
 const AdminRentals = lazy(() => import("./pages/admin/Rentals"));
 const AdminComplaints = lazy(() => import("./pages/admin/Complaints"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
+const AdminWallet = lazy(() => import("./pages/admin/Wallet"));
 
 const ResetPassword = lazy(() => import("./pages/public/ResetPassword"));
 const Help = lazy(() => import("./pages/public/Help"));
@@ -286,6 +287,7 @@ function App() {
                       <Route path="rentals" element={<AdminRentals />} />
                       <Route path="complaints" element={<AdminComplaints />} />
                       <Route path="reports" element={<AdminReports />} />
+                      <Route path="wallet" element={<AdminWallet />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </ProtectedRoute>

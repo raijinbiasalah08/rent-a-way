@@ -16,7 +16,7 @@ All routes are under `/api`. Successful responses have `{success:true,data:...}`
 | `/products/mine` | GET | Supplier/admin own listings |
 | `/products` | POST | Supplier. Returns 409 with `LISTING_LIMIT_REACHED` when the free slot is occupied |
 | `/subscriptions/me` | GET | Supplier's current plan, expiry, active count, upload eligibility, pending request and package catalog |
-| `/subscriptions/request` | PUT `{plan}` | Supplier requests Premium Student (`student`) or Premium Business (`business`) |
+| `/subscriptions/request` | PUT `{plan, reference?}` | Supplier requests Premium Student (`student`) or Premium Business (`business`) after GCash payment. |
 | `/products/:id` | PUT, DELETE (deactivate) | Listing supplier or admin |
 | `/products/:id/images` | POST multipart image | Listing supplier or admin |
 | `/products/:id/images/:imageId` | DELETE | Listing supplier or admin |
@@ -38,7 +38,9 @@ All routes are under `/api`. Successful responses have `{success:true,data:...}`
 | `/admin/complaints` | POST | Signed-in reporter |
 | `/admin/stats`, `/admin/reports`, `/admin/users`, `/admin/products`, `/admin/rentals`, `/admin/complaints` | GET | Admin |
 | `/admin/users` | POST | Admin creates account |
-| `/admin/users/:id/subscription` | PUT `{plan, decision}` | Admin reviews the pending plan. Use `approve` after payment confirmation to activate one month, or `decline` |
+| `/admin/users/:id/subscription` | PUT `{plan, decision, paymentId?}` | Admin confirms the GCash reference and records one month, or declines the request. |
+| `/admin/wallet` | GET | Paginated confirmed subscription payments, total collected, and the receiving account. |
+| `/admin/wallet/receiver` | PUT multipart | Configure the GCash recipient with `accountName` and a `qr` image up to 5 MB. |
 | `/admin/users/:id` | PUT, DELETE (deactivate) | Admin; own admin access and last active admin protected |
 | `/admin/products/:id/toggle`, `/admin/complaints/:id` | PUT | Admin |
 

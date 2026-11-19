@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Flag,
   BarChart3,
+  Wallet,
 } from "lucide-react";
 
 export default function WorkspaceNavigation({ role }) {
@@ -30,6 +31,7 @@ export default function WorkspaceNavigation({ role }) {
           ["/admin/rentals", "Rentals", CalendarDays],
           ["/admin/complaints", "Complaints", Flag],
           ["/admin/reports", "Reports", BarChart3],
+          ["/admin/wallet", "Wallet", Wallet],
           ["/messages", "Messages", MessageSquare],
         ]
       : [

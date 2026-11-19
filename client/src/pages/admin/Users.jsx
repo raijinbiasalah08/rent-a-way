@@ -63,6 +63,7 @@ export default function Users() {
       await reviewSubscription(form.id, {
         plan: form.requested_plan,
         decision,
+        paymentId: form.payment_id,
       });
       toast.success(
         decision === "approve" ? "Subscription activated" : "Request declined",
@@ -247,11 +248,22 @@ export default function Users() {
         >
           <p className="text-sm">
             <strong>{form.name}</strong> requested {form.requested_package.name}{" "}
-            at ₱{form.requested_package.monthlyPrice}/month.
+            at ₱{form.payment_amount ?? form.requested_package.monthlyPrice}/month.
           </p>
+          {form.payment_reference && (
+            <p className="mt-3 rounded-lg bg-blue-50 p-3 text-sm">
+              GCash reference
+              <strong className="block font-mono">
+                {form.payment_reference}
+              </strong>
+            </p>
+          )}
           <p className="my-3 text-sm text-slate-600">
-            Confirm payment with {form.email} before activating one month of
-            access.
+            {form.payment_reference
+              ? "Match the reference and amount against the incoming GCash transaction."
+              : "Confirm receipt of the payment for this earlier request."}{" "}
+            Approval records the payment in the admin wallet and activates one
+            month of access.
             {form.requested_plan === "business" &&
               " Verify the business before granting its badge."}
           </p>

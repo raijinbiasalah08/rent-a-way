@@ -22,6 +22,26 @@ CREATE TABLE IF NOT EXISTS registration_ids (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS subscription_receiver (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  account_name TEXT NOT NULL,
+  qr_url TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS subscription_payments (
+  id TEXT PRIMARY KEY,
+  supplier_id TEXT NOT NULL REFERENCES users(id),
+  plan TEXT NOT NULL CHECK (plan IN ('student','business')),
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  reference TEXT,
+  status TEXT NOT NULL CHECK (status IN ('pending','approved','declined')),
+  created_at TEXT NOT NULL,
+  reviewed_at TEXT,
+  reviewed_by TEXT REFERENCES users(id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS subscription_pending_supplier ON subscription_payments(supplier_id) WHERE status = 'pending';
+CREATE UNIQUE INDEX IF NOT EXISTS subscription_payment_reference ON subscription_payments(reference) WHERE status IN ('pending','approved');
+CREATE INDEX IF NOT EXISTS subscription_wallet_history ON subscription_payments(status, reviewed_at);
+
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   supplier_id TEXT NOT NULL,
