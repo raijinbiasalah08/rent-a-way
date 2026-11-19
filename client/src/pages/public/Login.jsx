@@ -7,10 +7,8 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Check,
   AlertCircle,
   Loader2,
-  KeyRound,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getGoogleConfig } from "../../api/auth";
@@ -141,78 +139,18 @@ export default function Login() {
 
   return (
     <div className="flex min-h-[calc(100svh-4rem)] min-w-0 font-sans">
-      {/* ══ LEFT PANEL — dark navy ══════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-[45%] bg-[#0f1729] flex-col justify-center p-10 xl:p-16 relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#1a2744] opacity-50" />
-        <div className="absolute bottom-20 -left-16 w-56 h-56 rounded-full bg-[#1a2744] opacity-40" />
-        <div className="absolute top-1/2 right-8 w-32 h-32 rounded-full bg-[#1a2744] opacity-30" />
-
-        {/* Logo */}
-        <Link to="/" className="relative flex items-center gap-3 mb-16 group">
-          <img
-            src="/logo.png"
-            alt="Rent-A-Way Logo"
-            className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
-          />
-
-          <div>
-            <div className="text-white font-extrabold text-base leading-none">
-              Rent-A-Way
-            </div>
-            <div className="text-amber-400 text-[9px] font-bold tracking-widest uppercase">
-              Find better ways to save
-            </div>
-          </div>
-        </Link>
-
-        {/* Hero copy */}
-        <div className="relative">
-          <div className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-4">
-            LESS TO BUY. MORE TO DO.
-          </div>
-          <h2 className="text-white text-4xl xl:text-5xl font-extrabold leading-tight tracking-tight mb-10">
-            Make room for
-            <br />
-            <span className="text-amber-400">more possibilities.</span>
-          </h2>
-          <div className="space-y-5">
-            {[
-              "Discover equipment from local suppliers",
-              "Find the right gear for your next plan",
-              "Keep your rentals and conversations together",
-            ].map((text) => (
-              <div key={text} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check
-                    className="w-3.5 h-3.5 text-[#0f1729]"
-                    strokeWidth={3}
-                  />
-                </div>
-                <span className="text-gray-300 text-base leading-snug">
-                  {text}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* ══ RIGHT PANEL — cream form ════════════════════════════ */}
-      <div className="min-w-0 flex-1 bg-[#f5f0e8] flex flex-col">
+      <div className="min-w-0 flex-1 bg-[#faf9f6] flex flex-col">
         {/* Form centred vertically */}
-        <div className="flex min-w-0 flex-1 items-center justify-center px-3 py-5 sm:px-8 sm:py-8 lg:pb-12">
-          <div className="w-full min-w-0 max-w-md rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] sm:p-8">
+        <div className="flex min-w-0 flex-1 items-start justify-center px-4 py-6 sm:px-6 sm:py-8">
+          <div className="w-full min-w-0 max-w-md rounded-xl border border-slate-200 bg-white p-5 sm:p-7">
             {/* Heading */}
-            <div className="mb-5 sm:mb-7">
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-[#1e3a8a] sm:mb-5 sm:h-12 sm:w-12">
-                <KeyRound className="h-6 w-6" aria-hidden="true" />
-              </div>
+            <div className="mb-5">
               <div className="text-amber-700 text-[11px] font-bold tracking-[0.15em] uppercase mb-2">
-                YOUR RENT-A-WAY ACCOUNT
+                WELCOME BACK
               </div>
-              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#0f1729] mb-2 sm:mb-3 sm:text-3xl">
-                Welcome back.
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[#0f1729] mb-2 sm:text-[28px]">
+                Sign in to Rent-A-Way
               </h1>
               <p className="text-sm text-slate-500 leading-relaxed">
                 Sign in to pick up where you left off.
@@ -239,7 +177,7 @@ export default function Login() {
               onSubmit={handleSubmit}
               noValidate
               aria-busy={busy}
-              className="space-y-4 sm:space-y-5"
+              className="space-y-4"
             >
               {/* Email */}
               <div>
@@ -274,7 +212,7 @@ export default function Login() {
                     }}
                     placeholder="you@example.com"
                     required
-                    className="min-h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-4 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10 sm:min-h-[52px]"
+                    className="min-h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-4 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10"
                   />
                 </div>
                 {fieldErrors.email && (
@@ -329,7 +267,7 @@ export default function Login() {
                     }}
                     placeholder="Enter your password"
                     required
-                    className="min-h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-12 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10 sm:min-h-[52px]"
+                    className="min-h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-12 text-base text-slate-900 placeholder-slate-400 outline-none transition disabled:opacity-70 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/30 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-700/10"
                   />
 
                   <button
@@ -391,7 +329,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading || googleLoading}
-                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[52px]"
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy ? (
                   <>
@@ -411,7 +349,7 @@ export default function Login() {
             </form>
 
             {/* Visual Divider */}
-            <div className="my-4 flex items-center gap-3 sm:my-6">
+            <div className="my-4 flex items-center gap-3">
               <div className="flex-1 h-px bg-gray-200" />
               <span className="text-[11px] text-gray-400 font-medium">
                 or continue with
@@ -432,7 +370,7 @@ export default function Login() {
             />
 
             {/* Register link */}
-            <p className="mt-4 border-t border-slate-100 pt-4 text-center text-sm leading-7 text-slate-500 sm:mt-6 sm:pt-5">
+            <p className="mt-4 border-t border-slate-100 pt-4 text-center text-sm leading-7 text-slate-500">
               New to Rent-A-Way?{" "}
               <Link
                 to="/register"
