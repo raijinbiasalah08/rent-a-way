@@ -491,6 +491,36 @@
 .map-explorer .leaflet-popup-content a {
   color: white;
 }
+.map-explorer .rental-map-popup .leaflet-popup-content {
+  margin: 32px 14px 14px;
+}
+.map-explorer .rental-map-popup .leaflet-popup-content p {
+  margin: 0 0 6px;
+}
+.rental-map-popup-body {
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.map-explorer .rental-map-popup .leaflet-popup-content-wrapper {
+  overflow: hidden;
+}
+.map-explorer .rental-map-popup .leaflet-popup-scrolled {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.map-explorer .rental-map-popup a.leaflet-popup-close-button {
+  width: 36px;
+  height: 32px;
+  line-height: 32px;
+  color: #334155;
+  font-size: 24px;
+}
+.map-explorer .rental-map-popup a[href^="/product/"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
 .map-empty {
   display: flex;
   flex-direction: column;
@@ -543,6 +573,12 @@
   }
 }
 @media (max-width: 767px) {
+  .map-canvas-panel:has(.rental-map-popup) .map-canvas-caption {
+    visibility: hidden;
+  }
+  .rental-map-popup-photo {
+    height: 80px;
+  }
   .map-explorer {
     padding: 20px 14px 32px;
   }

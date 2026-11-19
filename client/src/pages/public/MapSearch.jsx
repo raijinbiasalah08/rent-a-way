@@ -85,6 +85,44 @@ function priceIcon(price, active) {
   });
 }
 
+function RentalPopup({ children }) {
+  const map = useMap();
+  const [size, setSize] = useState(() => map.getSize());
+  const popupRef = useRef(null);
+
+  useEffect(() => {
+    const onResize = () => setSize(map.getSize());
+    map.on("resize", onResize);
+    return () => map.off("resize", onResize);
+  }, [map]);
+
+  useEffect(() => {
+    const popup = popupRef.current;
+    if (!popup) return;
+    Object.assign(popup.options, {
+      minWidth: Math.min(208, Math.max(120, size.x - 64)),
+      maxWidth: Math.min(260, Math.max(120, size.x - 64)),
+      maxHeight: Math.max(120, size.y - 130),
+    });
+    popup.update();
+  }, [size]);
+
+  return (
+    <Popup
+      ref={popupRef}
+      className="rental-map-popup"
+      minWidth={Math.min(208, Math.max(120, size.x - 64))}
+      maxWidth={Math.min(260, Math.max(120, size.x - 64))}
+      maxHeight={Math.max(120, size.y - 130)}
+      autoPanPaddingTopLeft={[12, 12]}
+      autoPanPaddingBottomRight={[12, 52]}
+      keepInView
+    >
+      {children}
+    </Popup>
+  );
+}
+
 function EquipmentMarker({ product, active, children, ...props }) {
   const position = useMemo(
     () => [Number(product.latitude), Number(product.longitude)],
@@ -1069,9 +1107,9 @@ export default function MapSearch() {
                       click: () => handleMarkerClick(product.id),
                     }}
                   >
-                    <Popup>
-                      <div className="w-52 pb-1 font-sans">
-                        <div className="relative w-full h-28 overflow-hidden rounded-xl mb-2 bg-gray-100">
+                    <RentalPopup>
+                      <div className="rental-map-popup-body pb-1 font-sans">
+                        <div className="rental-map-popup-photo relative w-full h-28 overflow-hidden rounded-xl mb-2 bg-gray-100">
                           <img
                             src={
                               product.primary_image
@@ -1136,7 +1174,7 @@ export default function MapSearch() {
                           View Details
                         </Link>
                       </div>
-                    </Popup>
+                    </RentalPopup>
                   </EquipmentMarker>
                 );
               })}
