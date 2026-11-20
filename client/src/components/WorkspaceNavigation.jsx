@@ -56,7 +56,9 @@ export default function WorkspaceNavigation({ role }) {
       aria-label="Workspace navigation"
       className="ledger-nav hidden md:block"
     >
-      <div className="ledger-nav-links">
+      <div
+        className={`ledger-nav-links ${role === "admin" ? "ledger-nav-links-admin" : ""}`}
+      >
         {links.map(([to, label, Icon]) => (
           <NavLink key={to} to={to} end className="ledger-nav-link">
             <Icon size={16} aria-hidden="true" />

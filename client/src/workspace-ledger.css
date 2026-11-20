@@ -114,6 +114,19 @@
   transform: translateY(1px);
 }
 
+@media (min-width: 1200px) {
+  .ledger-nav-links-admin {
+    gap: 0;
+  }
+  .ledger-nav-links-admin .ledger-nav-link {
+    flex: 1 1 0;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: clamp(4px, 0.75vw, 10px);
+    white-space: nowrap;
+  }
+}
+
 .ledger-workspace {
   min-width: 0;
   background: var(--ledger-paper);
