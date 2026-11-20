@@ -11,9 +11,15 @@ export default function ProductCard({ product }) {
           src={
             product.primary_image
               ? apiAssetUrl(product.primary_image)
-              : "https://via.placeholder.com/300x200?text=No+Image"
+              : "/placeholder.svg"
           }
           alt={product.title}
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = "/placeholder.svg";
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
         />
         <div className="absolute top-3 left-3">

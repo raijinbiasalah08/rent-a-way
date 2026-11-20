@@ -234,6 +234,20 @@ const db = {
           )
           .run(new Date().toISOString());
       }
+      if (
+        !(await db
+          .prepare("SELECT version FROM schema_migrations WHERE version = 5")
+          .get())
+      ) {
+        await db.exec(`CREATE INDEX IF NOT EXISTS product_images_primary_lookup ON product_images(product_id, is_primary DESC, id);
+          CREATE INDEX IF NOT EXISTS product_images_order ON product_images(product_id, sort_order, id);
+          CREATE INDEX IF NOT EXISTS reviews_product_lookup ON reviews(product_id, created_at DESC, id, rating);`);
+        await db
+          .prepare(
+            "INSERT INTO schema_migrations (version, applied_at) VALUES (5, ?)",
+          )
+          .run(new Date().toISOString());
+      }
       for (const b of require("../utils/roxasLocation").ROXAS_BARANGAYS) {
         await db
           .prepare(

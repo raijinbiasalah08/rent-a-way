@@ -119,8 +119,8 @@ app.get("/uploads/:filename", async (req, res, next) => {
   const { filename } = req.params;
   if (require("node:path").basename(filename) !== filename) return next();
   const asset = await db
-    .prepare("SELECT content_type, data FROM uploaded_assets WHERE filename = ?")
-    .get(filename);
+    .prepare("SELECT content_type, data FROM uploaded_assets WHERE url = ?")
+    .get(`/uploads/${filename}`);
   if (asset?.data) {
     res.set("Cache-Control", "public, max-age=31536000, immutable");
     res.set("X-Content-Type-Options", "nosniff");
