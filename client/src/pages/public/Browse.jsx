@@ -19,7 +19,6 @@ import {
   Calendar,
   Home,
   GraduationCap,
-  Compass,
   RotateCcw,
   Heart,
   ChevronLeft,
@@ -43,6 +42,7 @@ const CATEGORIES = [
   ["Vehicles", "Vehicles", Car],
   ["Apartments", "Apartments", Building2],
 ];
+const PAGE_SIZE = 6;
 const STATUS = {
   available: ["Available", "available"],
   limited: ["Limited stock", "limited"],
@@ -50,6 +50,34 @@ const STATUS = {
   maintenance: ["Maintenance", "unavailable"],
   unavailable: ["Unavailable", "unavailable"],
 };
+
+function getVisiblePages(page, totalPages) {
+  if (totalPages <= 5)
+    return Array.from({ length: totalPages }, (_, index) => ({
+      number: index + 1,
+    }));
+
+  const visible = new Set([1, totalPages]);
+  for (
+    let number = Math.max(1, page - 1);
+    number <= Math.min(totalPages, page + 1);
+    number++
+  ) {
+    visible.add(number);
+  }
+
+  const sorted = [...visible].sort((a, b) => a - b);
+  return sorted.flatMap((number, index) => {
+    const previous = sorted[index - 1];
+    return [
+      ...(previous && number - previous > 1
+        ? [{ ellipsis: true, key: `gap-${previous}-${number}` }]
+        : []),
+      { number },
+    ];
+  });
+}
+
 function ProductCard({ product, wide, dateQuery }) {
   const detailUrl = `/product/${product.id}${dateQuery}`;
   const { favoriteIds, toggleFavorite } = useFavorites();
@@ -212,7 +240,7 @@ export default function Browse() {
     const legacyPrice = (params.get("price") || "").split("-");
     const apiParams = {
       page,
-      limit: 12,
+      limit: PAGE_SIZE,
       search: params.get("q") || undefined,
       category: params.get("category") || undefined,
       barangay: params.get("barangay") || undefined,
@@ -315,6 +343,9 @@ export default function Browse() {
     draft.startDate && draft.endDate
       ? `${draft.startDate} – ${draft.endDate}`
       : "Select dates";
+  const visiblePages = getVisiblePages(page, totalPages);
+  const firstResult = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const lastResult = Math.min(page * PAGE_SIZE, total);
 
   return (
     <div className="browse-page browse-layout-b">
@@ -529,7 +560,9 @@ export default function Browse() {
                     ? "Finding rentals…"
                     : error
                       ? "Rentals unavailable"
-                      : `${total} ${total === 1 ? "result" : "results"}${totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ""}`}
+                      : total
+                        ? `Showing ${firstResult}–${lastResult} of ${total} rentals`
+                        : "0 rentals"}
                 </p>
               </div>
               <div className="browse-view-toggle">
@@ -635,7 +668,6 @@ export default function Browse() {
                     dateQuery={dateQuery}
                     key={product.id}
                     product={product}
-                    wide={products.length === 1}
                   />
                 ))}
               </div>
@@ -649,9 +681,29 @@ export default function Browse() {
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <span>
-                  Page {page} of {totalPages}
-                </span>
+                <div className="browse-page-numbers" aria-label="Page numbers">
+                  {visiblePages.map((item) =>
+                    item.ellipsis ? (
+                      <span
+                        key={item.key}
+                        className="browse-page-ellipsis"
+                        aria-hidden="true"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={item.number}
+                        type="button"
+                        aria-label={`Page ${item.number}`}
+                        aria-current={page === item.number ? "page" : undefined}
+                        onClick={() => updateParam("page", item.number)}
+                      >
+                        {item.number}
+                      </button>
+                    ),
+                  )}
+                </div>
                 <button
                   aria-label="Next page"
                   disabled={page >= totalPages}
@@ -659,18 +711,11 @@ export default function Browse() {
                 >
                   <ChevronRight size={18} />
                 </button>
+                <span className="browse-pagination-summary">
+                  Page {page} of {totalPages}
+                </span>
               </nav>
             )}
-            <div className="browse-explore">
-              <Compass size={30} />
-              <div>
-                <h3>Looking for something else?</h3>
-                <p>Try another category or explore the map.</p>
-              </div>
-              <Link to={mapUrl}>
-                Explore map <ArrowRight size={18} />
-              </Link>
-            </div>
           </section>
         </div>
       </div>
