@@ -33,6 +33,7 @@ export default function WorkspaceNavigation({ role }) {
           ["/admin/reports", "Reports", BarChart3],
           ["/admin/wallet", "Wallet", Wallet],
           ["/messages", "Messages", MessageSquare],
+          ["/admin/settings", "Settings", Settings],
         ]
       : [
           [`${prefix}/dashboard`, "Overview", LayoutDashboard],

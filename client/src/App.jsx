@@ -288,6 +288,7 @@ function App() {
                       <Route path="complaints" element={<AdminComplaints />} />
                       <Route path="reports" element={<AdminReports />} />
                       <Route path="wallet" element={<AdminWallet />} />
+                      <Route path="settings" element={<CustomerProfile />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </ProtectedRoute>

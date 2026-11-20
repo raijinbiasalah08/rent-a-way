@@ -542,6 +542,13 @@ export default function Navbar({ workspaceRole }) {
                         >
                           Dashboard
                         </Link>
+                        <Link
+                          to={`/${user.role}/settings`}
+                          onClick={() => setProfileOpen(false)}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#1e3a8a] transition"
+                        >
+                          Account settings
+                        </Link>
                         {user.role === "customer" && (
                           <Link
                             to="/customer/rentals"

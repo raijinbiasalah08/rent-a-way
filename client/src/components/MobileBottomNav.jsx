@@ -67,6 +67,7 @@ const ADMIN_MORE = [
   ["/admin/complaints", "Complaints", Shield],
   ["/admin/reports", "Reports & analytics", FileText],
   ["/admin/wallet", "Wallet", Wallet],
+  ["/admin/settings", "Account settings", Settings],
   ["/browse", "Browse rentals", Search],
   ["/messages", "Messages", MessageCircle],
 ];
