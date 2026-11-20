@@ -23,6 +23,7 @@ import {
   Heart,
   ChevronLeft,
   AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { getProducts } from "../../api/products";
 import { useFavorites } from "../../context/FavoritesContext";
@@ -43,6 +44,12 @@ const CATEGORIES = [
   ["Apartments", "Apartments", Building2],
 ];
 const PAGE_SIZE = 6;
+const MARKETPLACE_FEATURES = [
+  { icon: Search, label: "COMPARE LOCAL LISTINGS" },
+  { icon: MessageSquare, label: "MESSAGE SUPPLIERS" },
+  { icon: CalendarDays, label: "CHOOSE YOUR DATES" },
+  { icon: MapPin, label: "RENTALS AROUND ROXAS" },
+];
 const STATUS = {
   available: ["Available", "available"],
   limited: ["Limited stock", "limited"],
@@ -717,6 +724,29 @@ export default function Browse() {
               </nav>
             )}
           </section>
+        </div>
+      </div>
+      <div
+        className="browse-feature-ticker"
+        role="region"
+        aria-label="Rent-A-Way marketplace features"
+      >
+        <p className="sr-only">
+          Compare local listings. Message suppliers. Choose your dates. Rentals
+          around Roxas.
+        </p>
+        <div className="animate-marquee" aria-hidden="true">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="marquee-group">
+              {MARKETPLACE_FEATURES.map(({ icon: Icon, label }) => (
+                <span key={label}>
+                  <Icon size={16} aria-hidden="true" />
+                  {label}
+                  <span className="browse-feature-dot">●</span>
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </div>
