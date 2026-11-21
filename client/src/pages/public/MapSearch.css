@@ -709,6 +709,230 @@
 .rental-map-popup-body {
   width: 100%;
   overflow-wrap: anywhere;
+  color: #14263f;
+  font-family: "Manrope", var(--app-font-sans), sans-serif;
+}
+.rental-map-popup-photo {
+  position: relative;
+  isolation: isolate;
+  height: 132px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: #101b30;
+}
+.rental-map-popup-photo::after {
+  position: absolute;
+  z-index: 1;
+  inset: 24% 0 0;
+  background: linear-gradient(180deg, transparent 0%, #0e172ac9 70%, #0e172aed 100%);
+  content: "";
+  pointer-events: none;
+}
+.rental-map-popup-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rental-map-popup-category,
+.rental-map-popup-availability {
+  position: absolute;
+  z-index: 2;
+  left: 10px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 750;
+}
+.rental-map-popup-category {
+  top: 9px;
+  max-width: calc(100% - 64px);
+  overflow: hidden;
+  padding: 5px 8px;
+  background: #17243c;
+  color: #fff;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rental-map-popup-availability {
+  top: 36px;
+  padding: 4px 7px;
+  background: #fffbeb;
+  color: #92400e;
+}
+.rental-map-popup-availability.is-available {
+  background: #ecfdf3;
+  color: #15803d;
+}
+.rental-map-popup-image-copy {
+  position: absolute;
+  z-index: 2;
+  right: 11px;
+  bottom: 9px;
+  left: 11px;
+  color: white;
+  pointer-events: none;
+}
+.rental-map-popup-image-copy h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.map-explorer .rental-map-popup .rental-map-popup-image-copy p {
+  width: fit-content;
+  min-width: 65%;
+  margin: 0;
+  padding-top: 5px;
+  border-top: 1px solid #ffffff75;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 650;
+}
+.rental-map-popup-recent {
+  display: inline-flex;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: #fff5d6;
+  color: #855900;
+  font-size: 9px;
+  font-weight: 750;
+}
+.map-explorer .rental-map-popup .rental-map-popup-title {
+  overflow: hidden;
+  margin: 0 0 3px;
+  color: #14263f;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-explorer .rental-map-popup .rental-map-popup-supplier {
+  overflow: hidden;
+  margin: 0 0 7px;
+  color: #65748b;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rental-map-popup-supplier strong {
+  color: #14263f;
+  font-weight: 750;
+}
+.rental-map-popup-distance {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  border: 1px solid #dce6ff;
+  border-radius: 9px;
+  padding: 5px 8px;
+  background: #eef3ff;
+  color: #253a60;
+  font-size: 10px;
+}
+.rental-map-popup-distance svg {
+  flex: 0 0 auto;
+  color: #233f91;
+}
+.rental-map-popup-distance strong {
+  margin-left: auto;
+  color: #233f91;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.rental-map-popup-location {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  color: #526178;
+  font-size: 10px;
+}
+.rental-map-popup-location svg {
+  flex: 0 0 auto;
+  color: #233f91;
+}
+.rental-map-popup-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rental-map-popup-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.rental-map-popup-price strong {
+  color: #a96a00;
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+.rental-map-popup-price span {
+  color: #65748b;
+  font-size: 9px;
+  font-weight: 700;
+}
+.rental-map-popup-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 7px;
+  color: #5b6678;
+  font-size: 9px;
+}
+.rental-map-popup-facts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid #e8edf5;
+  border-radius: 999px;
+  padding: 4px 6px;
+  background: #f7f9fc;
+  white-space: nowrap;
+}
+.rental-map-popup-facts svg {
+  flex: 0 0 auto;
+  color: #233f91;
+}
+.map-explorer .rental-map-popup .rental-map-popup-specs {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0 0 8px;
+  color: #65748b;
+  font-size: 9px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.map-explorer .rental-map-popup .rental-map-popup-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 9px;
+  border-radius: 10px;
+  background: #101b30;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  transition: background-color 160ms ease;
+}
+.map-explorer .rental-map-popup .rental-map-popup-link:hover {
+  background: #233f91;
 }
 .map-explorer .rental-map-popup .leaflet-popup-content-wrapper {
   overflow: hidden;
@@ -786,7 +1010,7 @@
     visibility: hidden;
   }
   .rental-map-popup-photo {
-    height: 80px;
+    height: 104px;
   }
   .map-explorer {
     padding: 20px 14px 32px;

@@ -1221,8 +1221,8 @@ export default function MapSearch() {
                     }}
                   >
                     <RentalPopup>
-                      <div className="rental-map-popup-body pb-1 font-sans">
-                        <div className="rental-map-popup-photo relative w-full h-28 overflow-hidden rounded-xl mb-2 bg-gray-100">
+                      <div className="rental-map-popup-body">
+                        <div className="rental-map-popup-photo">
                           <img
                             src={
                               product.primary_image
@@ -1231,60 +1231,87 @@ export default function MapSearch() {
                                   : apiAssetUrl(product.primary_image)
                                 : "/placeholder.svg"
                             }
-                            className="w-full h-full object-cover"
                             alt={product.title}
                           />
-
-                          <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          <span className="rental-map-popup-category">
                             {product.category}
                           </span>
+                          <span
+                            className={`rental-map-popup-availability${product.availability === "available" ? " is-available" : ""}`}
+                          >
+                            {product.availability === "available"
+                              ? "Available"
+                              : "Check availability"}
+                          </span>
+                          <div className="rental-map-popup-image-copy">
+                            <h3>{product.title}</h3>
+                            <p>
+                              ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")} / DAY
+                            </p>
+                          </div>
                         </div>
 
-                        <h4 className="font-bold text-gray-900 text-sm mb-1 leading-tight line-clamp-1">
+                        {isRecentlyAdded(product.created_at) && (
+                          <span className="rental-map-popup-recent">
+                            Recently added
+                          </span>
+                        )}
+                        <h4 className="rental-map-popup-title">
                           {product.title}
                         </h4>
-
-                        {/* Supplier Name */}
-                        <p className="text-[11px] text-gray-600 mb-1">
-                          Listed by:{" "}
-                          <strong className="text-gray-900 font-semibold">
-                            {product.supplier_name || "Local supplier"}
-                          </strong>
+                        <p className="rental-map-popup-supplier">
+                          Listed by <strong>{product.supplier_name || "Local supplier"}</strong>
                         </p>
-
-                        {/* Distance readout */}
                         {distText && (
-                          <div className="flex items-center justify-between text-[11px] bg-blue-50 text-[#1e3a8a] px-2 py-1 rounded-lg font-semibold mb-2 border border-blue-100">
-                            <span className="flex items-center gap-1">
-                              <Navigation className="w-3 h-3" /> Distance:
-                            </span>
-                            <span className="font-bold">{distText}</span>
+                          <div className="rental-map-popup-distance">
+                            <Navigation size={13} />
+                            <span>Distance</span>
+                            <strong>{distText}</strong>
                           </div>
                         )}
 
-                        <div className="text-[10px] text-gray-600 flex items-center gap-1 mb-2 line-clamp-1">
-                          <MapPin className="w-3 h-3 text-red-500 flex-shrink-0" />
-                          <span className="truncate">
+                        <div className="rental-map-popup-location">
+                          <MapPin size={13} />
+                          <span>
                             {product.barangay
                               ? `Brgy. ${product.barangay}, Roxas, Oriental Mindoro`
                               : product.location || "Roxas, Oriental Mindoro"}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between mb-2.5">
-                          <span className="text-sm font-extrabold text-[#1e3a8a]">
-                            ₱{product.price_per_day?.toLocaleString()}{" "}
-                            <span className="text-[10px] font-normal text-gray-500">
-                              /day
-                            </span>
+                        <div className="rental-map-popup-price">
+                          <strong>
+                            ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")}
+                          </strong>
+                          <span>/ DAILY</span>
+                        </div>
+                        <div className="rental-map-popup-facts">
+                          <span>
+                            <CalendarDays size={13} />
+                            Min. {product.min_days || 1} day{(product.min_days || 1) === 1 ? "" : "s"}
+                          </span>
+                          <span>
+                            <Clock3 size={13} />
+                            Max. {product.max_days || 30} days
+                          </span>
+                          <span>
+                            <Star size={13} />
+                            {Number(product.avg_rating) > 0
+                              ? Number(product.avg_rating).toFixed(1)
+                              : "No reviews"}
                           </span>
                         </div>
+                        {product.specs && (
+                          <p className="rental-map-popup-specs" title={product.specs}>
+                            {product.specs}
+                          </p>
+                        )}
 
                         <Link
                           to={`/product/${product.id}`}
-                          className="block w-full bg-[#1e3a8a] hover:bg-blue-800 text-white text-center py-2 rounded-xl text-xs font-semibold shadow-xs transition"
+                          className="rental-map-popup-link"
                         >
-                          View Details
+                          View details <ArrowRight size={16} />
                         </Link>
                       </div>
                     </RentalPopup>
