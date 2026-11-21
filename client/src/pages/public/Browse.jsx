@@ -89,6 +89,9 @@ function ProductCard({ product, wide, dateQuery }) {
   const detailUrl = `/product/${product.id}${dateQuery}`;
   const { favoriteIds, toggleFavorite } = useFavorites();
   const { getItemDistance } = useCustomerLocation();
+  const cardRef = useRef(null);
+  const hoverDetailsRef = useRef(null);
+  const [hoverPosition, setHoverPosition] = useState({ left: 12, top: 12 });
   const favorite = favoriteIds.has(product.id);
   const distance = getItemDistance(product.latitude, product.longitude);
   const images = [
@@ -123,9 +126,43 @@ function ProductCard({ product, wide, dateQuery }) {
   const changeImage = (direction) => {
     setImageIndex((index) => (index + direction + images.length) % images.length);
   };
+  const positionHoverDetails = () => {
+    if (!window.matchMedia("(hover: hover) and (min-width: 640px)").matches)
+      return;
+
+    const card = cardRef.current;
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const margin = 12;
+    const gap = 8;
+    const width = Math.min(420, window.innerWidth - margin * 2);
+    const height = Math.min(
+      hoverDetailsRef.current?.scrollHeight || 240,
+      window.innerHeight - margin * 2,
+    );
+    const left = Math.min(
+      Math.max(margin, rect.left + (rect.width - width) / 2),
+      window.innerWidth - width - margin,
+    );
+    const belowTop = rect.bottom + gap;
+    const aboveTop = rect.top - height - gap;
+    const top =
+      belowTop + height <= window.innerHeight - margin
+        ? belowTop
+        : aboveTop >= margin
+          ? aboveTop
+          : Math.max(margin, window.innerHeight - height - margin);
+
+    setHoverPosition({ left, top });
+  };
+
   return (
     <article
+      ref={cardRef}
       className={`browse-product motion-card ${wide ? "browse-product-wide" : ""}`}
+      onMouseEnter={positionHoverDetails}
+      onFocus={positionHoverDetails}
     >
       <div
         className="browse-product-gallery"
@@ -259,7 +296,12 @@ function ProductCard({ product, wide, dateQuery }) {
           </Link>
         </div>
       </div>
-      <aside className="browse-hover-details" aria-label={`More information about ${product.title}`}>
+      <aside
+        ref={hoverDetailsRef}
+        className="browse-hover-details"
+        style={hoverPosition}
+        aria-label={`More information about ${product.title}`}
+      >
         <div className="browse-hover-details-heading">
           <span>About this rental</span>
           <span>{product.category}</span>
@@ -733,15 +775,21 @@ export default function Browse() {
               </button>
             </div>
             {loading ? (
-              <div className="browse-loading" role="status">
+              <div
+                className="browse-loading"
+                role="status"
+                aria-busy="true"
+                aria-live="polite"
+              >
                 <span className="sr-only">Loading equipment</span>
-                {[1, 2].map((n) => (
-                  <div key={n} className="browse-skeleton animate-pulse">
-                    <div />
-                    <div>
-                      <span />
-                      <span />
-                      <span />
+                {Array.from({ length: PAGE_SIZE }, (_, index) => (
+                  <div key={index} className="browse-skeleton" aria-hidden="true">
+                    <div className="browse-skeleton-photo" />
+                    <div className="browse-skeleton-content">
+                      <span className="browse-skeleton-meta" />
+                      <span className="browse-skeleton-title" />
+                      <span className="browse-skeleton-description" />
+                      <span className="browse-skeleton-footer" />
                     </div>
                   </div>
                 ))}

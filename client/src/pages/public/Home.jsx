@@ -322,14 +322,24 @@ export default function Home() {
           {loading ? (
             <div
               className="market-listings"
+              role="status"
               aria-label="Loading rentals"
               aria-busy="true"
+              aria-live="polite"
             >
               {[0, 1, 2].map((n) => (
                 <div
                   key={n}
-                  className="market-skeleton motion-safe:animate-pulse"
-                />
+                  className="market-skeleton"
+                  aria-hidden="true"
+                >
+                  <div className="market-skeleton-photo" />
+                  <div className="market-skeleton-body">
+                    <span className="market-skeleton-line title" />
+                    <span className="market-skeleton-line location" />
+                    <span className="market-skeleton-line price" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : error ? (

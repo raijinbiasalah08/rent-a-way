@@ -306,9 +306,36 @@
   text-transform: capitalize;
 }
 .market-skeleton {
-  height: 285px;
-  background: #e9e8e3;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e0e2e5;
   border-radius: 10px;
+  background: #fff;
+}
+.market-skeleton-photo {
+  aspect-ratio: 1.6;
+}
+.market-skeleton-body {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px 16px;
+}
+.market-skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 5px;
+}
+.market-skeleton-line.title {
+  width: 68%;
+  height: 17px;
+}
+.market-skeleton-line.location {
+  width: 82%;
+}
+.market-skeleton-line.price {
+  width: 44%;
+  height: 18px;
+  margin-top: 4px;
 }
 .market-empty {
   border: 1px solid #e1e3e7;
@@ -519,7 +546,18 @@
     background: white;
   }
   .market-skeleton {
-    height: 130px;
+    display: grid;
+    min-height: 130px;
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+  .market-skeleton-photo {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .market-skeleton-body {
+    align-content: center;
+    gap: 9px;
+    padding: 12px 38px 12px 12px;
   }
   .market-filter-chips {
     padding: 15px 0;
