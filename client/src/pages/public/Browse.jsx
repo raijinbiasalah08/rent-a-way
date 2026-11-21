@@ -25,7 +25,6 @@ import {
   AlertCircle,
   MessageSquare,
   Package,
-  Copy,
   Check,
   Share2,
 } from "lucide-react";
@@ -89,11 +88,18 @@ function getVisiblePages(page, totalPages) {
   });
 }
 
+function isRecentlyAdded(createdAt) {
+  const createdAtTime = Date.parse(createdAt);
+  if (!Number.isFinite(createdAtTime)) return false;
+
+  const age = Date.now() - createdAtTime;
+  return age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
+}
+
 function ProductCard({ product, wide, dateQuery }) {
   const detailUrl = "/product/" + product.id + dateQuery;
   const { favoriteIds, toggleFavorite } = useFavorites();
   const { getItemDistance } = useCustomerLocation();
-  const [copiedCode, setCopiedCode] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const favorite = favoriteIds.has(product.id);
   const distance = getItemDistance(product.latitude, product.longitude);
@@ -108,7 +114,7 @@ function ProductCard({ product, wide, dateQuery }) {
   const [imageIndex, setImageIndex] = useState(0);
   const [galleryPaused, setGalleryPaused] = useState(false);
   const [status, tone] = STATUS[product.availability] || STATUS.unavailable;
-  const listingCode = "RW-" + String(product.id).slice(0, 8).toUpperCase();
+  const recentlyAdded = isRecentlyAdded(product.created_at);
 
   useEffect(() => {
     setImageIndex(0);
@@ -129,16 +135,6 @@ function ProductCard({ product, wide, dateQuery }) {
 
   const changeImage = (direction) => {
     setImageIndex((index) => (index + direction + images.length) % images.length);
-  };
-
-  const copyListingCode = async () => {
-    try {
-      await navigator.clipboard.writeText(listingCode);
-      setCopiedCode(true);
-      window.setTimeout(() => setCopiedCode(false), 1400);
-    } catch {
-      setCopiedCode(false);
-    }
   };
 
   const shareListing = async () => {
@@ -252,16 +248,9 @@ function ProductCard({ product, wide, dateQuery }) {
       </div>
 
       <div className="browse-card-body">
-        <div className="browse-card-code-row">
-          <span>LISTING · {listingCode}</span>
-          <button
-            type="button"
-            aria-label={copiedCode ? "Listing code copied" : "Copy listing code"}
-            onClick={copyListingCode}
-          >
-            {copiedCode ? <Check size={15} /> : <Copy size={15} />}
-          </button>
-        </div>
+        {recentlyAdded && (
+          <span className="browse-card-recent-badge">Recently added</span>
+        )}
         <h3 className="browse-card-title">
           <Link to={detailUrl}>{product.title}</Link>
         </h3>
