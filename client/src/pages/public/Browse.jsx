@@ -142,16 +142,28 @@ function ProductCard({ product, wide, dateQuery }) {
           className="browse-product-image"
           aria-label={`View ${product.title}`}
         >
-          <img
-            key={images[imageIndex] || product.primary_image}
-            src={apiAssetUrl(images[imageIndex] || product.primary_image) || "/placeholder.svg"}
-            alt={product.title}
-            loading="lazy"
-            onError={(e) => {
-              if (!e.currentTarget.src.endsWith("/placeholder.svg"))
-                e.currentTarget.src = "/placeholder.svg";
-            }}
-          />
+          <span
+            className="browse-gallery-track"
+            aria-hidden="true"
+            style={{ transform: `translate3d(-${imageIndex * 100}%, 0, 0)` }}
+          >
+            {images.length ? (
+              images.map((image) => (
+                <img
+                  key={image}
+                  src={apiAssetUrl(image) || "/placeholder.svg"}
+                  alt=""
+                  loading="lazy"
+                  onError={(event) => {
+                    if (!event.currentTarget.src.endsWith("/placeholder.svg"))
+                      event.currentTarget.src = "/placeholder.svg";
+                  }}
+                />
+              ))
+            ) : (
+              <img src="/placeholder.svg" alt="" />
+            )}
+          </span>
         </Link>
         {images.length > 1 && (
           <>
