@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   AlertCircle,
   MessageSquare,
+  Info,
 } from "lucide-react";
 import { getProducts } from "../../api/products";
 import { useFavorites } from "../../context/FavoritesContext";
@@ -92,6 +93,7 @@ function ProductCard({ product, wide, dateQuery }) {
   const cardRef = useRef(null);
   const hoverDetailsRef = useRef(null);
   const [hoverPosition, setHoverPosition] = useState({ left: 12, top: 12 });
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const favorite = favoriteIds.has(product.id);
   const distance = getItemDistance(product.latitude, product.longitude);
   const images = [
@@ -135,24 +137,19 @@ function ProductCard({ product, wide, dateQuery }) {
 
     const rect = card.getBoundingClientRect();
     const margin = 12;
-    const gap = 8;
     const width = Math.min(420, window.innerWidth - margin * 2);
     const height = Math.min(
       hoverDetailsRef.current?.scrollHeight || 240,
       window.innerHeight - margin * 2,
     );
     const left = Math.min(
-      Math.max(margin, rect.left + (rect.width - width) / 2),
+      Math.max(margin, rect.right - width),
       window.innerWidth - width - margin,
     );
-    const belowTop = rect.bottom + gap;
-    const aboveTop = rect.top - height - gap;
-    const top =
-      belowTop + height <= window.innerHeight - margin
-        ? belowTop
-        : aboveTop >= margin
-          ? aboveTop
-          : Math.max(margin, window.innerHeight - height - margin);
+    const top = Math.min(
+      Math.max(margin, rect.top + 8),
+      window.innerHeight - height - margin,
+    );
 
     setHoverPosition({ left, top });
   };
@@ -234,6 +231,16 @@ function ProductCard({ product, wide, dateQuery }) {
             {status}
           </span>
           <button
+            type="button"
+            className="browse-details-toggle"
+            aria-label={`${detailsOpen ? "Hide" : "Show"} details for ${product.title}`}
+            aria-expanded={detailsOpen}
+            aria-controls={`browse-details-${product.id}`}
+            onClick={() => setDetailsOpen((open) => !open)}
+          >
+            <Info size={17} aria-hidden="true" />
+          </button>
+          <button
             className={`browse-save ${favorite ? "is-saved" : ""}`}
             aria-label={`${favorite ? "Remove" : "Save"} ${product.title} ${favorite ? "from" : "to"} favorites`}
             aria-pressed={favorite}
@@ -298,7 +305,8 @@ function ProductCard({ product, wide, dateQuery }) {
       </div>
       <aside
         ref={hoverDetailsRef}
-        className="browse-hover-details"
+        id={`browse-details-${product.id}`}
+        className={`browse-hover-details ${detailsOpen ? "is-open" : ""}`}
         style={hoverPosition}
         aria-label={`More information about ${product.title}`}
       >
