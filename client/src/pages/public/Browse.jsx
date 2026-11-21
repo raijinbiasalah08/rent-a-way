@@ -259,6 +259,43 @@ function ProductCard({ product, wide, dateQuery }) {
           </Link>
         </div>
       </div>
+      <aside className="browse-hover-details" aria-label={`More information about ${product.title}`}>
+        <div className="browse-hover-details-heading">
+          <span>About this rental</span>
+          <span>{product.category}</span>
+        </div>
+        <p className="browse-hover-description">
+          {product.description?.trim() || "Contact the supplier to learn more about this rental."}
+        </p>
+        {product.specs?.trim() && (
+          <p className="browse-hover-specs" title={product.specs}>
+            <strong>Details:</strong> {product.specs}
+          </p>
+        )}
+        <div className="browse-hover-terms">
+          <span>Minimum: {product.min_days || 1} day{(product.min_days || 1) === 1 ? "" : "s"}</span>
+          <span>Maximum: {product.max_days || 30} days</span>
+          <span>{product.avg_rating > 0 ? `${Number(product.avg_rating).toFixed(1)} ★ item rating` : "Not reviewed yet"}</span>
+        </div>
+        <div className="browse-hover-supplier">
+          {product.supplier_avatar ? (
+            <img
+              src={apiAssetUrl(product.supplier_avatar)}
+              alt=""
+              onError={(event) => { event.currentTarget.hidden = true; }}
+            />
+          ) : (
+            <span className="browse-hover-supplier-initial" aria-hidden="true">
+              {(product.supplier_name || "S").slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <span>
+            <small>Listed by</small>
+            <strong>{product.supplier_name || "Local supplier"}</strong>
+          </span>
+          <Link to={detailUrl} className="browse-hover-view">View listing <ArrowRight size={14} /></Link>
+        </div>
+      </aside>
     </article>
   );
 }

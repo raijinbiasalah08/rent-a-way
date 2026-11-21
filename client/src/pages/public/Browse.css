@@ -445,6 +445,7 @@ label.browse-filter-label {
   grid-template-columns: minmax(0, 1fr);
 }
 .browse-product {
+  position: relative;
   min-width: 0;
   background: white;
   padding: 10px;
@@ -453,6 +454,123 @@ label.browse-filter-label {
   display: flex;
   flex-direction: column;
   box-shadow: 0 3px 15px -14px #0f172940;
+}
+.browse-hover-details {
+  position: absolute;
+  top: calc(100% - 12px);
+  left: 0;
+  z-index: 30;
+  width: 100%;
+  padding: 15px 16px 13px;
+  border: 1px solid #dce1e8;
+  border-radius: 0 0 14px 14px;
+  background: #fff;
+  box-shadow: 0 14px 28px -14px #101b3066;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-5px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+}
+.browse-hover-details-heading,
+.browse-hover-terms,
+.browse-hover-supplier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.browse-hover-details-heading {
+  color: #14263f;
+  font-size: 13px;
+  font-weight: 750;
+}
+.browse-hover-details-heading span:last-child {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+.browse-hover-description,
+.browse-hover-specs {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  color: #536176;
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.browse-hover-specs strong {
+  color: #14263f;
+}
+.browse-hover-terms {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid #edf0f4;
+  color: #526077;
+  font-size: 10px;
+}
+.browse-hover-supplier {
+  justify-content: flex-start;
+  margin-top: 10px;
+}
+.browse-hover-supplier > img,
+.browse-hover-supplier-initial {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf3ff;
+  color: #233f91;
+  object-fit: cover;
+  font-size: 13px;
+  font-weight: 750;
+}
+.browse-hover-supplier > span:not(.browse-hover-supplier-initial) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.browse-hover-supplier small {
+  color: #7a8799;
+  font-size: 10px;
+}
+.browse-hover-supplier strong {
+  overflow: hidden;
+  color: #14263f;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browse-hover-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: #233f91;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+@media (hover: hover) and (min-width: 640px) {
+  .browse-product:hover,
+  .browse-product:focus-within {
+    z-index: 25;
+    overflow: visible;
+  }
+  .browse-product:hover .browse-hover-details,
+  .browse-product:focus-within .browse-hover-details {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
 }
 .browse-product-image {
   display: block;

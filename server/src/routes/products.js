@@ -151,7 +151,7 @@ router.get("/", async (req, res) => {
     const offset = (page - 1) * limit;
 
     const now = new Date().toISOString();
-    let query = `SELECT p.*, u.name as supplier_name, ${badgeSQL},
+    let query = `SELECT p.*, u.name as supplier_name, u.avatar as supplier_avatar, ${badgeSQL},
       (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as primary_image, 
       (SELECT AVG(rating) FROM reviews WHERE product_id = p.id) as avg_rating,
       ((SELECT COUNT(*) FROM rentals r2 JOIN products p2 ON r2.product_id = p2.id WHERE p2.supplier_id = u.id AND r2.status IN ('completed', 'returned')) >= 5 
