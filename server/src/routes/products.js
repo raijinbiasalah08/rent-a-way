@@ -248,6 +248,24 @@ router.get("/", async (req, res) => {
     const products = await db
       .prepare(query)
       .all(now, ...params, now, limit, offset);
+    if (products.length) {
+      const productIds = products.map((product) => product.id);
+      const placeholders = productIds.map(() => "?").join(", ");
+      const images = await db
+        .prepare(
+          `SELECT product_id, url, is_primary FROM product_images
+           WHERE product_id IN (${placeholders})
+           ORDER BY is_primary DESC, sort_order, id`,
+        )
+        .all(...productIds);
+      const imagesByProduct = new Map(productIds.map((id) => [id, []]));
+      for (const image of images) {
+        imagesByProduct.get(image.product_id)?.push(image);
+      }
+      for (const product of products) {
+        product.images = imagesByProduct.get(product.id) || [];
+      }
+    }
     const { total } = await db.prepare(countQuery).get(...params);
 
     res.json({

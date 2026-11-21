@@ -91,26 +91,92 @@ function ProductCard({ product, wide, dateQuery }) {
   const { getItemDistance } = useCustomerLocation();
   const favorite = favoriteIds.has(product.id);
   const distance = getItemDistance(product.latitude, product.longitude);
+  const images = [
+    ...new Set(
+      (product.images || [])
+        .map((image) => image.url)
+        .filter(Boolean)
+        .concat(product.primary_image || []),
+    ),
+  ];
+  const [imageIndex, setImageIndex] = useState(0);
+  const [galleryPaused, setGalleryPaused] = useState(false);
   const [status, tone] = STATUS[product.availability] || STATUS.unavailable;
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [product.id]);
+
+  useEffect(() => {
+    if (
+      images.length < 2 ||
+      galleryPaused ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return undefined;
+    const timer = window.setInterval(() => {
+      setImageIndex((index) => (index + 1) % images.length);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [galleryPaused, images.length]);
+
+  const changeImage = (direction) => {
+    setImageIndex((index) => (index + direction + images.length) % images.length);
+  };
   return (
     <article
       className={`browse-product motion-card ${wide ? "browse-product-wide" : ""}`}
     >
-      <Link
-        to={detailUrl}
-        className="browse-product-image"
-        aria-label={`View ${product.title}`}
+      <div
+        className="browse-product-gallery"
+        onMouseEnter={() => setGalleryPaused(true)}
+        onMouseLeave={() => setGalleryPaused(false)}
+        onFocus={() => setGalleryPaused(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget))
+            setGalleryPaused(false);
+        }}
       >
-        <img
-          src={apiAssetUrl(product.primary_image) || "/placeholder.svg"}
-          alt={product.title}
-          loading="lazy"
-          onError={(e) => {
-            if (!e.currentTarget.src.endsWith("/placeholder.svg"))
-              e.currentTarget.src = "/placeholder.svg";
-          }}
-        />
-      </Link>
+        <Link
+          to={detailUrl}
+          className="browse-product-image"
+          aria-label={`View ${product.title}`}
+        >
+          <img
+            key={images[imageIndex] || product.primary_image}
+            src={apiAssetUrl(images[imageIndex] || product.primary_image) || "/placeholder.svg"}
+            alt={product.title}
+            loading="lazy"
+            onError={(e) => {
+              if (!e.currentTarget.src.endsWith("/placeholder.svg"))
+                e.currentTarget.src = "/placeholder.svg";
+            }}
+          />
+        </Link>
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="browse-gallery-arrow previous"
+              aria-label={`Previous photo of ${product.title}`}
+              onClick={() => changeImage(-1)}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              className="browse-gallery-arrow next"
+              aria-label={`Next photo of ${product.title}`}
+              onClick={() => changeImage(1)}
+            >
+              <ChevronRight size={18} />
+            </button>
+            <span className="browse-gallery-count" aria-live="polite">
+              {imageIndex + 1}/{images.length}
+            </span>
+          </>
+        )}
+      </div>
       <div className="browse-product-content">
         <div className="browse-product-meta">
           <span className="browse-category-label">{product.category}</span>
