@@ -1345,8 +1345,8 @@ label.browse-filter-label {
   max-width: none;
 }
 .browse-layout-b .browse-product-image {
-  height: 155px;
-  aspect-ratio: auto;
+  height: auto;
+  aspect-ratio: 16 / 10;
 }
 .browse-layout-b .browse-product-bottom .browse-primary {
   width: 100%;
@@ -1481,7 +1481,8 @@ label.browse-filter-label {
     max-width: none;
   }
   .browse-layout-b .browse-product-image {
-    height: 150px;
+    height: auto;
+    aspect-ratio: 16 / 10;
   }
   .browse-layout-b .browse-product-bottom .browse-primary {
     width: auto;
