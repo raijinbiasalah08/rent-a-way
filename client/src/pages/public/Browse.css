@@ -1547,3 +1547,85 @@ label.browse-filter-label {
     font-size: 12px;
   }
 }
+
+/* Keep Browse cards compact and show two listings in each row. */
+.browse-layout-b .browse-product-grid,
+.browse-layout-b .browse-product-grid.single-result,
+.browse-layout-b .browse-product-grid:not(.single-result) {
+  grid-template-columns: repeat(2, minmax(0, 380px));
+  justify-content: center;
+}
+
+@media (max-width: 899px) {
+  .browse-layout-b .browse-product-grid,
+  .browse-layout-b .browse-product-grid.single-result,
+  .browse-layout-b .browse-product-grid:not(.single-result) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .browse-layout-b .browse-product-grid,
+  .browse-layout-b .browse-product-grid.single-result,
+  .browse-layout-b .browse-product-grid:not(.single-result) {
+    gap: 10px;
+  }
+  .browse-layout-b .browse-product-content {
+    padding: 10px;
+  }
+  .browse-layout-b .browse-product h3 {
+    font-size: 14px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .browse-layout-b .browse-product-meta {
+    gap: 4px;
+  }
+  .browse-layout-b .browse-category-label,
+  .browse-layout-b .browse-status {
+    font-size: 9px;
+  }
+  .browse-layout-b .browse-status {
+    gap: 3px;
+    padding: 2px 5px;
+  }
+  .browse-layout-b .browse-save {
+    min-width: 34px;
+    min-height: 34px;
+  }
+  .browse-layout-b .browse-location-row {
+    gap: 4px;
+    margin: 6px 0;
+    font-size: 9px;
+  }
+  .browse-layout-b .browse-location-row svg {
+    width: 12px;
+    height: 12px;
+  }
+  .browse-layout-b .browse-review {
+    gap: 4px;
+    margin-bottom: 8px;
+    font-size: 9px;
+  }
+  .browse-layout-b .browse-product-bottom {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 7px;
+    padding-top: 9px;
+  }
+  .browse-layout-b .browse-product-bottom strong {
+    font-size: 16px;
+  }
+  .browse-layout-b .browse-product-bottom p > span {
+    font-size: 10px;
+  }
+  .browse-layout-b .browse-product-bottom .browse-primary {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px;
+    font-size: 11px;
+  }
+}
