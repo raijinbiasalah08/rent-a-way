@@ -1548,27 +1548,16 @@ label.browse-filter-label {
   }
 }
 
-/* Keep Browse cards compact and show two listings in each row. */
-.browse-layout-b .browse-product-grid,
-.browse-layout-b .browse-product-grid.single-result,
-.browse-layout-b .browse-product-grid:not(.single-result) {
-  grid-template-columns: repeat(2, minmax(0, 380px));
-  justify-content: center;
-}
-
-@media (max-width: 899px) {
-  .browse-layout-b .browse-product-grid,
-  .browse-layout-b .browse-product-grid.single-result,
-  .browse-layout-b .browse-product-grid:not(.single-result) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
+/* Keep two compact listings per row on phones only. */
 @media (max-width: 639px) {
   .browse-layout-b .browse-product-grid,
   .browse-layout-b .browse-product-grid.single-result,
   .browse-layout-b .browse-product-grid:not(.single-result) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+  .browse-layout-b .browse-product-grid.single-result .browse-product {
+    grid-column: 1 / -1;
   }
   .browse-layout-b .browse-product-content {
     padding: 10px;
