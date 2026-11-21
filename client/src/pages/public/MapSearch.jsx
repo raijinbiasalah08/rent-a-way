@@ -10,6 +10,11 @@ import {
   Home,
   GraduationCap,
   RotateCcw,
+  Clock3,
+  Heart,
+  Share2,
+  MessageSquare,
+  Check,
 } from "lucide-react";
 import { apiAssetUrl } from "../../config";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -44,6 +49,7 @@ import {
 } from "lucide-react";
 import { getProduct, getProducts } from "../../api/products";
 import { useCustomerLocation } from "../../context/CustomerLocationContext";
+import { useFavorites } from "../../context/FavoritesContext";
 import { calculateDistance, formatDistance } from "../../utils/geo";
 import { API_ORIGIN } from "../../config";
 import {
@@ -69,6 +75,197 @@ const CATEGORIES = [
   { id: "Vehicles", label: "Vehicles", icon: Car },
   { id: "Apartments", label: "Apartments", icon: Building2 },
 ];
+
+function isRecentlyAdded(createdAt) {
+  const createdAtTime = Date.parse(createdAt);
+  if (!Number.isFinite(createdAtTime)) return false;
+  const age = Date.now() - createdAtTime;
+  return age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
+}
+
+function MapRentalCard({
+  product,
+  distance,
+  selected,
+  onSelect,
+  onHover,
+  onLeave,
+  cardRef,
+}) {
+  const { favoriteIds, toggleFavorite } = useFavorites();
+  const [shareCopied, setShareCopied] = useState(false);
+  const favorite = favoriteIds.has(product.id);
+  const recentlyAdded = isRecentlyAdded(product.created_at);
+  const isAvailable = product.availability === "available";
+  const image = apiAssetUrl(product.primary_image) || "/placeholder.svg";
+
+  const shareListing = async () => {
+    const url = new URL(`/product/${product.id}`, window.location.origin).href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.title,
+          text: `Rent ${product.title} for ₱${Number(product.price_per_day || 0).toLocaleString("en-PH")} per day`,
+          url,
+        });
+      } catch {
+        // Dismissing the native share sheet is a normal user action.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1400);
+    } catch {
+      setShareCopied(false);
+    }
+  };
+
+  return (
+    <article
+      ref={cardRef}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+      className={`map-rental-card${selected ? " is-selected" : ""}`}
+    >
+      <div className="map-card-hero">
+        <button
+          className="map-card-photo"
+          onClick={onSelect}
+          aria-label={`Show ${product.title} on map`}
+        >
+          <img
+            src={image}
+            alt={product.title}
+            loading="lazy"
+            onError={(event) => {
+              if (!event.currentTarget.src.endsWith("/placeholder.svg"))
+                event.currentTarget.src = "/placeholder.svg";
+            }}
+          />
+        </button>
+        <span className="map-card-category">{product.category}</span>
+        <span
+          className={`map-card-availability${isAvailable ? " available" : ""}`}
+        >
+          {isAvailable ? "Available" : "Check availability"}
+        </span>
+        <button
+          type="button"
+          className={`map-card-favorite${favorite ? " is-saved" : ""}`}
+          aria-label={`${favorite ? "Remove" : "Save"} ${product.title}${favorite ? " from" : " to"} favorites`}
+          aria-pressed={favorite}
+          onClick={() => toggleFavorite(product.id)}
+        >
+          <Heart size={19} fill={favorite ? "currentColor" : "none"} />
+        </button>
+        <div className="map-card-image-copy" aria-hidden="true">
+          <h2>{product.title}</h2>
+          <p>
+            ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")} / DAY
+          </p>
+        </div>
+      </div>
+
+      <div className="map-card-body">
+        {recentlyAdded && (
+          <span className="map-card-recent-badge">Recently added</span>
+        )}
+        <h3>
+          <button onClick={onSelect}>{product.title}</button>
+        </h3>
+        <div className="map-card-location-line">
+          <div className="map-card-location">
+            <MapPin size={15} />
+            <span>
+              {product.barangay
+                ? `${product.barangay}, Roxas`
+                : product.location || "Roxas, Oriental Mindoro"}
+            </span>
+          </div>
+          {distance && (
+            <p className="map-card-distance">
+              <Navigation size={13} />
+              {distance}
+              <span>from search point</span>
+            </p>
+          )}
+        </div>
+        <div className="map-card-price">
+          <strong>
+            ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")}
+          </strong>
+          <span>/ DAILY</span>
+        </div>
+        <div className="map-card-facts">
+          <span>
+            <CalendarDays size={15} />
+            Min. {product.min_days || 1} day{(product.min_days || 1) === 1 ? "" : "s"}
+          </span>
+          <span>
+            <Clock3 size={15} />
+            Max. {product.max_days || 30} days
+          </span>
+          <span>
+            <Star size={15} />
+            {Number(product.avg_rating) > 0
+              ? Number(product.avg_rating).toFixed(1)
+              : "No reviews"}
+          </span>
+        </div>
+        {product.specs && (
+          <p className="map-card-specs" title={product.specs}>
+            {product.specs}
+          </p>
+        )}
+        <div className="map-card-supplier-row">
+          <div className="map-card-supplier-info">
+            {product.supplier_avatar ? (
+              <img
+                src={apiAssetUrl(product.supplier_avatar)}
+                alt=""
+                onError={(event) => {
+                  event.currentTarget.hidden = true;
+                }}
+              />
+            ) : (
+              <span className="map-card-supplier-initial" aria-hidden="true">
+                {(product.supplier_name || "S").slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span>
+              <small>{product.supplier_badge || "Listed by"}</small>
+              <strong>{product.supplier_name || "Local supplier"}</strong>
+            </span>
+          </div>
+          <div className="map-card-actions">
+            <button
+              type="button"
+              className={shareCopied ? "is-copied" : ""}
+              aria-label={shareCopied ? "Listing link copied" : "Share listing"}
+              onClick={shareListing}
+            >
+              {shareCopied ? <Check size={15} /> : <Share2 size={15} />}
+            </button>
+            {product.supplier_id && (
+              <Link
+                to={`/messages?userId=${encodeURIComponent(product.supplier_id)}`}
+                aria-label={`Message ${product.supplier_name || "supplier"}`}
+              >
+                <MessageSquare size={15} />
+              </Link>
+            )}
+            <Link to={`/product/${product.id}`} className="map-card-view">
+              View <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function priceIcon(price, active) {
   const amount = Number(price);
   return L.divIcon({
@@ -889,100 +1086,16 @@ export default function MapSearch() {
                       )
                     : null;
                   return (
-                    <article
+                    <MapRentalCard
                       key={product.id}
-                      ref={(el) => (cardRefs.current[product.id] = el)}
-                      onMouseEnter={() => setHoveredId(product.id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      className={
-                        selectedId === product.id
-                          ? "map-rental-card is-selected"
-                          : "map-rental-card"
-                      }
-                    >
-                      <button
-                        className="map-card-photo"
-                        onClick={() => showProductOnMap(product)}
-                        aria-label={"Show " + product.title + " on map"}
-                      >
-                        <img
-                          src={
-                            apiAssetUrl(product.primary_image) ||
-                            "/placeholder.svg"
-                          }
-                          alt={product.title}
-                          loading="lazy"
-                          onError={(e) => {
-                            if (
-                              !e.currentTarget.src.endsWith("/placeholder.svg")
-                            )
-                              e.currentTarget.src = "/placeholder.svg";
-                          }}
-                        />
-                        <span
-                          className={
-                            product.availability === "available"
-                              ? "available"
-                              : ""
-                          }
-                        >
-                          {product.availability === "available"
-                            ? "Available"
-                            : "Check availability"}
-                        </span>
-                      </button>
-                      <div className="map-card-body">
-                        <div className="map-card-meta">
-                          <span>{product.category}</span>
-                          {Number(product.avg_rating) > 0 ? (
-                            <span>
-                              <Star size={13} fill="currentColor" />
-                              {Number(product.avg_rating).toFixed(1)}
-                            </span>
-                          ) : (
-                            <span>No reviews yet</span>
-                          )}
-                        </div>
-                        <h3>
-                          <button onClick={() => showProductOnMap(product)}>
-                            {product.title}
-                          </button>
-                        </h3>
-                        <p className="map-card-supplier">
-                          Listed by{" "}
-                          {product.supplier_name || "a local supplier"}
-                        </p>
-                        <div className="map-card-location">
-                          <MapPin size={14} />
-                          <span>
-                            {product.barangay
-                              ? product.barangay + ", Roxas"
-                              : product.location || "Roxas, Oriental Mindoro"}
-                          </span>
-                        </div>
-                        {distance && (
-                          <p className="map-card-distance">
-                            <Navigation size={13} />
-                            {distance}
-                            <span>from search point</span>
-                          </p>
-                        )}
-                        <div className="map-card-actions">
-                          <p>
-                            <strong>
-                              ₱
-                              {Number(
-                                product.price_per_day || 0,
-                              ).toLocaleString("en-PH")}
-                            </strong>
-                            <span> / day</span>
-                          </p>
-                          <Link to={"/product/" + product.id}>
-                            View details <ArrowRight size={16} />
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
+                      product={product}
+                      distance={distance}
+                      selected={selectedId === product.id}
+                      onSelect={() => showProductOnMap(product)}
+                      onHover={() => setHoveredId(product.id)}
+                      onLeave={() => setHoveredId(null)}
+                      cardRef={(el) => (cardRefs.current[product.id] = el)}
+                    />
                   );
                 })
               )}
