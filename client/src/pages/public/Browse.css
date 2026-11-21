@@ -1878,9 +1878,14 @@ label.browse-filter-label {
   flex-direction: column;
   padding: 20px 28px 22px;
 }
+.browse-card-badge-slot {
+  display: flex;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: flex-start;
+}
 .browse-card-recent-badge {
   align-self: flex-start;
-  margin-bottom: 4px;
   border-radius: 999px;
   padding: 5px 9px;
   background: #fff5d6;
@@ -2108,7 +2113,7 @@ label.browse-filter-label {
     border-radius: 15px;
   }
   .browse-card-hero {
-    aspect-ratio: 1.1;
+    aspect-ratio: 1.4;
     border-radius: 14px 14px 0 0;
   }
   .browse-card-category {
@@ -2163,11 +2168,14 @@ label.browse-filter-label {
     font-size: 8px;
   }
   .browse-card-body {
-    gap: 5px;
+    gap: 4px;
     padding: 10px 10px 11px;
   }
+  .browse-card-badge-slot {
+    height: 20px;
+    flex-basis: 20px;
+  }
   .browse-card-recent-badge {
-    margin-bottom: 0;
     padding: 4px 6px;
     font-size: 8px;
   }
@@ -2179,6 +2187,7 @@ label.browse-filter-label {
   .browse-card-location {
     align-items: flex-start;
     gap: 4px;
+    flex-basis: 70px;
     font-size: 9px;
   }
   .browse-card-location-line {
@@ -2192,7 +2201,7 @@ label.browse-filter-label {
     margin-top: 1px;
   }
   .browse-card-distance {
-    margin-left: 16px;
+    margin-left: 0;
     padding: 3px 5px;
     font-size: 8px;
   }

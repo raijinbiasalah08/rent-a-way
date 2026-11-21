@@ -249,9 +249,14 @@ function ProductCard({ product, wide, dateQuery }) {
       </div>
 
       <div className="browse-card-body">
-        {recentlyAdded && (
-          <span className="browse-card-recent-badge">Recently added</span>
-        )}
+        <div
+          className="browse-card-badge-slot"
+          aria-hidden={!recentlyAdded}
+        >
+          {recentlyAdded && (
+            <span className="browse-card-recent-badge">Recently added</span>
+          )}
+        </div>
         <h3 className="browse-card-title">
           <Link to={detailUrl}>{product.title}</Link>
         </h3>
