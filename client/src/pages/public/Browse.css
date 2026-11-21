@@ -1876,7 +1876,7 @@ label.browse-filter-label {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  padding: 20px 28px 22px;
+  padding: 18px 24px 18px;
 }
 .browse-card-badge-slot {
   display: flex;
@@ -2095,8 +2095,45 @@ label.browse-filter-label {
   white-space: nowrap;
 }
 @media (max-width: 900px) {
+  .browse-card-hero {
+    aspect-ratio: 1.65;
+  }
   .browse-card-body {
-    padding: 18px 20px 20px;
+    padding: 14px 16px 15px;
+  }
+  .browse-card-badge-slot {
+    height: 22px;
+    flex-basis: 22px;
+  }
+  .browse-card-title {
+    margin-bottom: 5px;
+    font-size: 19px;
+  }
+  .browse-card-price {
+    margin-top: 10px;
+  }
+  .browse-card-price strong {
+    font-size: 26px;
+  }
+  .browse-card-facts {
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .browse-card-facts > span {
+    padding: 5px 8px;
+  }
+  .browse-card-specs {
+    margin-top: 8px;
+  }
+  .browse-card-supplier {
+    margin-top: 14px;
+    padding-top: 10px;
+  }
+  .browse-card-supplier-info > img,
+  .browse-card-supplier-initial {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
   }
   .browse-card-actions {
     gap: 5px;
@@ -2168,12 +2205,12 @@ label.browse-filter-label {
     font-size: 8px;
   }
   .browse-card-body {
-    gap: 4px;
-    padding: 10px 10px 11px;
+    gap: 3px;
+    padding: 9px 9px 10px;
   }
   .browse-card-badge-slot {
-    height: 20px;
-    flex-basis: 20px;
+    height: 18px;
+    flex-basis: 18px;
   }
   .browse-card-code-badge {
     padding: 4px 6px;
@@ -2207,7 +2244,7 @@ label.browse-filter-label {
   }
   .browse-card-price {
     gap: 5px;
-    margin-top: 4px;
+    margin-top: 3px;
   }
   .browse-card-price strong {
     font-size: 19px;
@@ -2217,7 +2254,7 @@ label.browse-filter-label {
   }
   .browse-card-facts {
     gap: 5px;
-    margin-top: 5px;
+    margin-top: 4px;
     font-size: 8px;
   }
   .browse-card-facts > span {
@@ -2229,7 +2266,7 @@ label.browse-filter-label {
     height: 12px;
   }
   .browse-card-specs {
-    margin-top: 2px;
+    margin-top: 1px;
     font-size: 9px;
     line-height: 1.3;
     -webkit-line-clamp: 1;
@@ -2237,8 +2274,8 @@ label.browse-filter-label {
   .browse-card-supplier {
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 5px;
-    padding-top: 8px;
+    margin-top: 4px;
+    padding-top: 7px;
   }
   .browse-card-supplier-info {
     flex: 1 1 100%;
