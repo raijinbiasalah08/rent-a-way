@@ -384,7 +384,7 @@
 .map-card-body {
   padding: 16px 16px 15px;
 }
-.map-card-recent-badge {
+.map-card-code-badge {
   display: inline-flex;
   margin-bottom: 5px;
   border-radius: 999px;
@@ -795,7 +795,7 @@
   font-size: 9px;
   font-weight: 650;
 }
-.rental-map-popup-recent {
+.rental-map-popup-code {
   display: inline-flex;
   margin-bottom: 4px;
   border-radius: 999px;

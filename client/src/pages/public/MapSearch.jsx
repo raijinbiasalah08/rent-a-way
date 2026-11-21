@@ -51,6 +51,7 @@ import { getProduct, getProducts } from "../../api/products";
 import { useCustomerLocation } from "../../context/CustomerLocationContext";
 import { useFavorites } from "../../context/FavoritesContext";
 import { calculateDistance, formatDistance } from "../../utils/geo";
+import { getListingCode } from "../../utils/listingCode";
 import { API_ORIGIN } from "../../config";
 import {
   ROXAS_CENTER,
@@ -76,13 +77,6 @@ const CATEGORIES = [
   { id: "Apartments", label: "Apartments", icon: Building2 },
 ];
 
-function isRecentlyAdded(createdAt) {
-  const createdAtTime = Date.parse(createdAt);
-  if (!Number.isFinite(createdAtTime)) return false;
-  const age = Date.now() - createdAtTime;
-  return age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
-}
-
 function MapRentalCard({
   product,
   distance,
@@ -95,7 +89,6 @@ function MapRentalCard({
   const { favoriteIds, toggleFavorite } = useFavorites();
   const [shareCopied, setShareCopied] = useState(false);
   const favorite = favoriteIds.has(product.id);
-  const recentlyAdded = isRecentlyAdded(product.created_at);
   const isAvailable = product.availability === "available";
   const image = apiAssetUrl(product.primary_image) || "/placeholder.svg";
 
@@ -169,9 +162,7 @@ function MapRentalCard({
       </div>
 
       <div className="map-card-body">
-        {recentlyAdded && (
-          <span className="map-card-recent-badge">Recently added</span>
-        )}
+        <span className="map-card-code-badge">{getListingCode(product)}</span>
         <h3>
           <button onClick={onSelect}>{product.title}</button>
         </h3>
@@ -1251,11 +1242,9 @@ export default function MapSearch() {
                           </div>
                         </div>
 
-                        {isRecentlyAdded(product.created_at) && (
-                          <span className="rental-map-popup-recent">
-                            Recently added
-                          </span>
-                        )}
+                        <span className="rental-map-popup-code">
+                          {getListingCode(product)}
+                        </span>
                         <h4 className="rental-map-popup-title">
                           {product.title}
                         </h4>

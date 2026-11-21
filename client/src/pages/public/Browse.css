@@ -1884,7 +1884,7 @@ label.browse-filter-label {
   flex: 0 0 24px;
   align-items: flex-start;
 }
-.browse-card-recent-badge {
+.browse-card-code-badge {
   align-self: flex-start;
   border-radius: 999px;
   padding: 5px 9px;
@@ -2175,7 +2175,7 @@ label.browse-filter-label {
     height: 20px;
     flex-basis: 20px;
   }
-  .browse-card-recent-badge {
+  .browse-card-code-badge {
     padding: 4px 6px;
     font-size: 8px;
   }

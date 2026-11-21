@@ -33,6 +33,7 @@ import { getProducts } from "../../api/products";
 import { useFavorites } from "../../context/FavoritesContext";
 import { useCustomerLocation } from "../../context/CustomerLocationContext";
 import { ROXAS_BARANGAYS } from "../../utils/roxasLocation";
+import { getListingCode } from "../../utils/listingCode";
 import { apiAssetUrl } from "../../config";
 import "./Browse.css";
 
@@ -89,14 +90,6 @@ function getVisiblePages(page, totalPages) {
   });
 }
 
-function isRecentlyAdded(createdAt) {
-  const createdAtTime = Date.parse(createdAt);
-  if (!Number.isFinite(createdAtTime)) return false;
-
-  const age = Date.now() - createdAtTime;
-  return age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
-}
-
 function ProductCard({ product, wide, dateQuery }) {
   const detailUrl = "/product/" + product.id + dateQuery;
   const { favoriteIds, toggleFavorite } = useFavorites();
@@ -115,7 +108,6 @@ function ProductCard({ product, wide, dateQuery }) {
   const [imageIndex, setImageIndex] = useState(0);
   const [galleryPaused, setGalleryPaused] = useState(false);
   const [status, tone] = STATUS[product.availability] || STATUS.unavailable;
-  const recentlyAdded = isRecentlyAdded(product.created_at);
 
   useEffect(() => {
     setImageIndex(0);
@@ -249,13 +241,10 @@ function ProductCard({ product, wide, dateQuery }) {
       </div>
 
       <div className="browse-card-body">
-        <div
-          className="browse-card-badge-slot"
-          aria-hidden={!recentlyAdded}
-        >
-          {recentlyAdded && (
-            <span className="browse-card-recent-badge">Recently added</span>
-          )}
+        <div className="browse-card-badge-slot">
+          <span className="browse-card-code-badge">
+            {getListingCode(product)}
+          </span>
         </div>
         <h3 className="browse-card-title">
           <Link to={detailUrl}>{product.title}</Link>
