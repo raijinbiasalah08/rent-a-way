@@ -24,7 +24,10 @@ import {
   ChevronLeft,
   AlertCircle,
   MessageSquare,
-  Info,
+  Package,
+  Copy,
+  Check,
+  Share2,
 } from "lucide-react";
 import { getProducts } from "../../api/products";
 import { useFavorites } from "../../context/FavoritesContext";
@@ -87,13 +90,11 @@ function getVisiblePages(page, totalPages) {
 }
 
 function ProductCard({ product, wide, dateQuery }) {
-  const detailUrl = `/product/${product.id}${dateQuery}`;
+  const detailUrl = "/product/" + product.id + dateQuery;
   const { favoriteIds, toggleFavorite } = useFavorites();
   const { getItemDistance } = useCustomerLocation();
-  const cardRef = useRef(null);
-  const hoverDetailsRef = useRef(null);
-  const [hoverPosition, setHoverPosition] = useState({ left: 12, top: 12 });
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const favorite = favoriteIds.has(product.id);
   const distance = getItemDistance(product.latitude, product.longitude);
   const images = [
@@ -107,6 +108,7 @@ function ProductCard({ product, wide, dateQuery }) {
   const [imageIndex, setImageIndex] = useState(0);
   const [galleryPaused, setGalleryPaused] = useState(false);
   const [status, tone] = STATUS[product.availability] || STATUS.unavailable;
+  const listingCode = "RW-" + String(product.id).slice(0, 8).toUpperCase();
 
   useEffect(() => {
     setImageIndex(0);
@@ -128,41 +130,49 @@ function ProductCard({ product, wide, dateQuery }) {
   const changeImage = (direction) => {
     setImageIndex((index) => (index + direction + images.length) % images.length);
   };
-  const positionHoverDetails = () => {
-    if (!window.matchMedia("(hover: hover) and (min-width: 640px)").matches)
+
+  const copyListingCode = async () => {
+    try {
+      await navigator.clipboard.writeText(listingCode);
+      setCopiedCode(true);
+      window.setTimeout(() => setCopiedCode(false), 1400);
+    } catch {
+      setCopiedCode(false);
+    }
+  };
+
+  const shareListing = async () => {
+    const url = new URL(detailUrl, window.location.origin).href;
+    const shareData = {
+      title: product.title,
+      text: "Rent " + product.title + " for ₱" + Number(product.price_per_day || 0).toLocaleString("en-PH") + " per day",
+      url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // Closing the native share sheet is a normal user action.
+      }
       return;
+    }
 
-    const card = cardRef.current;
-    if (!card) return;
-
-    const rect = card.getBoundingClientRect();
-    const margin = 12;
-    const width = Math.min(420, window.innerWidth - margin * 2);
-    const height = Math.min(
-      hoverDetailsRef.current?.scrollHeight || 240,
-      window.innerHeight - margin * 2,
-    );
-    const left = Math.min(
-      Math.max(margin, rect.right - width),
-      window.innerWidth - width - margin,
-    );
-    const top = Math.min(
-      Math.max(margin, rect.top + 8),
-      window.innerHeight - height - margin,
-    );
-
-    setHoverPosition({ left, top });
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1400);
+    } catch {
+      setShareCopied(false);
+    }
   };
 
   return (
     <article
-      ref={cardRef}
-      className={`browse-product motion-card ${wide ? "browse-product-wide" : ""}`}
-      onMouseEnter={positionHoverDetails}
-      onFocus={positionHoverDetails}
+      className={"browse-product browse-reference-card motion-card " + (wide ? "browse-product-wide" : "")}
     >
       <div
-        className="browse-product-gallery"
+        className="browse-card-hero"
         onMouseEnter={() => setGalleryPaused(true)}
         onMouseLeave={() => setGalleryPaused(false)}
         onFocus={() => setGalleryPaused(true)}
@@ -173,13 +183,13 @@ function ProductCard({ product, wide, dateQuery }) {
       >
         <Link
           to={detailUrl}
-          className="browse-product-image"
-          aria-label={`View ${product.title}`}
+          className="browse-card-image"
+          aria-label={"View " + product.title}
         >
           <span
             className="browse-gallery-track"
             aria-hidden="true"
-            style={{ transform: `translate3d(-${imageIndex * 100}%, 0, 0)` }}
+            style={{ transform: "translate3d(-" + imageIndex * 100 + "%, 0, 0)" }}
           >
             {images.length ? (
               images.map((image) => (
@@ -199,12 +209,29 @@ function ProductCard({ product, wide, dateQuery }) {
             )}
           </span>
         </Link>
+        <span className="browse-card-category">{product.category}</span>
+        <span className={"browse-card-availability " + tone}>{status}</span>
+        <button
+          type="button"
+          className={"browse-card-favorite " + (favorite ? "is-saved" : "")}
+          aria-label={(favorite ? "Remove" : "Save") + " " + product.title + (favorite ? " from" : " to") + " favorites"}
+          aria-pressed={favorite}
+          onClick={() => toggleFavorite(product.id)}
+        >
+          <Heart size={21} fill={favorite ? "currentColor" : "none"} />
+        </button>
+        <div className="browse-card-image-copy" aria-hidden="true">
+          <h2>{product.title}</h2>
+          <p>
+            ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")} / DAY
+          </p>
+        </div>
         {images.length > 1 && (
           <>
             <button
               type="button"
               className="browse-gallery-arrow previous"
-              aria-label={`Previous photo of ${product.title}`}
+              aria-label={"Previous photo of " + product.title}
               onClick={() => changeImage(-1)}
             >
               <ChevronLeft size={18} />
@@ -212,7 +239,7 @@ function ProductCard({ product, wide, dateQuery }) {
             <button
               type="button"
               className="browse-gallery-arrow next"
-              aria-label={`Next photo of ${product.title}`}
+              aria-label={"Next photo of " + product.title}
               onClick={() => changeImage(1)}
             >
               <ChevronRight size={18} />
@@ -223,133 +250,104 @@ function ProductCard({ product, wide, dateQuery }) {
           </>
         )}
       </div>
-      <div className="browse-product-content">
-        <div className="browse-product-meta">
-          <span className="browse-category-label">{product.category}</span>
-          <span className={`browse-status ${tone}`}>
-            <span />
-            {status}
-          </span>
+
+      <div className="browse-card-body">
+        <div className="browse-card-code-row">
+          <span>LISTING · {listingCode}</span>
           <button
             type="button"
-            className="browse-details-toggle"
-            aria-label={`${detailsOpen ? "Hide" : "Show"} details for ${product.title}`}
-            aria-expanded={detailsOpen}
-            aria-controls={`browse-details-${product.id}`}
-            onClick={() => setDetailsOpen((open) => !open)}
+            aria-label={copiedCode ? "Listing code copied" : "Copy listing code"}
+            onClick={copyListingCode}
           >
-            <Info size={17} aria-hidden="true" />
-          </button>
-          <button
-            className={`browse-save ${favorite ? "is-saved" : ""}`}
-            aria-label={`${favorite ? "Remove" : "Save"} ${product.title} ${favorite ? "from" : "to"} favorites`}
-            aria-pressed={favorite}
-            onClick={() => toggleFavorite(product.id)}
-          >
-            <Heart size={20} fill={favorite ? "currentColor" : "none"} />
+            {copiedCode ? <Check size={15} /> : <Copy size={15} />}
           </button>
         </div>
-        <h3>
+        <h3 className="browse-card-title">
           <Link to={detailUrl}>{product.title}</Link>
         </h3>
-        <p className="browse-description">
-          {product.description ||
-            "See equipment details and arrange your next rental."}
-        </p>
-        <div className="browse-location-row">
+        <p className="browse-card-location">
+          <MapPin size={16} aria-hidden="true" />
           <span>
-            <MapPin size={15} className="text-rose-500" />
             {product.barangay
-              ? `${product.barangay}, Roxas`
+              ? product.barangay + ", Roxas"
               : product.location || "Roxas, Oriental Mindoro"}
           </span>
-          {distance && (
-            <span className="browse-distance">
-              <Navigation size={13} />
-              {distance}
-            </span>
-          )}
+        </p>
+        {distance && (
+          <span className="browse-card-distance">
+            <Navigation size={14} aria-hidden="true" />
+            {distance} away
+          </span>
+        )}
+        <div className="browse-card-price">
+          <strong>₱{Number(product.price_per_day || 0).toLocaleString("en-PH")}</strong>
+          <span>/ DAILY</span>
+        </div>
+        <div className="browse-card-facts">
           <span>
-            <CalendarDays size={15} />
-            Min. {product.min_days || 1}{" "}
-            {(product.min_days || 1) === 1 ? "day" : "days"}
+            <CalendarDays size={17} aria-hidden="true" />
+            Min. {product.min_days || 1} day{(product.min_days || 1) === 1 ? "" : "s"}
+          </span>
+          <span>
+            <Package size={17} aria-hidden="true" />
+            {status}
+          </span>
+          <span>
+            <Star size={16} aria-hidden="true" />
+            {Number(product.avg_rating) > 0
+              ? Number(product.avg_rating).toFixed(1)
+              : "No reviews"}
           </span>
         </div>
-        <div className="browse-review">
-          {Number(product.avg_rating) > 0 ? (
-            <>
-              <Star size={14} className="text-amber-500" fill="currentColor" />
-              {Number(product.avg_rating).toFixed(1)} rating
-            </>
-          ) : (
-            "No reviews yet"
-          )}
-          {!!product.is_super_supplier && (
-            <span className="browse-super">Super supplier</span>
-          )}
-          {product.supplier_badge && (
-            <span className="browse-super">{product.supplier_badge}</span>
-          )}
-        </div>
-        <div className="browse-product-bottom">
-          <p>
-            <strong>
-              ₱{Number(product.price_per_day || 0).toLocaleString("en-PH")}
-            </strong>
-            <span> / day</span>
-          </p>
-          <Link className="browse-primary" to={detailUrl}>
-            View rental <ArrowRight size={17} />
-          </Link>
-        </div>
-      </div>
-      <aside
-        ref={hoverDetailsRef}
-        id={`browse-details-${product.id}`}
-        className={`browse-hover-details ${detailsOpen ? "is-open" : ""}`}
-        style={hoverPosition}
-        aria-label={`More information about ${product.title}`}
-      >
-        <div className="browse-hover-details-heading">
-          <span>About this rental</span>
-          <span>{product.category}</span>
-        </div>
-        <p className="browse-hover-description">
-          {product.description?.trim() || "Contact the supplier to learn more about this rental."}
-        </p>
-        {product.specs?.trim() && (
-          <p className="browse-hover-specs" title={product.specs}>
-            <strong>Details:</strong> {product.specs}
+        {product.specs && (
+          <p className="browse-card-specs" title={product.specs}>
+            {product.specs}
           </p>
         )}
-        <div className="browse-hover-terms">
-          <span>Minimum: {product.min_days || 1} day{(product.min_days || 1) === 1 ? "" : "s"}</span>
-          <span>Maximum: {product.max_days || 30} days</span>
-          <span>{product.avg_rating > 0 ? `${Number(product.avg_rating).toFixed(1)} ★ item rating` : "Not reviewed yet"}</span>
-        </div>
-        <div className="browse-hover-supplier">
-          {product.supplier_avatar ? (
-            <img
-              src={apiAssetUrl(product.supplier_avatar)}
-              alt=""
-              onError={(event) => { event.currentTarget.hidden = true; }}
-            />
-          ) : (
-            <span className="browse-hover-supplier-initial" aria-hidden="true">
-              {(product.supplier_name || "S").slice(0, 1).toUpperCase()}
+        <div className="browse-card-supplier">
+          <div className="browse-card-supplier-info">
+            {product.supplier_avatar ? (
+              <img
+                src={apiAssetUrl(product.supplier_avatar)}
+                alt=""
+                onError={(event) => { event.currentTarget.hidden = true; }}
+              />
+            ) : (
+              <span className="browse-card-supplier-initial" aria-hidden="true">
+                {(product.supplier_name || "S").slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span>
+              <small>{product.supplier_badge || "Listed by"}</small>
+              <strong>{product.supplier_name || "Local supplier"}</strong>
             </span>
-          )}
-          <span>
-            <small>Listed by</small>
-            <strong>{product.supplier_name || "Local supplier"}</strong>
-          </span>
-          <Link to={detailUrl} className="browse-hover-view">View listing <ArrowRight size={14} /></Link>
+          </div>
+          <div className="browse-card-actions">
+            <button
+              type="button"
+              className={shareCopied ? "is-copied" : ""}
+              aria-label={shareCopied ? "Listing link copied" : "Share listing"}
+              onClick={shareListing}
+            >
+              {shareCopied ? <Check size={16} /> : <Share2 size={16} />}
+            </button>
+            {product.supplier_id && (
+              <Link
+                to={"/messages?userId=" + encodeURIComponent(product.supplier_id)}
+                aria-label={"Message " + (product.supplier_name || "supplier")}
+              >
+                <MessageSquare size={16} />
+              </Link>
+            )}
+            <Link to={detailUrl} className="browse-card-view">
+              View <ArrowRight size={15} />
+            </Link>
+          </div>
         </div>
-      </aside>
+      </div>
     </article>
   );
 }
-
 export default function Browse() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryKey = searchParams.toString();
