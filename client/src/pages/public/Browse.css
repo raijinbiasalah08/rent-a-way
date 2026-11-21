@@ -2267,15 +2267,15 @@ label.browse-filter-label {
   }
 }
 
-/* Fresh forest-and-sand theme for the existing rental card layout. */
+/* Rent-A-Way navy-and-gold theme for the existing rental card layout. */
 .browse-reference-card,
 .browse-layout-b .browse-reference-card {
-  --rental-card-primary: #167363;
-  --rental-card-deep: #173f3d;
-  --rental-card-ink: #203b39;
-  --rental-card-muted: #637872;
-  --rental-card-border: #dce9e3;
-  --rental-card-warm: #c77a2d;
+  --rental-card-primary: #233f91;
+  --rental-card-deep: #101b30;
+  --rental-card-ink: #14263f;
+  --rental-card-muted: #65748b;
+  --rental-card-border: #eadfc6;
+  --rental-card-warm: #a96a00;
   font-family: "Manrope", var(--app-font-sans), sans-serif;
   border-color: var(--rental-card-border);
 }
@@ -2283,13 +2283,13 @@ label.browse-filter-label {
   background: var(--rental-card-deep);
 }
 .browse-card-hero::after {
-  background: linear-gradient(180deg, transparent 0%, #102d2bc9 72%, #102d2bed 100%);
+  background: linear-gradient(180deg, transparent 0%, #0e172ac9 72%, #0e172aed 100%);
 }
 .browse-card-category {
-  background: #1c4b48;
+  background: #17243c;
 }
 .browse-card-favorite {
-  color: #49615c;
+  color: #64748b;
 }
 .browse-card-image-copy h2 {
   font-weight: 800;
@@ -2307,12 +2307,12 @@ label.browse-filter-label {
   color: var(--rental-card-ink);
 }
 .browse-card-location svg {
-  color: #c86d55;
-  fill: #c86d55;
+  color: #233f91;
+  fill: #233f91;
 }
 .browse-card-distance {
-  background: #eaf4ef;
-  color: #345b52;
+  background: #eef3ff;
+  color: #253a60;
 }
 .browse-card-price strong {
   color: var(--rental-card-warm);
@@ -2326,26 +2326,26 @@ label.browse-filter-label {
   color: var(--rental-card-primary);
 }
 .browse-card-supplier {
-  border-color: #e7eee9;
+  border-color: #e8ebf0;
 }
 .browse-card-supplier-info > img,
 .browse-card-supplier-initial {
-  border-color: #efd090;
+  border-color: #ffd36b;
   background: var(--rental-card-deep);
 }
 .browse-card-supplier-info small {
-  color: #71847d;
+  color: #7a8799;
 }
 .browse-card-supplier-info strong {
   color: var(--rental-card-ink);
 }
 .browse-card-actions > button:first-child {
-  background: #fff4e7;
-  color: #bd762e;
+  background: #fff5d6;
+  color: #966300;
 }
 .browse-card-actions > a:not(.browse-card-view) {
-  background: #edf4f1;
-  color: #55736a;
+  background: #eff3fa;
+  color: #53627a;
 }
 .browse-card-actions > a.browse-card-view {
   background: var(--rental-card-deep);
