@@ -1904,6 +1904,7 @@ label.browse-filter-label {
 .browse-card-location {
   display: flex;
   min-width: 0;
+  flex: 1 1 150px;
   align-items: center;
   gap: 8px;
   margin: 0;
@@ -1921,24 +1922,34 @@ label.browse-filter-label {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.browse-card-location-line {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .browse-card-distance {
   display: inline-flex;
+  flex: 0 0 auto;
   width: fit-content;
   align-items: center;
   gap: 5px;
-  margin: 8px 0 0 23px;
+  margin: 0;
   border-radius: 7px;
   padding: 4px 8px;
   background: #eef3ff;
   color: #253a60;
   font-size: 11px;
   font-weight: 650;
+  white-space: nowrap;
 }
 .browse-card-price {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 .browse-card-price strong {
   color: #ff8c22;
@@ -1955,8 +1966,8 @@ label.browse-filter-label {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 20px;
-  margin-top: 22px;
+  gap: 8px;
+  margin-top: 16px;
   color: #5b6678;
   font-size: 12px;
   font-weight: 650;
@@ -1964,7 +1975,11 @@ label.browse-filter-label {
 .browse-card-facts > span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  border: 1px solid #e8edf5;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: #f7f9fc;
   white-space: nowrap;
 }
 .browse-card-facts svg {
@@ -2015,6 +2030,7 @@ label.browse-filter-label {
 }
 .browse-card-supplier-info > span:last-child {
   display: grid;
+  flex: 1;
   min-width: 0;
   gap: 2px;
 }
@@ -2026,11 +2042,14 @@ label.browse-filter-label {
   white-space: nowrap;
 }
 .browse-card-supplier-info strong {
+  display: -webkit-box;
   overflow: hidden;
   color: #14263f;
   font-size: 13px;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .browse-card-actions {
   display: flex;
@@ -2162,13 +2181,18 @@ label.browse-filter-label {
     gap: 4px;
     font-size: 9px;
   }
+  .browse-card-location-line {
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 4px;
+  }
   .browse-card-location svg {
     width: 12px;
     height: 12px;
     margin-top: 1px;
   }
   .browse-card-distance {
-    margin: 0 0 0 16px;
+    margin-left: 16px;
     padding: 3px 5px;
     font-size: 8px;
   }
@@ -2183,12 +2207,13 @@ label.browse-filter-label {
     font-size: 8px;
   }
   .browse-card-facts {
-    gap: 6px 9px;
+    gap: 5px;
     margin-top: 5px;
     font-size: 8px;
   }
   .browse-card-facts > span {
     gap: 3px;
+    padding: 4px 6px;
   }
   .browse-card-facts svg {
     width: 12px;

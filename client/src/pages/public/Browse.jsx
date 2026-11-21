@@ -6,6 +6,7 @@ import {
   Search,
   MapPin,
   CalendarDays,
+  Clock3,
   ArrowRight,
   Star,
   ChevronRight,
@@ -254,20 +255,22 @@ function ProductCard({ product, wide, dateQuery }) {
         <h3 className="browse-card-title">
           <Link to={detailUrl}>{product.title}</Link>
         </h3>
-        <p className="browse-card-location">
-          <MapPin size={16} aria-hidden="true" />
-          <span>
-            {product.barangay
-              ? product.barangay + ", Roxas"
-              : product.location || "Roxas, Oriental Mindoro"}
-          </span>
-        </p>
-        {distance && (
-          <span className="browse-card-distance">
-            <Navigation size={14} aria-hidden="true" />
-            {distance} away
-          </span>
-        )}
+        <div className="browse-card-location-line">
+          <p className="browse-card-location">
+            <MapPin size={16} aria-hidden="true" />
+            <span>
+              {product.barangay
+                ? product.barangay + ", Roxas"
+                : product.location || "Roxas, Oriental Mindoro"}
+            </span>
+          </p>
+          {distance && (
+            <span className="browse-card-distance">
+              <Navigation size={14} aria-hidden="true" />
+              {distance}
+            </span>
+          )}
+        </div>
         <div className="browse-card-price">
           <strong>₱{Number(product.price_per_day || 0).toLocaleString("en-PH")}</strong>
           <span>/ DAILY</span>
@@ -278,8 +281,8 @@ function ProductCard({ product, wide, dateQuery }) {
             Min. {product.min_days || 1} day{(product.min_days || 1) === 1 ? "" : "s"}
           </span>
           <span>
-            <Package size={17} aria-hidden="true" />
-            {status}
+            <Clock3 size={17} aria-hidden="true" />
+            Max. {product.max_days || 30} days
           </span>
           <span>
             <Star size={16} aria-hidden="true" />
