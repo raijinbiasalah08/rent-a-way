@@ -305,6 +305,35 @@
   padding: 3px 6px;
   text-transform: capitalize;
 }
+.market-home .rental-card {
+  --rental-card-primary: #233f91;
+  --rental-card-deep: #101b30;
+  --rental-card-ink: #14263f;
+  --rental-card-muted: #65748b;
+  --rental-card-border: #eadfc6;
+  --rental-card-warm: #a96a00;
+  border-color: var(--rental-card-border);
+  font-family: "Manrope", var(--app-font-sans), sans-serif;
+}
+.market-home .rental-card:hover {
+  box-shadow: 0 7px 22px #101b3018;
+}
+.market-home .rental-card h3 a {
+  color: var(--rental-card-primary);
+}
+.market-home .rental-card-body p,
+.market-home .rental-card-price span {
+  color: var(--rental-card-muted);
+}
+.market-home .rental-card-price strong {
+  color: var(--rental-card-warm);
+}
+.market-home .rental-save {
+  color: #64748b;
+}
+.market-home .rental-save[aria-pressed="true"] {
+  color: #bd3148;
+}
 .market-skeleton {
   min-width: 0;
   overflow: hidden;
