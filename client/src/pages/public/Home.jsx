@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Search, ArrowRight, MapPin, Heart, LayoutGrid } from "lucide-react";
+import {
+  Search,
+  ArrowRight,
+  MapPin,
+  Heart,
+  LayoutGrid,
+  MessageSquare,
+  CalendarDays,
+} from "lucide-react";
 import { getProducts } from "../../api/products";
 import { useFavorites } from "../../context/FavoritesContext";
 import { apiAssetUrl } from "../../config";
@@ -48,6 +56,12 @@ const CATEGORIES = [
     name: "Apartments",
     icon: "/category-icons/apartment.png",
   },
+];
+const MARKETPLACE_FEATURES = [
+  { icon: Search, label: "COMPARE LOCAL LISTINGS" },
+  { icon: MessageSquare, label: "MESSAGE SUPPLIERS" },
+  { icon: CalendarDays, label: "CHOOSE YOUR DATES" },
+  { icon: MapPin, label: "RENTALS AROUND ROXAS" },
 ];
 
 function ListingCard({ product }) {
@@ -227,6 +241,29 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <div
+        className="market-feature-ticker"
+        role="region"
+        aria-label="Rent-A-Way marketplace features"
+      >
+        <p className="sr-only">
+          Compare local listings. Message suppliers. Choose your dates. Rentals
+          around Roxas.
+        </p>
+        <div className="animate-marquee" aria-hidden="true">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="marquee-group">
+              {MARKETPLACE_FEATURES.map(({ icon: Icon, label }) => (
+                <span key={label}>
+                  <Icon size={16} aria-hidden="true" />
+                  {label}
+                  <span className="market-feature-dot">●</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="market-container">
         <nav className="market-categories" aria-label="Rental categories">
           {CATEGORIES.map((item) => (
